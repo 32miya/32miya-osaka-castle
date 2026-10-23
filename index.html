@@ -210,6 +210,919 @@ body.touchui #poi{bottom:calc(env(safe-area-inset-bottom,0px) + 234px);max-width
 <div id="err" hidden>この端末では3D表示を開始できませんでした。<br>WebGLに対応したブラウザで開いてください。</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>/* three.js r128 examples (MIT): postprocessing */
+( function () {
+
+	/**
+ * Full-screen textured quad shader
+ */
+	var CopyShader = {
+		uniforms: {
+			'tDiffuse': {
+				value: null
+			},
+			'opacity': {
+				value: 1.0
+			}
+		},
+		vertexShader:
+  /* glsl */
+  `
+
+		varying vec2 vUv;
+
+		void main() {
+
+			vUv = uv;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+		}`,
+		fragmentShader:
+  /* glsl */
+  `
+
+		uniform float opacity;
+
+		uniform sampler2D tDiffuse;
+
+		varying vec2 vUv;
+
+		void main() {
+
+			vec4 texel = texture2D( tDiffuse, vUv );
+			gl_FragColor = opacity * texel;
+
+		}`
+	};
+
+	THREE.CopyShader = CopyShader;
+
+} )();
+
+( function () {
+
+	/**
+ * Luminosity
+ * http://en.wikipedia.org/wiki/Luminosity
+ */
+
+	const LuminosityHighPassShader = {
+		shaderID: 'luminosityHighPass',
+		uniforms: {
+			'tDiffuse': {
+				value: null
+			},
+			'luminosityThreshold': {
+				value: 1.0
+			},
+			'smoothWidth': {
+				value: 1.0
+			},
+			'defaultColor': {
+				value: new THREE.Color( 0x000000 )
+			},
+			'defaultOpacity': {
+				value: 0.0
+			}
+		},
+		vertexShader:
+  /* glsl */
+  `
+
+		varying vec2 vUv;
+
+		void main() {
+
+			vUv = uv;
+
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+		}`,
+		fragmentShader:
+  /* glsl */
+  `
+
+		uniform sampler2D tDiffuse;
+		uniform vec3 defaultColor;
+		uniform float defaultOpacity;
+		uniform float luminosityThreshold;
+		uniform float smoothWidth;
+
+		varying vec2 vUv;
+
+		void main() {
+
+			vec4 texel = texture2D( tDiffuse, vUv );
+
+			vec3 luma = vec3( 0.299, 0.587, 0.114 );
+
+			float v = dot( texel.xyz, luma );
+
+			vec4 outputColor = vec4( defaultColor.rgb, defaultOpacity );
+
+			float alpha = smoothstep( luminosityThreshold, luminosityThreshold + smoothWidth, v );
+
+			gl_FragColor = mix( outputColor, texel, alpha );
+
+		}`
+	};
+
+	THREE.LuminosityHighPassShader = LuminosityHighPassShader;
+
+} )();
+
+( function () {
+
+	class EffectComposer {
+
+		constructor( renderer, renderTarget ) {
+
+			this.renderer = renderer;
+
+			if ( renderTarget === undefined ) {
+
+				const parameters = {
+					minFilter: THREE.LinearFilter,
+					magFilter: THREE.LinearFilter,
+					format: THREE.RGBAFormat
+				};
+				const size = renderer.getSize( new THREE.Vector2() );
+				this._pixelRatio = renderer.getPixelRatio();
+				this._width = size.width;
+				this._height = size.height;
+				renderTarget = new THREE.WebGLRenderTarget( this._width * this._pixelRatio, this._height * this._pixelRatio, parameters );
+				renderTarget.texture.name = 'EffectComposer.rt1';
+
+			} else {
+
+				this._pixelRatio = 1;
+				this._width = renderTarget.width;
+				this._height = renderTarget.height;
+
+			}
+
+			this.renderTarget1 = renderTarget;
+			this.renderTarget2 = renderTarget.clone();
+			this.renderTarget2.texture.name = 'EffectComposer.rt2';
+			this.writeBuffer = this.renderTarget1;
+			this.readBuffer = this.renderTarget2;
+			this.renderToScreen = true;
+			this.passes = []; // dependencies
+
+			if ( THREE.CopyShader === undefined ) {
+
+				console.error( 'THREE.EffectComposer relies on THREE.CopyShader' );
+
+			}
+
+			if ( THREE.ShaderPass === undefined ) {
+
+				console.error( 'THREE.EffectComposer relies on THREE.ShaderPass' );
+
+			}
+
+			this.copyPass = new THREE.ShaderPass( THREE.CopyShader );
+			this.clock = new THREE.Clock();
+
+		}
+
+		swapBuffers() {
+
+			const tmp = this.readBuffer;
+			this.readBuffer = this.writeBuffer;
+			this.writeBuffer = tmp;
+
+		}
+
+		addPass( pass ) {
+
+			this.passes.push( pass );
+			pass.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
+
+		}
+
+		insertPass( pass, index ) {
+
+			this.passes.splice( index, 0, pass );
+			pass.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
+
+		}
+
+		removePass( pass ) {
+
+			const index = this.passes.indexOf( pass );
+
+			if ( index !== - 1 ) {
+
+				this.passes.splice( index, 1 );
+
+			}
+
+		}
+
+		isLastEnabledPass( passIndex ) {
+
+			for ( let i = passIndex + 1; i < this.passes.length; i ++ ) {
+
+				if ( this.passes[ i ].enabled ) {
+
+					return false;
+
+				}
+
+			}
+
+			return true;
+
+		}
+
+		render( deltaTime ) {
+
+			// deltaTime value is in seconds
+			if ( deltaTime === undefined ) {
+
+				deltaTime = this.clock.getDelta();
+
+			}
+
+			const currentRenderTarget = this.renderer.getRenderTarget();
+			let maskActive = false;
+
+			for ( let i = 0, il = this.passes.length; i < il; i ++ ) {
+
+				const pass = this.passes[ i ];
+				if ( pass.enabled === false ) continue;
+				pass.renderToScreen = this.renderToScreen && this.isLastEnabledPass( i );
+				pass.render( this.renderer, this.writeBuffer, this.readBuffer, deltaTime, maskActive );
+
+				if ( pass.needsSwap ) {
+
+					if ( maskActive ) {
+
+						const context = this.renderer.getContext();
+						const stencil = this.renderer.state.buffers.stencil; //context.stencilFunc( context.NOTEQUAL, 1, 0xffffffff );
+
+						stencil.setFunc( context.NOTEQUAL, 1, 0xffffffff );
+						this.copyPass.render( this.renderer, this.writeBuffer, this.readBuffer, deltaTime ); //context.stencilFunc( context.EQUAL, 1, 0xffffffff );
+
+						stencil.setFunc( context.EQUAL, 1, 0xffffffff );
+
+					}
+
+					this.swapBuffers();
+
+				}
+
+				if ( THREE.MaskPass !== undefined ) {
+
+					if ( pass instanceof THREE.MaskPass ) {
+
+						maskActive = true;
+
+					} else if ( pass instanceof THREE.ClearMaskPass ) {
+
+						maskActive = false;
+
+					}
+
+				}
+
+			}
+
+			this.renderer.setRenderTarget( currentRenderTarget );
+
+		}
+
+		reset( renderTarget ) {
+
+			if ( renderTarget === undefined ) {
+
+				const size = this.renderer.getSize( new THREE.Vector2() );
+				this._pixelRatio = this.renderer.getPixelRatio();
+				this._width = size.width;
+				this._height = size.height;
+				renderTarget = this.renderTarget1.clone();
+				renderTarget.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
+
+			}
+
+			this.renderTarget1.dispose();
+			this.renderTarget2.dispose();
+			this.renderTarget1 = renderTarget;
+			this.renderTarget2 = renderTarget.clone();
+			this.writeBuffer = this.renderTarget1;
+			this.readBuffer = this.renderTarget2;
+
+		}
+
+		setSize( width, height ) {
+
+			this._width = width;
+			this._height = height;
+			const effectiveWidth = this._width * this._pixelRatio;
+			const effectiveHeight = this._height * this._pixelRatio;
+			this.renderTarget1.setSize( effectiveWidth, effectiveHeight );
+			this.renderTarget2.setSize( effectiveWidth, effectiveHeight );
+
+			for ( let i = 0; i < this.passes.length; i ++ ) {
+
+				this.passes[ i ].setSize( effectiveWidth, effectiveHeight );
+
+			}
+
+		}
+
+		setPixelRatio( pixelRatio ) {
+
+			this._pixelRatio = pixelRatio;
+			this.setSize( this._width, this._height );
+
+		}
+
+	}
+
+	class Pass {
+
+		constructor() {
+
+			// if set to true, the pass is processed by the composer
+			this.enabled = true; // if set to true, the pass indicates to swap read and write buffer after rendering
+
+			this.needsSwap = true; // if set to true, the pass clears its buffer before rendering
+
+			this.clear = false; // if set to true, the result of the pass is rendered to screen. This is set automatically by EffectComposer.
+
+			this.renderToScreen = false;
+
+		}
+
+		setSize( ) {}
+
+		render( ) {
+
+			console.error( 'THREE.Pass: .render() must be implemented in derived pass.' );
+
+		}
+
+	} // Helper for passes that need to fill the viewport with a single quad.
+
+
+	const _camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 ); // https://github.com/mrdoob/three.js/pull/21358
+
+
+	const _geometry = new THREE.BufferGeometry();
+
+	_geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ - 1, 3, 0, - 1, - 1, 0, 3, - 1, 0 ], 3 ) );
+
+	_geometry.setAttribute( 'uv', new THREE.Float32BufferAttribute( [ 0, 2, 0, 0, 2, 0 ], 2 ) );
+
+	class FullScreenQuad {
+
+		constructor( material ) {
+
+			this._mesh = new THREE.Mesh( _geometry, material );
+
+		}
+
+		dispose() {
+
+			this._mesh.geometry.dispose();
+
+		}
+
+		render( renderer ) {
+
+			renderer.render( this._mesh, _camera );
+
+		}
+
+		get material() {
+
+			return this._mesh.material;
+
+		}
+
+		set material( value ) {
+
+			this._mesh.material = value;
+
+		}
+
+	}
+
+	THREE.EffectComposer = EffectComposer;
+	THREE.FullScreenQuad = FullScreenQuad;
+	THREE.Pass = Pass;
+
+} )();
+
+( function () {
+
+	class RenderPass extends THREE.Pass {
+
+		constructor( scene, camera, overrideMaterial, clearColor, clearAlpha ) {
+
+			super();
+			this.scene = scene;
+			this.camera = camera;
+			this.overrideMaterial = overrideMaterial;
+			this.clearColor = clearColor;
+			this.clearAlpha = clearAlpha !== undefined ? clearAlpha : 0;
+			this.clear = true;
+			this.clearDepth = false;
+			this.needsSwap = false;
+			this._oldClearColor = new THREE.Color();
+
+		}
+
+		render( renderer, writeBuffer, readBuffer
+			/*, deltaTime, maskActive */
+		) {
+
+			const oldAutoClear = renderer.autoClear;
+			renderer.autoClear = false;
+			let oldClearAlpha, oldOverrideMaterial;
+
+			if ( this.overrideMaterial !== undefined ) {
+
+				oldOverrideMaterial = this.scene.overrideMaterial;
+				this.scene.overrideMaterial = this.overrideMaterial;
+
+			}
+
+			if ( this.clearColor ) {
+
+				renderer.getClearColor( this._oldClearColor );
+				oldClearAlpha = renderer.getClearAlpha();
+				renderer.setClearColor( this.clearColor, this.clearAlpha );
+
+			}
+
+			if ( this.clearDepth ) {
+
+				renderer.clearDepth();
+
+			}
+
+			renderer.setRenderTarget( this.renderToScreen ? null : readBuffer ); // TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
+
+			if ( this.clear ) renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil );
+			renderer.render( this.scene, this.camera );
+
+			if ( this.clearColor ) {
+
+				renderer.setClearColor( this._oldClearColor, oldClearAlpha );
+
+			}
+
+			if ( this.overrideMaterial !== undefined ) {
+
+				this.scene.overrideMaterial = oldOverrideMaterial;
+
+			}
+
+			renderer.autoClear = oldAutoClear;
+
+		}
+
+	}
+
+	THREE.RenderPass = RenderPass;
+
+} )();
+
+( function () {
+
+	class ShaderPass extends THREE.Pass {
+
+		constructor( shader, textureID ) {
+
+			super();
+			this.textureID = textureID !== undefined ? textureID : 'tDiffuse';
+
+			if ( shader instanceof THREE.ShaderMaterial ) {
+
+				this.uniforms = shader.uniforms;
+				this.material = shader;
+
+			} else if ( shader ) {
+
+				this.uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+				this.material = new THREE.ShaderMaterial( {
+					defines: Object.assign( {}, shader.defines ),
+					uniforms: this.uniforms,
+					vertexShader: shader.vertexShader,
+					fragmentShader: shader.fragmentShader
+				} );
+
+			}
+
+			this.fsQuad = new THREE.FullScreenQuad( this.material );
+
+		}
+
+		render( renderer, writeBuffer, readBuffer
+			/*, deltaTime, maskActive */
+		) {
+
+			if ( this.uniforms[ this.textureID ] ) {
+
+				this.uniforms[ this.textureID ].value = readBuffer.texture;
+
+			}
+
+			this.fsQuad.material = this.material;
+
+			if ( this.renderToScreen ) {
+
+				renderer.setRenderTarget( null );
+				this.fsQuad.render( renderer );
+
+			} else {
+
+				renderer.setRenderTarget( writeBuffer ); // TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
+
+				if ( this.clear ) renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil );
+				this.fsQuad.render( renderer );
+
+			}
+
+		}
+
+	}
+
+	THREE.ShaderPass = ShaderPass;
+
+} )();
+
+( function () {
+
+	/**
+ * UnrealBloomPass is inspired by the bloom pass of Unreal Engine. It creates a
+ * mip map chain of bloom textures and blurs them with different radii. Because
+ * of the weighted combination of mips, and because larger blurs are done on
+ * higher mips, this effect provides good quality and performance.
+ *
+ * Reference:
+ * - https://docs.unrealengine.com/latest/INT/Engine/Rendering/PostProcessEffects/Bloom/
+ */
+
+	class UnrealBloomPass extends THREE.Pass {
+
+		constructor( resolution, strength, radius, threshold ) {
+
+			super();
+			this.strength = strength !== undefined ? strength : 1;
+			this.radius = radius;
+			this.threshold = threshold;
+			this.resolution = resolution !== undefined ? new THREE.Vector2( resolution.x, resolution.y ) : new THREE.Vector2( 256, 256 ); // create color only once here, reuse it later inside the render function
+
+			this.clearColor = new THREE.Color( 0, 0, 0 ); // render targets
+
+			const pars = {
+				minFilter: THREE.LinearFilter,
+				magFilter: THREE.LinearFilter,
+				format: THREE.RGBAFormat
+			};
+			this.renderTargetsHorizontal = [];
+			this.renderTargetsVertical = [];
+			this.nMips = 5;
+			let resx = Math.round( this.resolution.x / 2 );
+			let resy = Math.round( this.resolution.y / 2 );
+			this.renderTargetBright = new THREE.WebGLRenderTarget( resx, resy, pars );
+			this.renderTargetBright.texture.name = 'UnrealBloomPass.bright';
+			this.renderTargetBright.texture.generateMipmaps = false;
+
+			for ( let i = 0; i < this.nMips; i ++ ) {
+
+				const renderTargetHorizonal = new THREE.WebGLRenderTarget( resx, resy, pars );
+				renderTargetHorizonal.texture.name = 'UnrealBloomPass.h' + i;
+				renderTargetHorizonal.texture.generateMipmaps = false;
+				this.renderTargetsHorizontal.push( renderTargetHorizonal );
+				const renderTargetVertical = new THREE.WebGLRenderTarget( resx, resy, pars );
+				renderTargetVertical.texture.name = 'UnrealBloomPass.v' + i;
+				renderTargetVertical.texture.generateMipmaps = false;
+				this.renderTargetsVertical.push( renderTargetVertical );
+				resx = Math.round( resx / 2 );
+				resy = Math.round( resy / 2 );
+
+			} // luminosity high pass material
+
+
+			if ( THREE.LuminosityHighPassShader === undefined ) console.error( 'THREE.UnrealBloomPass relies on THREE.LuminosityHighPassShader' );
+			const highPassShader = THREE.LuminosityHighPassShader;
+			this.highPassUniforms = THREE.UniformsUtils.clone( highPassShader.uniforms );
+			this.highPassUniforms[ 'luminosityThreshold' ].value = threshold;
+			this.highPassUniforms[ 'smoothWidth' ].value = 0.01;
+			this.materialHighPassFilter = new THREE.ShaderMaterial( {
+				uniforms: this.highPassUniforms,
+				vertexShader: highPassShader.vertexShader,
+				fragmentShader: highPassShader.fragmentShader,
+				defines: {}
+			} ); // Gaussian Blur Materials
+
+			this.separableBlurMaterials = [];
+			const kernelSizeArray = [ 3, 5, 7, 9, 11 ];
+			resx = Math.round( this.resolution.x / 2 );
+			resy = Math.round( this.resolution.y / 2 );
+
+			for ( let i = 0; i < this.nMips; i ++ ) {
+
+				this.separableBlurMaterials.push( this.getSeperableBlurMaterial( kernelSizeArray[ i ] ) );
+				this.separableBlurMaterials[ i ].uniforms[ 'texSize' ].value = new THREE.Vector2( resx, resy );
+				resx = Math.round( resx / 2 );
+				resy = Math.round( resy / 2 );
+
+			} // Composite material
+
+
+			this.compositeMaterial = this.getCompositeMaterial( this.nMips );
+			this.compositeMaterial.uniforms[ 'blurTexture1' ].value = this.renderTargetsVertical[ 0 ].texture;
+			this.compositeMaterial.uniforms[ 'blurTexture2' ].value = this.renderTargetsVertical[ 1 ].texture;
+			this.compositeMaterial.uniforms[ 'blurTexture3' ].value = this.renderTargetsVertical[ 2 ].texture;
+			this.compositeMaterial.uniforms[ 'blurTexture4' ].value = this.renderTargetsVertical[ 3 ].texture;
+			this.compositeMaterial.uniforms[ 'blurTexture5' ].value = this.renderTargetsVertical[ 4 ].texture;
+			this.compositeMaterial.uniforms[ 'bloomStrength' ].value = strength;
+			this.compositeMaterial.uniforms[ 'bloomRadius' ].value = 0.1;
+			this.compositeMaterial.needsUpdate = true;
+			const bloomFactors = [ 1.0, 0.8, 0.6, 0.4, 0.2 ];
+			this.compositeMaterial.uniforms[ 'bloomFactors' ].value = bloomFactors;
+			this.bloomTintColors = [ new THREE.Vector3( 1, 1, 1 ), new THREE.Vector3( 1, 1, 1 ), new THREE.Vector3( 1, 1, 1 ), new THREE.Vector3( 1, 1, 1 ), new THREE.Vector3( 1, 1, 1 ) ];
+			this.compositeMaterial.uniforms[ 'bloomTintColors' ].value = this.bloomTintColors; // copy material
+
+			if ( THREE.CopyShader === undefined ) {
+
+				console.error( 'THREE.UnrealBloomPass relies on THREE.CopyShader' );
+
+			}
+
+			const copyShader = THREE.CopyShader;
+			this.copyUniforms = THREE.UniformsUtils.clone( copyShader.uniforms );
+			this.copyUniforms[ 'opacity' ].value = 1.0;
+			this.materialCopy = new THREE.ShaderMaterial( {
+				uniforms: this.copyUniforms,
+				vertexShader: copyShader.vertexShader,
+				fragmentShader: copyShader.fragmentShader,
+				blending: THREE.AdditiveBlending,
+				depthTest: false,
+				depthWrite: false,
+				transparent: true
+			} );
+			this.enabled = true;
+			this.needsSwap = false;
+			this._oldClearColor = new THREE.Color();
+			this.oldClearAlpha = 1;
+			this.basic = new THREE.MeshBasicMaterial();
+			this.fsQuad = new THREE.FullScreenQuad( null );
+
+		}
+
+		dispose() {
+
+			for ( let i = 0; i < this.renderTargetsHorizontal.length; i ++ ) {
+
+				this.renderTargetsHorizontal[ i ].dispose();
+
+			}
+
+			for ( let i = 0; i < this.renderTargetsVertical.length; i ++ ) {
+
+				this.renderTargetsVertical[ i ].dispose();
+
+			}
+
+			this.renderTargetBright.dispose();
+
+		}
+
+		setSize( width, height ) {
+
+			let resx = Math.round( width / 2 );
+			let resy = Math.round( height / 2 );
+			this.renderTargetBright.setSize( resx, resy );
+
+			for ( let i = 0; i < this.nMips; i ++ ) {
+
+				this.renderTargetsHorizontal[ i ].setSize( resx, resy );
+				this.renderTargetsVertical[ i ].setSize( resx, resy );
+				this.separableBlurMaterials[ i ].uniforms[ 'texSize' ].value = new THREE.Vector2( resx, resy );
+				resx = Math.round( resx / 2 );
+				resy = Math.round( resy / 2 );
+
+			}
+
+		}
+
+		render( renderer, writeBuffer, readBuffer, deltaTime, maskActive ) {
+
+			renderer.getClearColor( this._oldClearColor );
+			this.oldClearAlpha = renderer.getClearAlpha();
+			const oldAutoClear = renderer.autoClear;
+			renderer.autoClear = false;
+			renderer.setClearColor( this.clearColor, 0 );
+			if ( maskActive ) renderer.state.buffers.stencil.setTest( false ); // Render input to screen
+
+			if ( this.renderToScreen ) {
+
+				this.fsQuad.material = this.basic;
+				this.basic.map = readBuffer.texture;
+				renderer.setRenderTarget( null );
+				renderer.clear();
+				this.fsQuad.render( renderer );
+
+			} // 1. Extract Bright Areas
+
+
+			this.highPassUniforms[ 'tDiffuse' ].value = readBuffer.texture;
+			this.highPassUniforms[ 'luminosityThreshold' ].value = this.threshold;
+			this.fsQuad.material = this.materialHighPassFilter;
+			renderer.setRenderTarget( this.renderTargetBright );
+			renderer.clear();
+			this.fsQuad.render( renderer ); // 2. Blur All the mips progressively
+
+			let inputRenderTarget = this.renderTargetBright;
+
+			for ( let i = 0; i < this.nMips; i ++ ) {
+
+				this.fsQuad.material = this.separableBlurMaterials[ i ];
+				this.separableBlurMaterials[ i ].uniforms[ 'colorTexture' ].value = inputRenderTarget.texture;
+				this.separableBlurMaterials[ i ].uniforms[ 'direction' ].value = UnrealBloomPass.BlurDirectionX;
+				renderer.setRenderTarget( this.renderTargetsHorizontal[ i ] );
+				renderer.clear();
+				this.fsQuad.render( renderer );
+				this.separableBlurMaterials[ i ].uniforms[ 'colorTexture' ].value = this.renderTargetsHorizontal[ i ].texture;
+				this.separableBlurMaterials[ i ].uniforms[ 'direction' ].value = UnrealBloomPass.BlurDirectionY;
+				renderer.setRenderTarget( this.renderTargetsVertical[ i ] );
+				renderer.clear();
+				this.fsQuad.render( renderer );
+				inputRenderTarget = this.renderTargetsVertical[ i ];
+
+			} // Composite All the mips
+
+
+			this.fsQuad.material = this.compositeMaterial;
+			this.compositeMaterial.uniforms[ 'bloomStrength' ].value = this.strength;
+			this.compositeMaterial.uniforms[ 'bloomRadius' ].value = this.radius;
+			this.compositeMaterial.uniforms[ 'bloomTintColors' ].value = this.bloomTintColors;
+			renderer.setRenderTarget( this.renderTargetsHorizontal[ 0 ] );
+			renderer.clear();
+			this.fsQuad.render( renderer ); // Blend it additively over the input texture
+
+			this.fsQuad.material = this.materialCopy;
+			this.copyUniforms[ 'tDiffuse' ].value = this.renderTargetsHorizontal[ 0 ].texture;
+			if ( maskActive ) renderer.state.buffers.stencil.setTest( true );
+
+			if ( this.renderToScreen ) {
+
+				renderer.setRenderTarget( null );
+				this.fsQuad.render( renderer );
+
+			} else {
+
+				renderer.setRenderTarget( readBuffer );
+				this.fsQuad.render( renderer );
+
+			} // Restore renderer settings
+
+
+			renderer.setClearColor( this._oldClearColor, this.oldClearAlpha );
+			renderer.autoClear = oldAutoClear;
+
+		}
+
+		getSeperableBlurMaterial( kernelRadius ) {
+
+			return new THREE.ShaderMaterial( {
+				defines: {
+					'KERNEL_RADIUS': kernelRadius,
+					'SIGMA': kernelRadius
+				},
+				uniforms: {
+					'colorTexture': {
+						value: null
+					},
+					'texSize': {
+						value: new THREE.Vector2( 0.5, 0.5 )
+					},
+					'direction': {
+						value: new THREE.Vector2( 0.5, 0.5 )
+					}
+				},
+				vertexShader: `varying vec2 vUv;
+				void main() {
+					vUv = uv;
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+				}`,
+				fragmentShader: `#include <common>
+				varying vec2 vUv;
+				uniform sampler2D colorTexture;
+				uniform vec2 texSize;
+				uniform vec2 direction;
+
+				float gaussianPdf(in float x, in float sigma) {
+					return 0.39894 * exp( -0.5 * x * x/( sigma * sigma))/sigma;
+				}
+				void main() {
+					vec2 invSize = 1.0 / texSize;
+					float fSigma = float(SIGMA);
+					float weightSum = gaussianPdf(0.0, fSigma);
+					vec3 diffuseSum = texture2D( colorTexture, vUv).rgb * weightSum;
+					for( int i = 1; i < KERNEL_RADIUS; i ++ ) {
+						float x = float(i);
+						float w = gaussianPdf(x, fSigma);
+						vec2 uvOffset = direction * invSize * x;
+						vec3 sample1 = texture2D( colorTexture, vUv + uvOffset).rgb;
+						vec3 sample2 = texture2D( colorTexture, vUv - uvOffset).rgb;
+						diffuseSum += (sample1 + sample2) * w;
+						weightSum += 2.0 * w;
+					}
+					gl_FragColor = vec4(diffuseSum/weightSum, 1.0);
+				}`
+			} );
+
+		}
+
+		getCompositeMaterial( nMips ) {
+
+			return new THREE.ShaderMaterial( {
+				defines: {
+					'NUM_MIPS': nMips
+				},
+				uniforms: {
+					'blurTexture1': {
+						value: null
+					},
+					'blurTexture2': {
+						value: null
+					},
+					'blurTexture3': {
+						value: null
+					},
+					'blurTexture4': {
+						value: null
+					},
+					'blurTexture5': {
+						value: null
+					},
+					'dirtTexture': {
+						value: null
+					},
+					'bloomStrength': {
+						value: 1.0
+					},
+					'bloomFactors': {
+						value: null
+					},
+					'bloomTintColors': {
+						value: null
+					},
+					'bloomRadius': {
+						value: 0.0
+					}
+				},
+				vertexShader: `varying vec2 vUv;
+				void main() {
+					vUv = uv;
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+				}`,
+				fragmentShader: `varying vec2 vUv;
+				uniform sampler2D blurTexture1;
+				uniform sampler2D blurTexture2;
+				uniform sampler2D blurTexture3;
+				uniform sampler2D blurTexture4;
+				uniform sampler2D blurTexture5;
+				uniform sampler2D dirtTexture;
+				uniform float bloomStrength;
+				uniform float bloomRadius;
+				uniform float bloomFactors[NUM_MIPS];
+				uniform vec3 bloomTintColors[NUM_MIPS];
+
+				float lerpBloomFactor(const in float factor) {
+					float mirrorFactor = 1.2 - factor;
+					return mix(factor, mirrorFactor, bloomRadius);
+				}
+
+				void main() {
+					gl_FragColor = bloomStrength * ( lerpBloomFactor(bloomFactors[0]) * vec4(bloomTintColors[0], 1.0) * texture2D(blurTexture1, vUv) +
+						lerpBloomFactor(bloomFactors[1]) * vec4(bloomTintColors[1], 1.0) * texture2D(blurTexture2, vUv) +
+						lerpBloomFactor(bloomFactors[2]) * vec4(bloomTintColors[2], 1.0) * texture2D(blurTexture3, vUv) +
+						lerpBloomFactor(bloomFactors[3]) * vec4(bloomTintColors[3], 1.0) * texture2D(blurTexture4, vUv) +
+						lerpBloomFactor(bloomFactors[4]) * vec4(bloomTintColors[4], 1.0) * texture2D(blurTexture5, vUv) );
+				}`
+			} );
+
+		}
+
+	}
+
+	UnrealBloomPass.BlurDirectionX = new THREE.Vector2( 1.0, 0.0 );
+	UnrealBloomPass.BlurDirectionY = new THREE.Vector2( 0.0, 1.0 );
+
+	THREE.UnrealBloomPass = UnrealBloomPass;
+
+} )();
+
+</script>
 <script>
 (function(){
 "use strict";
@@ -401,6 +1314,7 @@ const cWallW=makeCanvas(256,512);{ const g=cWallW.getContext('2d'); g.fillStyle=
   g.fillStyle='rgba(0,0,0,.07)'; g.fillRect(0,96,256,5); g.fillRect(0,300,256,4);
   g.fillStyle='#2b2b2c'; g.fillRect(70,142,116,124); g.fillStyle='#08080a'; g.fillRect(78,150,100,108);
   for(let bx=82;bx<176;bx+=12){ g.fillStyle='#d9d7d0'; g.fillRect(bx,150,5,108); } g.fillStyle='#d3d1c9'; g.fillRect(64,266,128,8); }
+{ const g=cWallW.getContext('2d'),gr=g.createLinearGradient(0,0,0,110); gr.addColorStop(0,'rgba(20,18,15,.55)'); gr.addColorStop(1,'rgba(20,18,15,0)'); g.fillStyle=gr; g.fillRect(0,0,256,110); const g2=g.createLinearGradient(0,470,0,512); g2.addColorStop(0,'rgba(0,0,0,0)'); g2.addColorStop(1,'rgba(30,26,20,.35)'); g.fillStyle=g2; g.fillRect(0,470,256,42); }
 const tWallW=toTex(cWallW);
 
 /* 黒漆塗りの下見板に金の飾り金具（豊臣期） */
@@ -411,6 +1325,7 @@ const cWallK=makeCanvas(256,512);{ const g=cWallK.getContext('2d'); g.fillStyle=
   g.fillStyle='#c99a35'; g.fillRect(0,62,256,7);
   g.fillStyle='#c99a35'; g.fillRect(68,140,120,134); g.fillStyle='#050506'; g.fillRect(74,146,108,122);
   for(let bx=80;bx<182;bx+=12){ g.fillStyle='#3d3829'; g.fillRect(bx,146,4,122); } }
+{ const g=cWallK.getContext('2d'),gr=g.createLinearGradient(0,0,0,90); gr.addColorStop(0,'rgba(0,0,0,.6)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,256,90); }
 const tWallK=toTex(cWallK);
 
 /* ---------- 最上層の意匠: 黒漆の壁に金の伏虎（ふくこ）と鶴 ---------- */
@@ -516,10 +1431,28 @@ const cMira=makeCanvas(256,256);{ const g=cMira.getContext('2d'); g.fillStyle='#
   for(const x of [40,152]){ g.fillStyle='#efe6d2'; g.fillRect(x-4,60,72,132); g.fillStyle='#1d2328'; g.beginPath(); g.moveTo(x,186); g.lineTo(x,96); g.arc(x+32,96,32,Math.PI,0); g.lineTo(x+64,186); g.fill(); g.fillStyle='#d9cfba'; g.fillRect(x+30,64,4,122); g.fillRect(x,140,64,3); } }
 const tMira=toTex(cMira);
 /* 彫刻欄間（桃山の極彩色） */
-const cCarve=makeCanvas(256,128);{ const g=cCarve.getContext('2d'); g.fillStyle='#1a1410'; g.fillRect(0,0,256,128);
-  for(let i=0;i<40;i++){ g.fillStyle=pick(['#c23a2b','#2f7a5a','#e0b84a','#2e5c9a','#f1ece0']); g.beginPath(); g.ellipse(rnd()*256,rnd()*128,6+rnd()*16,4+rnd()*9,rnd()*3,0,6.283); g.fill(); }
-  g.strokeStyle='#d8a93c'; g.lineWidth=6; g.strokeRect(3,3,250,122); }
+/* 彫刻の蟇股・欄間: 黒地に極彩色の牡丹と唐草、金の縁（竹生島・宝厳寺唐門のような桃山の装飾） */
+const cCarve=makeCanvas(512,256);{ const g=cCarve.getContext('2d'); g.fillStyle='#111a2a'; g.fillRect(0,0,512,256);
+  g.strokeStyle='#2f7a4a'; g.lineWidth=7; for(let i=0;i<9;i++){ g.beginPath(); const y=40+rnd()*176; g.moveTo(0,y); for(let x=0;x<=512;x+=32) g.quadraticCurveTo(x+16,y+(rnd()-.5)*90,x+32,y+(rnd()-.5)*30); g.stroke(); }
+  for(let i=0;i<26;i++){ g.fillStyle=pick(['#2f8a52','#3b9a5c','#1f6a42']); g.beginPath(); g.ellipse(rnd()*512,rnd()*256,18,8,rnd()*3,0,6.283); g.fill(); }
+  const peony=(x,y,r,c1,c2)=>{ for(let k=0;k<3;k++){ const rr=r*(1-k*.28); for(let p=0;p<9;p++){ const a=p/9*6.283+k*.3; g.fillStyle=k%2?c2:c1; g.beginPath(); g.ellipse(x+Math.cos(a)*rr*.55,y+Math.sin(a)*rr*.55,rr*.5,rr*.32,a,0,6.283); g.fill(); } } g.fillStyle='#f0c14a'; g.beginPath(); g.arc(x,y,r*.18,0,6.283); g.fill(); };
+  for(const [x,y,r,c1,c2] of [[80,128,54,'#e8475a','#f7a4b4'],[256,118,62,'#f4f0e6','#f3c6cf'],[430,132,52,'#d93a2e','#f59a7a'],[170,60,30,'#3a6fc0','#8fb6ec'],[350,200,30,'#e8475a','#f7a4b4']]) peony(x,y,r,c1,c2);
+  g.strokeStyle='#e2b24a'; g.lineWidth=12; g.strokeRect(6,6,500,244); g.strokeStyle='#8a6418'; g.lineWidth=3; g.strokeRect(14,14,484,228); }
 const tCarve=toTex(cCarve);
+/* 柱の飾り金具: 黒漆に金の帯と八双金具 */
+const cKanagu=makeCanvas(64,256);{ const g=cKanagu.getContext('2d'); g.fillStyle='#0c0c0e'; g.fillRect(0,0,64,256);
+  for(const [y,h] of [[0,26],[116,24],[230,26]]){ const gr=g.createLinearGradient(0,y,0,y+h); gr.addColorStop(0,'#f6d77a'); gr.addColorStop(.5,'#c9962e'); gr.addColorStop(1,'#8a6418'); g.fillStyle=gr; g.fillRect(0,y,64,h); g.fillStyle='#5a3e0c'; for(let x=4;x<64;x+=8) g.fillRect(x,y+h/2-1,3,3); }
+  g.fillStyle='#d9a73c'; for(const y of [44,196]){ g.beginPath(); g.moveTo(0,y-10); g.lineTo(32,y-16); g.lineTo(64,y-10); g.lineTo(64,y+10); g.lineTo(32,y+16); g.lineTo(0,y+10); g.fill(); } }
+const tKanagu=toTex(cKanagu);
+/* 扉の格子: 朱と緑の格子に金の花菱（極楽橋の門扉の想像図のような彩色） */
+const cLattice=makeCanvas(256,512);{ const g=cLattice.getContext('2d'); g.fillStyle='#1a1410'; g.fillRect(0,0,256,512);
+  for(let y=0;y<512;y+=32) for(let x=0;x<256;x+=32){ g.fillStyle=((x+y)/32)%2?'#b8302a':'#2f7a4a'; g.fillRect(x+3,y+3,26,26); g.fillStyle='#e2b24a'; g.beginPath(); g.moveTo(x+16,y+7); g.lineTo(x+25,y+16); g.lineTo(x+16,y+25); g.lineTo(x+7,y+16); g.fill(); g.fillStyle='#111'; g.fillRect(x+14,y+14,4,4); }
+  g.strokeStyle='#e2b24a'; g.lineWidth=10; g.strokeRect(5,5,246,502); g.fillStyle='#e2b24a'; g.fillRect(0,250,256,12); }
+const tLattice=toTex(cLattice,true,false);
+/* 極楽橋の内壁: 緑青の板と金の縁 */
+const cGreenP=makeCanvas(256,256);{ const g=cGreenP.getContext('2d'); g.fillStyle='#1f6a4a'; g.fillRect(0,0,256,256); mottleTex(g,256,256,50,['#2a7a56','#185a3e'],.5); g.strokeStyle='#e2b24a'; g.lineWidth=14; g.strokeRect(7,7,242,242); g.fillStyle='#e2b24a'; for(const [x,y] of [[20,20],[236,20],[20,236],[236,236]]){ g.beginPath(); g.arc(x,y,10,0,6.283); g.fill(); } }
+const tGreenP=toTex(cGreenP);
+
 /* 近代の高層ビルの窓 */
 const cTower=makeCanvas(128,256),cTowerE=makeCanvas(128,256);{ const g=cTower.getContext('2d'),e=cTowerE.getContext('2d'); g.fillStyle='#55626c'; g.fillRect(0,0,128,256); e.fillStyle='#000'; e.fillRect(0,0,128,256);
   for(let y=0;y<256;y+=8) for(let x=0;x<128;x+=8){ const l=60+rnd()*50; g.fillStyle=`rgb(${l*.8|0},${l|0},${l*1.12|0})`; g.fillRect(x+1,y+1,6,5); if(rnd()<.45){ const b=140+rnd()*110|0; e.fillStyle=`rgb(${b},${b*.9|0},${b*.7|0})`; e.fillRect(x+1,y+1,6,5); } } }
@@ -599,8 +1532,8 @@ const M={
   machiya:std({map:tMachi,bumpMap:tMachi,bumpScale:.12,emissiveMap:tMachiE,emissive:new THREE.Color(0xffc27a),emissiveIntensity:0,roughness:.85}),
   dote:std({map:tDote,roughness:1}),
   wallW:std({map:tWallW,roughness:.85}),
-  wallK:std({map:tWallK,roughness:.42,metalness:.05}),
-  topK:std({map:tTopK,roughness:.3,metalness:.1}),
+  wallK:new THREE.MeshPhysicalMaterial({map:tWallK,roughness:.4,metalness:.05,clearcoat:.8,clearcoatRoughness:.1}),
+  topK:new THREE.MeshPhysicalMaterial({map:tTopK,roughness:.3,metalness:.1,clearcoat:1,clearcoatRoughness:.06}),
   tiger:std({map:tTigerC,emissiveMap:tTigerC,emissive:new THREE.Color(0xffffff),emissiveIntensity:.42,bumpMap:tTigerM,bumpScale:3,roughness:.35,metalness:.15,side:DS}),
   tiger2:std({map:tTigerC2,emissiveMap:tTigerC2,emissive:new THREE.Color(0xffffff),emissiveIntensity:.42,bumpMap:tTigerM2,bumpScale:3,roughness:.35,metalness:.15,side:DS}),
   crane:std({map:tCraneC,emissiveMap:tCraneC,emissive:new THREE.Color(0xffffff),emissiveIntensity:.42,bumpMap:tCraneM,bumpScale:2.5,roughness:.35,metalness:.15,side:DS}),
@@ -608,7 +1541,10 @@ const M={
   sangi:std({map:tSangi,bumpMap:tSangi,bumpScale:.8,roughness:.9}),
   glass:std({color:0xdfeaea,transparent:true,opacity:.16,roughness:.05,metalness:0,depthWrite:false}),
   gold:std({color:0xe0b04a,metalness:.35,roughness:.32,emissive:new THREE.Color(0x7a5612),side:DS}),
-  lacquer:std({color:0x0e0e10,roughness:.22,metalness:.05,side:DS}),
+  lacquer:new THREE.MeshPhysicalMaterial({color:0x0c0c0e,roughness:.35,metalness:0,clearcoat:1,clearcoatRoughness:.06,side:DS}),
+  lacqK:new THREE.MeshPhysicalMaterial({map:tKanagu,roughness:.35,metalness:.2,clearcoat:1,clearcoatRoughness:.06}),
+  lattice:std({map:tLattice,emissiveMap:tLattice,emissive:new THREE.Color(0xffffff),emissiveIntensity:.12,roughness:.45,side:DS}),
+  greenP:std({map:tGreenP,roughness:.4,metalness:.2,side:DS}),
   kin:std({map:tKin,emissiveMap:tKin,emissive:new THREE.Color(0xffffff),emissiveIntensity:.32,roughness:.45,metalness:.35,side:DS}),
   kinpaku:std({map:tKinP,emissiveMap:tKinP,emissive:new THREE.Color(0xffffff),emissiveIntensity:.4,roughness:.3,metalness:.6,side:DS}),
   tatami:std({map:tTatami,roughness:.85}),
@@ -623,6 +1559,30 @@ const M={
   straw:std({color:0xb59a5c,roughness:1})
 };
 for(const k in M){ if(M[k].color) M[k].color.convertSRGBToLinear(); if(M[k].emissive) M[k].emissive.convertSRGBToLinear(); }
+/* ---------- 質感の強化（PBR）: 高さ画像から法線マップを作り、凹凸を光で見せる ---------- */
+/* 凹凸: 高さ画像から光の当たり方を計算するバンプマップを主要な素材に（法線マップと同じ効果を軽く出す） */
+const toBump=c=>toTex(c,false);
+for(const [k,c,sc] of [['roof',cRoof,1.1],['roofG',cRoofG,1.1],['hinoki',cShingle,1.2],['shingle',cShingle,1.2],['stone',cStoneH,2.2],['stoneK',cStoneKH,1.8],['sangi',cSangi,1.2],['wood',cWood,.9],['woodGrain',cWood,.8],
+  ['plaster',cPlaster,.5],['wallW',cWallW,.35],['dobei',cDobei,.6],['thatch',cThatch,1.6],['carve',cCarve,2.2],['dote',cDote,1.2],['kura',cKura,.5],['namako',cNamako,1],['wallK',cWallK,.5],['kin',cKin,.6],['lattice',cLattice,1.2],['greenP',cGreenP,.8],['lacqK',cKanagu,.8]]){
+  const m=M[k]; if(!m) continue; if(!m.bumpMap) m.bumpMap=toBump(c); m.bumpScale=sc; m.needsUpdate=true; }
+/* 周囲の映り込み（環境マップ）: 時刻ごとの空と地面を小さなキューブマップに描く */
+const envFaces=[0,1,2,3,4,5].map(()=>makeCanvas(64,64)); const envCube=new THREE.CubeTexture(envFaces); envCube.encoding=THREE.sRGBEncoding;
+function paintEnv(T,sd){ const top='#'+new THREE.Color(T.top).getHexString(),hor='#'+new THREE.Color(T.hor).getHexString(),gnd=T.night>.5?'#0b0c10':'#5a5648';
+  const dirs=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+  envFaces.forEach((c,f)=>{ const g=c.getContext('2d');
+    if(f===2){ g.fillStyle=top; g.fillRect(0,0,64,64); } else if(f===3){ g.fillStyle=gnd; g.fillRect(0,0,64,64); }
+    else { const gr=g.createLinearGradient(0,0,0,64); gr.addColorStop(0,top); gr.addColorStop(.48,hor); gr.addColorStop(.5,gnd); gr.addColorStop(1,gnd); g.fillStyle=gr; g.fillRect(0,0,64,64);
+      for(let i=0;i<10;i++){ g.fillStyle='rgba(40,38,34,.5)'; const x=rnd()*64,w=4+rnd()*10,h=2+rnd()*8; g.fillRect(x,32-h,w,h); } }
+    const d=dirs[f],dot=d[0]*sd.x+d[1]*sd.y+d[2]*sd.z; if(dot>.35){ const gr=g.createRadialGradient(32,f===2?32:Math.max(6,32-sd.y*30),0,32,32,40); gr.addColorStop(0,'rgba(255,245,220,'+(.9*dot).toFixed(2)+')'); gr.addColorStop(1,'rgba(255,245,220,0)'); g.fillStyle=gr; g.fillRect(0,0,64,64); } });
+  envCube.needsUpdate=true; }
+const ENV_I={gold:1.3,tiger:1,tiger2:1,crane:1,kiri:1,kinpaku:.9,lacquer:1,wallK:.9,topK:1,bronze:.9,tower:1.1,roofG:.7,roof:.55,hinoki:.3,shrineRoof:.7,ridge:.6,showcase:.6,glass:1.2,concrete:.3,stoneK:.25,stone:.25,sangi:.25,plaster:.3,wallW:.35,wood:.25,darkwood:.3,floor:.5,tatami:.25,kura:.3,machiya:.25,shingle:.3,dobei:.3,mira:.35,facade:.35,hroof:.5,black:.5,felt:.15};
+for(const k in ENV_I){ const m=M[k]; if(!m) continue; m.envMap=envCube; m.envMapIntensity=ENV_I[k]; m.needsUpdate=true; }
+/* 金と漆の値（金属はツヤ、漆は黒い鏡のような反射） */
+M.gold.metalness=.9; M.gold.roughness=.24; M.gold.emissive.setRGB(.16,.1,.02);
+for(const k of ['tiger','tiger2','crane','kiri']){ M[k].metalness=.55; M[k].roughness=.3; M[k].emissiveIntensity=.22; }
+M.kinpaku.metalness=.7; M.kinpaku.roughness=.35; M.kinpaku.emissiveIntensity=.22;
+M.roofG.metalness=.35; M.roofG.roughness=.45; M.tower.metalness=.6; M.tower.roughness=.18;
+
 const PJU={uPJ:{value:0},uPT:{value:0}};
 const PJ_GLSL='\nuniform float uPJ,uPT;\nvarying vec3 vPjW,vPjN;\nfloat pjH(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }\nvec3 pjHsv(float h,float s,float v){ vec3 k=clamp(abs(mod(h*6.+vec3(0.,4.,2.),6.)-3.)-1.,0.,1.); return v*mix(vec3(1.),k,s); }\nvec3 pjScene(vec2 uv,float t,float ch){\n  vec2 p=vec2(uv.x*1.94,uv.y); vec3 c=vec3(0.);\n  if(ch<.5){ float sw=exp(-pow((uv.y-fract(t/5.)*1.2+.1)*9.,2.)); float g1=smoothstep(.07,0.,abs(fract(uv.y*14.)-.5)-.38); float g2=smoothstep(.07,0.,abs(fract(p.x*7.)-.5)-.4);\n    c=vec3(1.,.72,.32)*(max(g1,g2)*.35*smoothstep(0.,4.,t)+sw*1.6)+vec3(.04,.05,.12); }\n  else if(ch<1.5){ c=mix(vec3(.03,.04,.16),vec3(.16,.06,.18),uv.y); for(int L=0;L<2;L++){ float fl=float(L); vec2 g=p*vec2(7.+fl*4.,5.+fl*3.); g.y-=t*(.45+fl*.3); g.x+=sin(g.y*.7+fl)*.3; vec2 id=floor(g),f=fract(g)-.5; float on=step(.45,pjH(id+fl*7.)); float r=.16+.1*pjH(id+3.);\n      float d=length(f*vec2(1.,.75)); c+=on*(smoothstep(r,r-.04,d)*vec3(1.,.55,.18)*1.6+exp(-d*7.)*vec3(1.,.4,.1)*.5); } }\n  else if(ch<2.5){ vec2 q=p-vec2(.97,.56); float a=atan(q.y,q.x),r=length(q); float pat=sin(a*8.+t*.8)*sin(r*28.-t*2.5); float k=smoothstep(-.2,.12,pat);\n    c=pjHsv(fract(a/6.2832*2.+t*.06+r),.75,1.)*k*1.6+pjHsv(fract(t*.05+.5),.6,.4); c*=smoothstep(1.5,.2,r); }\n  else if(ch<3.5){ float m=.38+.13*sin(p.x*3.1+t*.25)+.05*sin(p.x*11.-t*.4)+.03*sin(p.x*23.); c=mix(vec3(.02,.06,.2),vec3(.1,.3,.6),uv.y);\n    float mt=smoothstep(m+.005,m-.005,uv.y); c=mix(c,vec3(.06,.12,.3),mt); float snow=mt*smoothstep(m-.07,m-.01,uv.y); c+=snow*vec3(.9,.95,1.)*.9;\n    float wv=smoothstep(.05,0.,abs(sin(p.x*9.+t*1.6+uv.y*30.)*.5+.5-uv.y*3.))*step(uv.y,.22); c+=wv*vec3(.4,.8,1.)*.8; c+=step(.996,pjH(floor(p*80.)))*step(m,uv.y)*vec3(1.); }\n  else if(ch<4.5){ c=mix(vec3(.25,.05,.15),vec3(.6,.2,.35),uv.y)*.6; for(int L=0;L<3;L++){ float fl=float(L); vec2 g=p*vec2(9.+fl*5.,6.+fl*4.); g.y+=t*(.7+fl*.35); g.x+=sin(t*.6+g.y*.4+fl)*.6; vec2 id=floor(g),f=fract(g)-.5;\n      float on=step(.35,pjH(id+fl*11.)); float an=pjH(id)*6.28+t*1.5; vec2 rf=mat2(cos(an),-sin(an),sin(an),cos(an))*f; float d=length(rf*vec2(1.,1.9)); c+=on*smoothstep(.2,.14,d)*vec3(1.,.62,.78)*1.4; } }\n  else { vec2 q=p-vec2(.97,1.15); float a=atan(q.y,q.x); float rays=pow(abs(sin(a*12.+t*1.4)),18.); float fl=smoothstep(14.,15.2,t)*smoothstep(16.,15.4,t);\n    c=mix(vec3(.25,.12,.04),vec3(.9,.65,.25),uv.y)*.7+vec3(1.,.8,.4)*rays*1.3+vec3(1.)*fl*2.; }\n  return c; }\nvec3 pjShow(){ if(uPJ<.01) return vec3(0.); vec3 w=vPjW; if(w.x<-46.||w.x>34.||w.z<-82.||w.z>-8.) return vec3(0.);\n  vec2 uv=vec2((w.x+46.)/80.,(w.y-1.)/56.); float face=clamp(vPjN.z*.85+.3,0.,1.);\n  float T=mod(uPT,96.),ch=floor(T/16.),lt=T-ch*16.; float fade=smoothstep(0.,1.,lt)*smoothstep(16.,15.,lt);\n  return pjScene(uv,lt,ch)*fade*face*uPJ; }\n';
 function addPJ(m){ m.onBeforeCompile=sh=>{ sh.uniforms.uPJ=PJU.uPJ; sh.uniforms.uPT=PJU.uPT;
@@ -693,7 +1653,7 @@ class Batch{ constructor(){ this.p=[]; this.n=[]; this.u=[]; this.c=[]; }
     g.setAttribute('uv',new THREE.Float32BufferAttribute(this.u,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(this.c,3));
     g.computeBoundingSphere(); (parent||scene).add(mesh(g,mat,cast!==false,true)); } }
 const BKEYS=['kura','namako','roof','roofG','ridge','plaster','black','wood','noren','facade','hroof','lantern','concrete','torii','darkwood','shrineRoof','stone','stoneK','floor','inWall','inDark','lampIn','thatch','shingle','hinoki','machiya','dote','dobei','woodGrain',
-  'wallW','wallK','topK','tiger','tiger2','crane','kiri','sangi','glass','gold','lacquer','kin','kinpaku','tatami','museum','felt','mira','carve','tower','bronze','hall','showcase','straw','shu'];
+  'wallW','wallK','topK','tiger','tiger2','crane','kiri','sangi','glass','lacqK','lattice','greenP','gold','lacquer','kin','kinpaku','tatami','museum','felt','mira','carve','tower','bronze','hall','showcase','straw','shu'];
 function mkB(){ const o={}; BKEYS.forEach(k=>o[k]=new Batch()); return o; }
 let B=mkB(); const BS=B; let BM=null,BE=null;
 const GM=new THREE.Group(),GE=new THREE.Group(); scene.add(GM); scene.add(GE); GE.visible=false;
@@ -943,7 +1903,9 @@ function karahafu(par,x,y,z,ry,W,mats){ const g=new THREE.Group(); g.position.se
   const r=mesh(karaGeo(W,L),mats.roof); r.position.set(0,1.1,0); g.add(r);
   const f=mesh(karaFaceGeo(W*.92),mats.gable); f.position.set(0,1.1,L/2-.15); g.add(f);
   const tr=mesh(karaTrimGeo(W),M.gold); tr.position.set(0,1.1,L/2+.02); g.add(tr);
-  const gm=mesh(new THREE.BoxGeometry(.9,.5,.08),M.gold); gm.position.set(0,1.15,L/2-.1); g.add(gm); par.add(g); }
+  const gm=mesh(new THREE.BoxGeometry(.9,.5,.08),M.gold); gm.position.set(0,1.15,L/2-.1); g.add(gm);
+  if(mats.gold){ const R=W*.72,ah=R*(1-Math.cos(Math.asin(Math.min(.98,W/2/R)))); const cv=mesh(new THREE.PlaneGeometry(W*.42,ah*.62),M.carve); cv.position.set(0,1.1+ah*.36,L/2-.12); g.add(cv); const kg=mesh(new THREE.ConeGeometry(.35,.6,5),M.gold); kg.rotation.z=Math.PI; kg.position.set(0,1.1+ah*.9,L/2+.04); g.add(kg); }
+  par.add(g); }
 /* 天守の外観。levels: [{w,d,h,slope,wall}] */
 function tenshuExt(par,cx,y0,cz,levels,mats){ const g=new THREE.Group(); g.position.set(cx,y0,cz); par.add(g); let y=0; const info=[];
   levels.forEach((L,i)=>{ const nx=levels[i+1];
@@ -969,15 +1931,15 @@ function yagura(cx,cz,w,d,ry,o){ o=o||{}; const g=new THREE.Group(); g.position.
     const w2=mesh(wallBoxGeo(w2v,h2,d2v),wall); w2.position.y=yb+h1+h2/2; g.add(w2); const r=hipRoof(w2v,d2v,1.2,mats); r.position.y=yb+h1+h2-.1; g.add(r); }
   const c=Math.cos(ry||0),s=Math.sin(ry||0),hw=Math.abs(w/2*c)+Math.abs(d/2*s)+.6,hd=Math.abs(w/2*s)+Math.abs(d/2*c)+.6; block(cx-hw,cz-hd,cx+hw,cz+hd,'castle'); return g; }
 /* 高麗門・櫓門などの門 */
-function gate(cx,cz,W,ry,o){ o=o||{}; const g=new THREE.Group(); g.position.set(cx,o.y||0,cz); g.rotation.y=ry||0; (o.par||GM).add(g); const H=o.h||5.2,mw=o.post||'darkwood';
+function gate(cx,cz,W,ry,o){ o=o||{}; const g=new THREE.Group(); g.position.set(cx,o.y||0,cz); g.rotation.y=ry||0; (o.par||GM).add(g); const H=o.h||5.2,mw=(o.gold&&o.post==='lacquer')?'lacqK':(o.post||'darkwood');
   for(const s of [-1,1]){ const p=mesh(new THREE.BoxGeometry(.7,H,.7),M[mw]); p.position.set(s*W/2,H/2,0); g.add(p); const p2=mesh(new THREE.BoxGeometry(.45,H*.8,.45),M[mw]); p2.position.set(s*W/2,H*.4,-2); g.add(p2);
-    const leaf=mesh(boxUVGeo(W/2-.3,H-1.1,.18,1.4,H),M.woodGrain); leaf.position.set(s*(W/2-.25),(H-1.1)/2+.1,-(W/4-.15)); leaf.rotation.y=Math.PI/2; g.add(leaf); }
+    const leaf=mesh(o.gold?new THREE.BoxGeometry(W/2-.3,H-1.1,.18):boxUVGeo(W/2-.3,H-1.1,.18,1.4,H),o.gold?M.lattice:M.woodGrain); leaf.position.set(s*(W/2-.25),(H-1.1)/2+.1,-(W/4-.15)); leaf.rotation.y=Math.PI/2; g.add(leaf); }
   const bm=mesh(new THREE.BoxGeometry(W+1.6,.6,.8),M[mw]); bm.position.y=H-.3; g.add(bm);
   const mats={roof:o.roof||M.roof,gable:o.gable||M.plaster,gold:!!o.gold};
   if(o.kara){ karahafu(g,0,H-.8,-1.2,0,W+2.4,mats); const r=mesh(gableRoofGeo(W+2,3.4,1.3,.6,.5),mats.roof); r.position.set(0,H,-1.4); r.rotation.y=Math.PI/2; r.rotation.y=0; g.add(r); }
   else { const r=mesh(gableRoofGeo(W+2.4,2.6,1.1,.5,.4),mats.roof); r.position.y=H; g.add(r); const rd=mesh(new THREE.BoxGeometry(W+3,.3,.4),M.ridge); rd.position.y=H+1.12; g.add(rd);
     for(const s of [-1,1]){ const sr=mesh(gableRoofGeo(1.8,2.2,.7,.35,.2),mats.roof); sr.position.set(s*W/2,H*.78,-1.6); sr.rotation.y=Math.PI/2; g.add(sr); } }
-  if(o.gold){ const gb=mesh(new THREE.BoxGeometry(W+1.7,.12,.85),M.gold); gb.position.y=H-.05; g.add(gb); const cv=mesh(new THREE.BoxGeometry(W*.8,.9,.1),M.carve); cv.position.set(0,H-1.05,.42); g.add(cv); }
+  if(o.gold){ const gb=mesh(new THREE.BoxGeometry(W+1.7,.12,.85),M.gold); gb.position.y=H-.05; g.add(gb); const cv=mesh(new THREE.BoxGeometry(W*.8,.9,.1),M.carve); cv.position.set(0,H-1.05,.42); g.add(cv); for(let k=-3;k<=3;k++){ const kb=mesh(new THREE.BoxGeometry(.3,.3,.6),k%2?M.greenP:M.gold); kb.position.set(k*W/7.5,H+.12,.3); g.add(kb); } }
   const c=Math.cos(ry||0),s=Math.sin(ry||0); for(const sx of [-1,1]){ const px=cx+sx*W/2*c,pz=cz-sx*W/2*s; block(px-.6,pz-.6,px+.6,pz+.6,'castle'); }
   return g; }
 /* 石垣の塊（枡形の壁など） */
@@ -1195,13 +2157,26 @@ goten(26,34,48,26,5.4,0,{kara:true}); goten(-46,36,26,18,4.6); goten(-14,-43,36,
 /* 山里丸: 茶室と庭 */
 { const tea=(x,z,w,d)=>{ B.wood.add(boxUVGeo(w,2.4,d,2.6,2.4),TM(x,1.2,z)); B.straw.add(gableRoofGeo(w,d,1.6,.8,.5),TM(x,2.4,z)); B.wood.add(gableEndsGeo(w,d,1.6),TM(x,2.4,z)); B.black.add(new THREE.BoxGeometry(.9,.9,.05),TM(x,.6,z+d/2+.02)); block(x-w/2-.6,z-d/2-.6,x+w/2+.6,z+d/2+.6,'castle'); };
   tea(-50,-86,4,3.6); tea(26,-88,6,4); for(let i=0;i<14;i++){ const a=i/14*6.283; B.stone.add(new THREE.CylinderGeometry(.35,.4,.12,8),TM(-22+Math.cos(a)*9,.06,-84+Math.sin(a)*4)); } }
-/* 極楽橋（豊臣期）: 屋根付きの華やかな橋 */
-{ const x0=-28.5,x1=-19.5,cx=(x0+x1)/2,z0=-131,z1=-99,y=.45; B.lacquer.add(boxUVGeo(x1-x0,.4,z1-z0,2,2),TM(cx,y-.2,(z0+z1)/2));
-  for(let z=z0+1;z<=z1-1;z+=3) for(const sx of [x0+.3,x1-.3]){ B.lacquer.add(new THREE.BoxGeometry(.3,3.6,.3),TM(sx,y+1.8,z)); B.gold.add(new THREE.BoxGeometry(.36,.2,.36),TM(sx,y+3.5,z)); }
-  for(const sx of [x0+.3,x1-.3]){ B.lacquer.add(new THREE.BoxGeometry(.16,.14,z1-z0),TM(sx,y+1,(z0+z1)/2)); B.gold.add(new THREE.BoxGeometry(.2,.1,z1-z0),TM(sx,y+1.08,(z0+z1)/2)); }
-  B.hinoki.add(gableRoofGeo(z1-z0,x1-x0,1.8,1.1,.6),TM(cx,y+3.6,(z0+z1)/2,Math.PI/2)); B.lacquer.add(gableEndsGeo(z1-z0,x1-x0,1.8),TM(cx,y+3.6,(z0+z1)/2,Math.PI/2)); B.gold.add(new THREE.BoxGeometry(.5,.24,z1-z0+1.4),TM(cx,y+5.45,(z0+z1)/2));
-  for(const z of [z0+.1,z1-.1]){ const g=new THREE.Group(); g.position.set(cx,y+2.5,z); g.rotation.y=z<-110?Math.PI:0; GE.add(g); karahafu(g,0,0,0,0,8,{roof:M.hinoki,gable:M.lacquer,gold:true}); }
-  for(const t of [.3,.7]) for(const sx of [x0+1,x1-1]) B.lacquer.add(new THREE.CylinderGeometry(.3,.3,15,8),TM(sx,y-7.5,z0+(z1-z0)*t)); }
+/* 極楽橋（豊臣期）: 黒漆の屋根付き橋。内部は金地と緑の板、門は唐破風と極彩色の格子扉、上に櫓（NHKの想像CGなどを参考にした想像復元） */
+{ const x0=-28.5,x1=-19.5,cx=(x0+x1)/2,z0=-131,z1=-99,y=.45,zc=(z0+z1)/2,L=z1-z0;
+  B.lacquer.add(boxUVGeo(x1-x0,.4,L,2,2),TM(cx,y-.2,zc)); B.floor.add(boxUVGeo(x1-x0-.8,.04,L,2.4,2.4),TM(cx,y+.02,zc));
+  for(const [sx,inx] of [[x0+.15,x0+.32],[x1-.15,x1-.32]]){ B.lacquer.add(new THREE.BoxGeometry(.2,2.6,L),TM(sx,y+1.3,zc)); block(Math.min(sx,inx)-.2,z0,Math.max(sx,inx)+.2,z1,'castle');
+    for(let z=z0+1.6,k=0;z<z1-1.5;z+=3,k++){ B[k%2?'greenP':'kin'].add(new THREE.BoxGeometry(.05,2.1,2.6),TM(inx,y+1.35,z+1.5)); }
+    B.gold.add(new THREE.BoxGeometry(.3,.12,L),TM(sx,y+2.62,zc)); B.gold.add(new THREE.BoxGeometry(.3,.1,L),TM(sx,y+.3,zc));
+    for(let z=z0+1.6;z<=z1-1.4;z+=3){ B.lacqK.add(boxUVGeo(.32,3.4,.32,1,3.4),TM(sx,y+1.7,z)); } B.lacquer.add(new THREE.BoxGeometry(.24,.2,L),TM(sx,y+3.45,zc)); }
+  B.kinpaku.add(boxUVGeo(x1-x0,.06,L,2,2),TM(cx,y+3.58,zc)); for(let z=z0+1.6;z<=z1-1.4;z+=1.5) B.lacquer.add(new THREE.BoxGeometry(x1-x0,.1,.1),TM(cx,y+3.52,z));
+  B.hinoki.add(gableRoofGeo(L,x1-x0,1.8,1.1,.6),TM(cx,y+3.6,zc,Math.PI/2)); B.lacquer.add(gableEndsGeo(L,x1-x0,1.8),TM(cx,y+3.6,zc,Math.PI/2)); B.gold.add(new THREE.BoxGeometry(.5,.24,L+1.4),TM(cx,y+5.45,zc));
+  for(const s of [-1,1]) B.gold.add(new THREE.BoxGeometry(.08,.1,L+2),TM(cx+s*(x1-x0)/2+s*.95,y+3.55,zc));
+  /* 両端の門: 唐破風・彫刻の欄間・極彩色の格子扉 */
+  for(const [z,ry] of [[z0+.1,Math.PI],[z1-.1,0]]){ const g=new THREE.Group(); g.position.set(cx,y,z); g.rotation.y=ry; GE.add(g);
+    for(const s of [-1,1]){ const p=mesh(boxUVGeo(.5,3.6,.5,1,3.6),M.lacqK); p.position.set(s*3.4,1.8,0); g.add(p); const lf=mesh(new THREE.BoxGeometry(1.6,2.6,.1),M.lattice); lf.position.set(s*2.4,1.35,-.9); lf.rotation.y=s*1.2; g.add(lf); }
+    const rm=mesh(new THREE.BoxGeometry(7.2,.9,.12),M.carve); rm.position.set(0,3.1,.22); g.add(rm); const bm=mesh(new THREE.BoxGeometry(7.6,.3,.5),M.lacqK); bm.position.set(0,2.6,0); g.add(bm);
+    karahafu(g,0,2.5,.6,0,9,{roof:M.hinoki,gable:M.lacquer,gold:true});
+    for(let k=-3;k<=3;k++){ const kb=mesh(new THREE.BoxGeometry(.34,.34,.7),k%2?M.greenP:M.gold); kb.position.set(k*1.05,3.72,.3); g.add(kb); } }
+  /* 橋の上の櫓 */
+  { const g=new THREE.Group(); g.position.set(cx,y+5.2,z0+7); GE.add(g); const w=mesh(wallBoxGeo(6,2.8,5.4),M.wallK); w.position.y=1.4; g.add(w);
+    const r=hipRoof(6,5.4,1.4,{roof:M.hinoki,gable:M.lacquer,gold:true,shs:.6}); r.position.y=2.7; g.add(r); for(const s of [-1,1]){ const gl=mesh(new THREE.BoxGeometry(6.1,.1,.1),M.gold); gl.position.set(0,.05,s*2.75); g.add(gl); } }
+  for(const t of [.3,.7]) for(const sx of [x0+1,x1-1]) B.lacquer.add(new THREE.CylinderGeometry(.3,.3,15,8),TM(sx,y-7.5,z0+L*t)); }
 /* 桜門の場所: 唐門 */
 { gate(0,84.5,8,0,{h:5.6,roof:M.hinoki,gable:M.lacquer,gold:true,kara:true,post:'lacquer',par:GE});
   for(const sx of [-1,1]) dobei(sx*5,84.6,sx*74,84.6,2.4,'castle',0,false); }
@@ -1447,6 +2422,8 @@ function renderReflection(){ _cp.setFromMatrixPosition(camera.matrixWorld); _vie
 function sizeRT(){ const pr=renderer.getPixelRatio(); rt.setSize(Math.max(256,(innerWidth*pr*.5)|0),Math.max(256,(innerHeight*pr*.5)|0)); }
 sizeRT();
 
+
+{ const _aT=applyTime; applyTime=function(i){ _aT(i); paintEnv(TIMES[i],sunDir); }; }
 
 
 /* ---------- spots & areas ---------- */
@@ -1735,6 +2712,19 @@ $('goBtn').onclick=()=>{ if(!ready) return; started=true; $('start').hidden=true
 let hintT=0; function showHint(t){ const h=$('hint'); h.textContent=t; h.hidden=false; h.style.opacity='1'; clearTimeout(hintT); hintT=setTimeout(()=>{ h.style.opacity='0'; hintT=setTimeout(()=>h.hidden=true,700); },5000); }
 addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); sizeRT(); if(!$('map').hidden) drawMap(); });
 
+/* ---------- 仕上げ（ポストプロセス）: 金や灯りのにじみ（ブルーム）と色調整。画質「高」のときだけ ---------- */
+const GRADE={uniforms:{tDiffuse:{value:null},uNight:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:`uniform sampler2D tDiffuse;uniform float uNight;varying vec2 vUv;
+  vec3 toSRGB(vec3 c){ c=max(c,0.0); return mix(c*12.92,1.055*pow(c,vec3(1.0/2.4))-0.055,step(0.0031308,c)); }
+  void main(){ vec3 c=toSRGB(texture2D(tDiffuse,vUv).rgb); float l=dot(c,vec3(.299,.587,.114)); c=mix(vec3(l),c,1.1); c=(c-.5)*1.05+.5;
+    c*=mix(vec3(1.03,1.0,.95),vec3(.95,.98,1.06),uNight); vec2 d=vUv-.5; c*=1.0-dot(d,d)*.55; gl_FragColor=vec4(c,1.0); }`};
+let composer=null,bloom=null,grade=null;
+try{ if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.ShaderPass){ const rtc=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:renderer.capabilities.isWebGL2?THREE.HalfFloatType:THREE.UnsignedByteType});
+  composer=new THREE.EffectComposer(renderer,rtc); composer.addPass(new THREE.RenderPass(scene,camera)); bloom=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2,innerHeight/2),.28,.5,.88); composer.addPass(bloom); grade=new THREE.ShaderPass(GRADE); composer.addPass(grade);
+  composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth,innerHeight); } }catch(e){ composer=null; }
+function sizePost(){ if(composer){ composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth,innerHeight); } }
+addEventListener('resize',sizePost); $('tQual').addEventListener('click',sizePost);
+
 /* ---------- loop ---------- */
 applyTime(1);
 let last=performance.now(),clock=0,fr=0; const _tgt=V3();
@@ -1748,7 +2738,7 @@ function frame(now){ const dt=Math.min(.05,(now-last)/1000); last=now; clock+=dt
   sun.position.copy(_tgt).addScaledVector(sunDir,320); sun.target.position.copy(_tgt); sun.target.updateMatrixWorld();
   renderer.shadowMap.needsUpdate=true; camera.updateMatrixWorld();
   if(quality==='high') renderReflection();
-  renderer.render(scene,camera);
+  if(composer&&quality==='high'){ grade.uniforms.uNight.value=TIMES[timeIdx].night; bloom.strength=TIMES[timeIdx].night>.5?.38:.24; bloom.threshold=TIMES[timeIdx].night>.5?.92:.88; composer.render(); } else renderer.render(scene,camera);
   if(started){ updateHUD(); if(fr%2===0) drawMini(); }
   if(!ready&&fr>2){ ready=true; const b=$('goBtn'); b.disabled=false; b.textContent='散策をはじめる'; }
   requestAnimationFrame(frame); }
