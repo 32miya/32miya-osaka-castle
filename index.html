@@ -359,6 +359,7 @@ const tMachi=toTex(cMachi), tMachiE=toTex(cMachiE);
 /* 土塀: 上は漆喰、下は腰板張り */
 const cDobei=makeCanvas(256,256);{ const g=cDobei.getContext('2d'); g.fillStyle='#e4e0d6'; g.fillRect(0,0,256,170); mottleTex(g,256,170,60,['#d6d0c2','#ece8df'],.5); weather(g,256,170,22,90); speckle(g,256,170,1400,.1);
   g.fillStyle='#2b2118'; g.fillRect(0,166,256,8); for(let x=0;x<256;x+=21){ grain(g,x,174,21,82,`rgb(${44+rnd()*14|0},${33+rnd()*8|0},${24+rnd()*6|0})`,true); g.fillStyle='rgba(0,0,0,.5)'; g.fillRect(x,174,1.5,82); } }
+{ const g=cDobei.getContext('2d'); for(let x=18;x<256;x+=64){ g.fillStyle='#1b1815'; g.beginPath(); g.moveTo(x,124); g.lineTo(x+18,124); g.lineTo(x+9,108); g.closePath(); g.fill(); g.fillRect(x+32,106,15,15); g.fillStyle='rgba(0,0,0,.15)'; g.fillRect(x-1,124,20,3); g.fillRect(x+31,121,17,3); } }
 const tDobei=toTex(cDobei);
 /* 中町の蔵の土台石とすす汚れ */
 function bumpOf(c){ const t=toTex(c,false); return t; }
@@ -385,6 +386,11 @@ const cStoneK=makeCanvas(512,512), cStoneKH=makeCanvas(512,512);
         g.fillStyle=`rgb(${l+8*t|0},${l+3*t|0},${l-6*t|0})`; g.fillRect(X+2,y+2,w-4,rh-4);
         const gr=g.createLinearGradient(X,y,X+w*.4,y+rh); gr.addColorStop(0,'rgba(255,255,255,.13)'); gr.addColorStop(1,'rgba(0,0,0,.2)'); g.fillStyle=gr; g.fillRect(X+2,y+2,w-4,rh-4);
         h.fillStyle='#999'; h.fillRect(X+3,y+3,w-6,rh-6); h.fillStyle='#fff'; h.fillRect(X+12,y+12,w-24,rh-24); g.fillStyle='rgba(0,0,0,.06)'; for(let k=0;k<6;k++) g.fillRect(X+4+rnd()*(w-20),y+4+rnd()*(rh-12),8+rnd()*30,2); }
+      if(rnd()<.22){ const kx=x+w*(.3+rnd()*.4),ky=y+rh*(.3+rnd()*.4),r=7+rnd()*7,sh=(rnd()*7)|0; for(const ox of [0,-512,512]){ g.save(); g.translate(kx+ox,ky); g.strokeStyle='rgba(40,34,28,.75)'; g.lineWidth=2.4; g.beginPath();
+        if(sh===0) g.arc(0,0,r,0,6.283); else if(sh===1){ g.moveTo(0,-r); g.lineTo(r,r*.8); g.lineTo(-r,r*.8); g.closePath(); } else if(sh===2){ g.moveTo(-r,0); g.lineTo(r,0); g.moveTo(0,-r); g.lineTo(0,r); g.moveTo(r*.8,0); g.arc(0,0,r*.8,0,6.283); }
+        else if(sh===3){ g.moveTo(0,-r); g.lineTo(r,0); g.lineTo(0,r); g.lineTo(-r,0); g.closePath(); } else if(sh===4){ g.moveTo(-r,-r*.4); g.lineTo(r,-r*.4); g.moveTo(-r,r*.4); g.lineTo(r,r*.4); g.moveTo(-r*.4,-r); g.lineTo(-r*.4,r); g.moveTo(r*.4,-r); g.lineTo(r*.4,r); }
+        else if(sh===5){ g.moveTo(0,r); g.lineTo(-r,-r*.6); g.arc(0,r,r*1.6,-2.2,-.94); g.lineTo(0,r); } else { g.arc(0,0,r,0,6.283); g.moveTo(r*.5,0); g.arc(0,0,r*.5,0,6.283); }
+        g.stroke(); g.restore(); } }
       x+=w; }
     y+=rh; }
   mottleTex(g,512,512,140,['#8c877c','#a39e92','#6f6b63'],.18); speckle(g,512,512,9000,.1); }
@@ -407,22 +413,71 @@ const cWallK=makeCanvas(256,512);{ const g=cWallK.getContext('2d'); g.fillStyle=
   for(let bx=80;bx<182;bx+=12){ g.fillStyle='#3d3829'; g.fillRect(bx,146,4,122); } }
 const tWallK=toTex(cWallK);
 
-/* 最上層: 黒壁に金の鶴と虎 */
-const cTopK=makeCanvas(512,512);{ const g=cTopK.getContext('2d'); g.fillStyle='#0b0b0d'; g.fillRect(0,0,512,512);
-  g.fillStyle='#d9ad45'; g.fillRect(0,0,512,12); g.fillRect(0,318,512,10);
-  g.strokeStyle='#d9ad45'; g.lineWidth=6; g.strokeRect(12,36,232,262); g.strokeRect(268,36,232,262);
-  g.save(); g.translate(128,170); g.fillStyle='#e6bc52'; g.strokeStyle='#e6bc52';
-   g.beginPath(); g.ellipse(0,10,46,20,-.2,0,6.283); g.fill(); g.lineWidth=7; g.beginPath(); g.moveTo(30,0); g.quadraticCurveTo(58,-40,42,-82); g.stroke();
-   g.beginPath(); g.arc(42,-86,9,0,6.283); g.fill(); g.beginPath(); g.moveTo(48,-88); g.lineTo(72,-80); g.lineTo(48,-82); g.fill();
-   g.beginPath(); g.moveTo(-6,0); g.lineTo(-96,-70); g.lineTo(-70,-30); g.lineTo(-40,-4); g.closePath(); g.fill();
-   g.beginPath(); g.moveTo(4,-2); g.lineTo(24,-74); g.lineTo(20,-8); g.fill(); g.lineWidth=4; g.beginPath(); g.moveTo(-10,28); g.lineTo(-22,84); g.moveTo(5,28); g.lineTo(12,84); g.stroke(); g.restore();
-  g.save(); g.translate(372,190); g.fillStyle='#e6bc52'; g.strokeStyle='#e6bc52';
-   g.beginPath(); g.ellipse(0,0,72,28,0,0,6.283); g.fill(); g.beginPath(); g.ellipse(72,-14,25,21,0,0,6.283); g.fill();
-   g.beginPath(); g.moveTo(80,-34); g.lineTo(88,-48); g.lineTo(94,-30); g.fill(); for(const lx of [-52,-26,30,52]) g.fillRect(lx-6,14,12,44);
-   g.lineWidth=8; g.beginPath(); g.moveTo(-70,-6); g.quadraticCurveTo(-112,-40,-92,-74); g.stroke();
-   g.fillStyle='#0b0b0d'; for(let k=-54;k<62;k+=17) g.fillRect(k,-26,5,24); g.restore();
-  for(const x0 of [40,296]){ g.fillStyle='#c99a35'; g.fillRect(x0,356,176,124); g.fillStyle='#050506'; g.fillRect(x0+6,362,164,112); for(let bx=x0+12;bx<x0+170;bx+=14){ g.fillStyle='#2a261c'; g.fillRect(bx,362,4,112); } } }
+/* ---------- 最上層の意匠: 黒漆の壁に金の伏虎（ふくこ）と鶴 ---------- */
+/* 金の部分は色・発光・凹凸の3枚に同じ形を描き、レリーフのように見せる */
+function goldLayers(w,h){ const c=makeCanvas(w,h),m=makeCanvas(w,h); return {c,m,g:c.getContext('2d'),k:m.getContext('2d')}; }
+function goldFill(L,path,shade){ const {g,k}=L; g.save(); path(g); const gr=g.createLinearGradient(0,0,0,L.c.height); gr.addColorStop(0,'#f6d77a'); gr.addColorStop(.5,'#d9a73c'); gr.addColorStop(1,'#a8781f'); g.fillStyle=gr; g.fill(); g.restore();
+  k.save(); path(k); k.fillStyle=shade||'#fff'; k.fill(); k.restore(); }
+function goldLine(L,path,w,col){ for(const [ctx,c] of [[L.g,col||'#6b4a12'],[L.k,'#777']]){ ctx.save(); path(ctx); ctx.strokeStyle=c; ctx.lineWidth=w; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(); ctx.restore(); } }
+/* 伏虎: 前脚をそろえて身を伏せ、顔を正面に向けた虎 */
+function drawTiger(L,cx,cy,s,flip){ const T=(ctx)=>{ ctx.translate(cx,cy); ctx.scale(flip?-s:s,s); };
+  const body=ctx=>{ T(ctx); ctx.beginPath(); ctx.moveTo(-118,8); ctx.bezierCurveTo(-120,-30,-70,-44,-10,-40); ctx.bezierCurveTo(40,-38,70,-34,88,-20); ctx.lineTo(96,10); ctx.bezierCurveTo(70,22,10,26,-40,24); ctx.bezierCurveTo(-90,24,-116,26,-118,8); ctx.closePath();
+    /* 後ろ脚 */ ctx.moveTo(-112,4); ctx.bezierCurveTo(-130,30,-110,40,-80,40); ctx.lineTo(-40,40); ctx.bezierCurveTo(-46,30,-70,28,-76,18); ctx.closePath();
+    /* 前脚 */ ctx.moveTo(70,0); ctx.bezierCurveTo(96,22,130,30,170,34); ctx.bezierCurveTo(178,38,176,46,166,46); ctx.lineTo(80,44); ctx.bezierCurveTo(60,40,56,24,60,10); ctx.closePath();
+    ctx.moveTo(52,8); ctx.bezierCurveTo(80,30,110,40,150,46); ctx.bezierCurveTo(156,52,150,58,142,56); ctx.lineTo(60,52); ctx.bezierCurveTo(44,46,42,26,46,14); ctx.closePath(); };
+  const head=ctx=>{ T(ctx); ctx.beginPath(); ctx.ellipse(118,-30,34,30,0,0,6.283); ctx.moveTo(96,-50); ctx.lineTo(92,-74); ctx.lineTo(112,-58); ctx.closePath(); ctx.moveTo(140,-56); ctx.lineTo(150,-76); ctx.lineTo(154,-50); ctx.closePath(); ctx.moveTo(112,-6); ctx.ellipse(122,-4,22,14,0,0,6.283); };
+  const tail=ctx=>{ T(ctx); ctx.beginPath(); ctx.moveTo(-116,-6); ctx.bezierCurveTo(-150,-14,-160,-60,-132,-82); ctx.bezierCurveTo(-120,-92,-104,-86,-108,-74); };
+  goldLine(L,tail,11,'#d9a73c'); goldLine(L,tail,11); goldFill(L,body,'#e6e6e6'); goldFill(L,head);
+  goldLine(L,tail,8,'#e8bf5a');
+  /* 縞・目・ひげ（黒漆の線を刻む） */
+  for(const ctx of [L.g,L.k]){ ctx.save(); T(ctx); ctx.strokeStyle=ctx===L.g?'#2a1b06':'#3a3a3a'; ctx.lineCap='round';
+    ctx.lineWidth=5; for(let i=0;i<9;i++){ const x=-96+i*20; ctx.beginPath(); ctx.moveTo(x,-38+Math.abs(i-4)*1.5); ctx.quadraticCurveTo(x+10,-20,x+2,-4-(i%2)*6); ctx.stroke(); }
+    ctx.lineWidth=4; for(const yy of [-40,-30]){ ctx.beginPath(); ctx.moveTo(104,yy); ctx.quadraticCurveTo(118,yy+6,132,yy); ctx.stroke(); }
+    for(const k of [0,1,2]){ ctx.beginPath(); ctx.moveTo(-140+k*6,-30-k*16); ctx.lineTo(-128+k*6,-34-k*16); ctx.stroke(); }
+    ctx.lineWidth=3; for(const sx of [-1,1]) for(const dy of [-3,3]){ ctx.beginPath(); ctx.moveTo(122+sx*14,-4+dy); ctx.lineTo(122+sx*40,-8+dy*3); ctx.stroke(); }
+    ctx.fillStyle=ctx===L.g?'#1a1004':'#202020'; for(const ex of [106,132]){ ctx.beginPath(); ctx.ellipse(ex,-24,6,4,0,0,6.283); ctx.fill(); }
+    ctx.lineWidth=3; for(const px of [150,158,166]){ ctx.beginPath(); ctx.moveTo(px,38); ctx.lineTo(px,46); ctx.stroke(); }
+    ctx.restore(); } }
+/* 鶴: 翼を広げて飛ぶ鶴 */
+function drawCrane(L,cx,cy,s,flip){ const T=(ctx)=>{ ctx.translate(cx,cy); ctx.scale(flip?-s:s,s); };
+  const wing=(ctx,up)=>{ ctx.beginPath(); ctx.moveTo(-10,0); ctx.bezierCurveTo(-30,up*-60,-90,up*-90,-150,up*-96); for(let i=0;i<7;i++){ const x=-150+i*18,y=up*(-96+i*12); ctx.lineTo(x+6,y+up*16); ctx.lineTo(x+18,y+up*12); } ctx.bezierCurveTo(-20,up*-20,-10,up*-8,10,0); ctx.closePath(); };
+  goldFill(L,ctx=>{ T(ctx); wing(ctx,1); },'#dcdcdc'); goldFill(L,ctx=>{ T(ctx); ctx.translate(14,6); ctx.scale(.85,.7); wing(ctx,-1); },'#bbbbbb');
+  goldFill(L,ctx=>{ T(ctx); ctx.beginPath(); ctx.ellipse(0,4,46,16,-.08,0,6.283); ctx.moveTo(36,-2); ctx.bezierCurveTo(70,-14,96,-24,118,-22); ctx.lineTo(120,-14); ctx.bezierCurveTo(96,-14,70,-2,40,10); ctx.closePath(); ctx.moveTo(124,-18); ctx.ellipse(124,-18,9,7,0,0,6.283); });
+  goldLine(L,ctx=>{ T(ctx); ctx.beginPath(); ctx.moveTo(130,-18); ctx.lineTo(160,-12); },4,'#e8bf5a');
+  goldLine(L,ctx=>{ T(ctx); ctx.beginPath(); ctx.moveTo(-40,10); ctx.lineTo(-110,26); ctx.moveTo(-38,14); ctx.lineTo(-104,34); },3,'#e8bf5a');
+  for(const ctx of [L.g,L.k]){ ctx.save(); T(ctx); ctx.fillStyle=ctx===L.g?'#b0301e':'#555'; ctx.beginPath(); ctx.arc(122,-24,4,0,6.283); ctx.fill(); ctx.fillStyle=ctx===L.g?'#1a1004':'#222'; ctx.beginPath(); ctx.arc(127,-19,2,0,6.283); ctx.fill(); ctx.restore(); } }
+/* 瑞雲 */
+function drawCloud(L,cx,cy,s){ goldFill(L,ctx=>{ ctx.translate(cx,cy); ctx.scale(s,s); ctx.beginPath(); for(const [x,y,r] of [[-60,6,18],[-34,-6,24],[-2,-12,28],[32,-4,22],[58,6,16]]) { ctx.moveTo(x+r,y); ctx.arc(x,y,r,0,6.283); } ctx.rect(-70,4,140,14); },'#aaa');
+  goldLine(L,ctx=>{ ctx.translate(cx,cy); ctx.scale(s,s); ctx.beginPath(); ctx.moveTo(-70,18); ctx.bezierCurveTo(-110,22,-130,10,-150,20); },5,'#d9a73c'); }
+function blackLacquer(ctx,w,h){ ctx.fillStyle='#0a0a0c'; ctx.fillRect(0,0,w,h); for(let i=0;i<60;i++){ ctx.fillStyle=`rgba(255,255,255,${(rnd()*.025).toFixed(3)})`; ctx.fillRect(0,rnd()*h,w,1+rnd()*2); } }
+/* 腰壁: 伏虎の板（1面に1頭、向きを交互に） */
+const LT=goldLayers(1024,320); blackLacquer(LT.g,1024,320); LT.k.fillStyle='#000'; LT.k.fillRect(0,0,1024,320);
+for(const [ctx,c] of [[LT.g,'#c99a35'],[LT.k,'#888']]){ ctx.strokeStyle=c; ctx.lineWidth=12; ctx.strokeRect(10,10,1004,300); ctx.lineWidth=4; ctx.strokeRect(30,30,964,260); }
+drawTiger(LT,470,196,1.95,false);
+for(const [x,y] of [[860,90],[150,92]]) drawCloud(LT,x,y,.9);
+const tTigerC=toTex(LT.c,true,false), tTigerM=toTex(LT.m,false,false);
+const LT2=goldLayers(1024,320); blackLacquer(LT2.g,1024,320); LT2.k.fillStyle='#000'; LT2.k.fillRect(0,0,1024,320);
+for(const [ctx,c] of [[LT2.g,'#c99a35'],[LT2.k,'#888']]){ ctx.strokeStyle=c; ctx.lineWidth=12; ctx.strokeRect(10,10,1004,300); ctx.lineWidth=4; ctx.strokeRect(30,30,964,260); }
+drawTiger(LT2,554,196,1.95,true); for(const [x,y] of [[160,90],[870,92]]) drawCloud(LT2,x,y,.9);
+const tTigerC2=toTex(LT2.c,true,false), tTigerM2=toTex(LT2.m,false,false);
+/* 小壁: 雲間を飛ぶ鶴 */
+const LC=goldLayers(1024,256); blackLacquer(LC.g,1024,256); LC.k.fillStyle='#000'; LC.k.fillRect(0,0,1024,256);
+for(const [ctx,c] of [[LC.g,'#c99a35'],[LC.k,'#888']]){ ctx.fillStyle=c; ctx.fillRect(0,0,1024,14); ctx.fillRect(0,242,1024,14); }
+drawCrane(LC,300,140,.95,false); drawCrane(LC,760,118,.85,true); for(const [x,y,s] of [[110,200,.8],[540,210,.9],[930,196,.7],[520,60,.6]]) drawCloud(LC,x,y,s);
+const tCraneC=toTex(LC.c,true,false), tCraneM=toTex(LC.m,false,false);
+/* 古い最上層テクスチャ（屋根の内側などで使う黒漆＋金） */
+const cTopK=makeCanvas(256,256);{ const g=cTopK.getContext('2d'); blackLacquer(g,256,256); g.fillStyle='#c99a35'; g.fillRect(0,0,256,8); g.fillRect(0,248,256,8); }
 const tTopK=toTex(cTopK);
+/* 桐紋の鬼板（鯱の下の飾り） */
+const cKiri=makeCanvas(256,256);{ const g=cKiri.getContext('2d'); g.fillStyle='#0b0b0d'; g.fillRect(0,0,256,256); g.fillStyle='#e2b24a'; g.beginPath(); g.arc(128,128,118,0,6.283); g.fill(); g.fillStyle='#0b0b0d'; g.beginPath(); g.arc(128,128,104,0,6.283); g.fill();
+  g.fillStyle='#e2b24a'; const leaf=(a)=>{ g.save(); g.translate(128,170); g.rotate(a); g.beginPath(); g.moveTo(0,0); g.bezierCurveTo(-34,-10,-40,-60,0,-78); g.bezierCurveTo(40,-60,34,-10,0,0); g.fill(); g.restore(); }; leaf(-1.15); leaf(0); leaf(1.15);
+  for(const [x,n] of [[78,3],[128,5],[178,3]]) for(let i=0;i<n;i++){ g.beginPath(); g.arc(x,40+i*15,8,0,6.283); g.fill(); g.fillRect(x-1.5,40,3,i*15); } }
+const tKiri=toTex(cKiri,true,false);
+/* 算木積みの隅石: 加工した長い石 */
+const cSangi=makeCanvas(256,128);{ const g=cSangi.getContext('2d'); g.fillStyle='#b9b4a8'; g.fillRect(0,0,256,128); mottleTex(g,256,128,70,['#aaa498','#c8c3b7','#9f9a8e'],.5); speckle(g,256,128,3000,.14);
+  g.strokeStyle='rgba(0,0,0,.25)'; for(let i=0;i<40;i++){ g.lineWidth=1; const x=rnd()*256,y=rnd()*128; g.beginPath(); g.moveTo(x,y); g.lineTo(x+4,y+6); g.stroke(); } g.strokeStyle='rgba(40,35,30,.6)'; g.lineWidth=4; g.strokeRect(2,2,252,124); }
+const tSangi=toTex(cSangi);
+
 
 /* 銅瓦の緑青（現在の天守閣の屋根） */
 const cRoofG=makeCanvas(256,256);{ const g=cRoofG.getContext('2d'); g.fillStyle='#5f8e7b'; g.fillRect(0,0,256,256);
@@ -471,7 +526,7 @@ const cTower=makeCanvas(128,256),cTowerE=makeCanvas(128,256);{ const g=cTower.ge
 const tTower=toTex(cTower), tTowerE=toTex(cTowerE);
 
 /* ---------- world layout ---------- */
-const WATER_Y=-7.2, DRY_Y=-4.2;
+const WATER_Y=-14, DRY_Y=-9;
 const MOAT={x0:-105,x1:105,z0:-130,z1:115};      // 内堀（外周）
 const ISLAND={x0:-75,x1:75,z0:-100,z1:85};       // 本丸
 const DRY={x0:-105,x1:105,z0:85,z1:115};         // 南の空堀
@@ -485,15 +540,18 @@ const BRIDGES=[
   {id:'ote',x0:-266,x1:-231,z0:102,z1:112,h:()=>0,mode:'both'},
   {id:'aoya',x0:-60,x1:-50,z0:-256,z1:-221,h:()=>.35,mode:'both'},
   {id:'kyobashi',x0:-206,x1:-196,z0:-256,z1:-221,h:()=>0,mode:'both'},
-  {id:'tama',x0:150,x1:160,z0:211,z1:246,h:()=>0,mode:'both'}];
-const BOUNDS={x0:-330,x1:300,z0:-312,z1:320};
+  {id:'tama',x0:150,x1:160,z0:211,z1:246,h:()=>0,mode:'both'},
+  {id:'sogamae',x0:-63,x1:-57,z0:386,z1:412,h:()=>.35,mode:'toyo'},{id:'koraibashi',x0:-396,x1:-372,z0:261.5,z1:268.5,h:(x)=>.35+.9*Math.sin(Math.PI*Math.min(1,Math.max(0,(x+396)/24))),mode:'toyo'},{id:'nekoma',x0:348,x1:368,z0:299.5,z1:306.5,h:()=>.35,mode:'toyo'}];
+const BOUNDS={x0:-398,x1:374,z0:-312,z1:440};
+/* 太閤の時代の惣構: 西の東横堀川・東の猫間川・南の空堀と土塁 */
+const SG={W:{x0:-394,x1:-374,z0:-320,z1:410},E:{x0:350,x1:366,z0:-320,z1:410},S:{x0:-394,x1:366,z0:388,z1:410},DOTE:{x0:-374,x1:350,z0:374,z1:388},GATE:{x0:-64,x1:-56}};
 const inR=(r,x,z,m)=>x>r.x0-m&&x<r.x1+m&&z>r.z0-m&&z<r.z1+m;
 const actB=()=>BRIDGES.filter(b=>b.mode==='both'||b.mode===MODE);
-function waterAt(x,z,m){ if(inR(MOAT,x,z,m)&&!inR(ISLAND,x,z,-m)) return true; if(inR(SOTO_O,x,z,m)&&!inR(SOTO_I,x,z,-m)) return true; if(inR(RIVER,x,z,m)) return true; return false; }
+function waterAt(x,z,m){ if(MODE==='toyo'&&(inR(SG.W,x,z,m)||inR(SG.E,x,z,m)||inR(SG.S,x,z,m))) return true; if(inR(MOAT,x,z,m)&&!inR(ISLAND,x,z,-m)) return true; if(inR(SOTO_O,x,z,m)&&!inR(SOTO_I,x,z,-m)) return true; if(inR(RIVER,x,z,m)) return true; return false; }
 function liftH(x,z){ if(MODE!=='toyo') return null; if(inR(TSUME,x,z,0)) return TS_H; if(inR(RAMP,x,z,0)) return TS_H*Math.max(0,Math.min(1,(RAMP.z1-z)/(RAMP.z1-RAMP.z0))); return null; }
 /* 道（木を植えない場所） */
 const ROADS=[{x0:-232,x1:202,z0:100,z1:132},{x0:-12,x1:12,z0:100,z1:135},{x0:-210,x1:-190,z0:-222,z1:104},{x0:-64,x1:-46,z0:-222,z1:-136},{x0:145,x1:165,z0:130,z1:212},
-  {x0:-115,x1:115,z0:-140,z1:-130},{x0:-115,x1:115,z0:115,z1:126},{x0:-115,x1:-105,z0:-140,z1:126},{x0:105,x1:115,z0:-140,z1:126}];
+  {x0:-115,x1:115,z0:-140,z1:-130},{x0:-115,x1:115,z0:115,z1:126},{x0:-115,x1:-105,z0:-140,z1:126},{x0:105,x1:115,z0:-140,z1:126},{x0:-217,x1:-183,z0:-222,z1:-192}];
 
 /* blockers with spatial grid */
 const GC=20, BSETS={shared:{list:[],grid:new Map()},modern:{list:[],grid:new Map()},toyo:{list:[],grid:new Map()}}; let curSet=BSETS.shared, MODE='modern';
@@ -542,8 +600,14 @@ const M={
   dote:std({map:tDote,roughness:1}),
   wallW:std({map:tWallW,roughness:.85}),
   wallK:std({map:tWallK,roughness:.42,metalness:.05}),
-  topK:std({map:tTopK,roughness:.38,metalness:.3}),
-  gold:std({color:0xd9a93e,metalness:1,roughness:.3,emissive:new THREE.Color(0x4a3409),side:DS}),
+  topK:std({map:tTopK,roughness:.3,metalness:.1}),
+  tiger:std({map:tTigerC,emissiveMap:tTigerC,emissive:new THREE.Color(0xffffff),emissiveIntensity:.42,bumpMap:tTigerM,bumpScale:3,roughness:.35,metalness:.15,side:DS}),
+  tiger2:std({map:tTigerC2,emissiveMap:tTigerC2,emissive:new THREE.Color(0xffffff),emissiveIntensity:.42,bumpMap:tTigerM2,bumpScale:3,roughness:.35,metalness:.15,side:DS}),
+  crane:std({map:tCraneC,emissiveMap:tCraneC,emissive:new THREE.Color(0xffffff),emissiveIntensity:.42,bumpMap:tCraneM,bumpScale:2.5,roughness:.35,metalness:.15,side:DS}),
+  kiri:std({map:tKiri,emissiveMap:tKiri,emissive:new THREE.Color(0xffffff),emissiveIntensity:.4,roughness:.35,metalness:.15}),
+  sangi:std({map:tSangi,bumpMap:tSangi,bumpScale:.8,roughness:.9}),
+  glass:std({color:0xdfeaea,transparent:true,opacity:.16,roughness:.05,metalness:0,depthWrite:false}),
+  gold:std({color:0xe0b04a,metalness:.35,roughness:.32,emissive:new THREE.Color(0x7a5612),side:DS}),
   lacquer:std({color:0x0e0e10,roughness:.22,metalness:.05,side:DS}),
   kin:std({map:tKin,emissiveMap:tKin,emissive:new THREE.Color(0xffffff),emissiveIntensity:.32,roughness:.45,metalness:.35,side:DS}),
   kinpaku:std({map:tKinP,emissiveMap:tKinP,emissive:new THREE.Color(0xffffff),emissiveIntensity:.4,roughness:.3,metalness:.6,side:DS}),
@@ -565,7 +629,7 @@ function addPJ(m){ m.onBeforeCompile=sh=>{ sh.uniforms.uPJ=PJU.uPJ; sh.uniforms.
   sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vPjW,vPjN;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvPjW=(modelMatrix*vec4(transformed,1.0)).xyz; vPjN=normalize(mat3(modelMatrix)*objectNormal);');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\n'+PJ_GLSL).replace('vec3 outgoingLight =','totalEmissiveRadiance+=pjShow()*(0.45+0.9*diffuseColor.rgb);\n\tvec3 outgoingLight ='); }; m.customProgramCacheKey=()=>'pj'; }
 [M.wallW,M.stoneK,M.roofG,M.plaster,M.ridge,M.topK,M.black,M.gold].forEach(addPJ);
-const stoneBack=M.stone.clone(); stoneBack.side=THREE.BackSide; const stoneKBack=M.stoneK.clone(); stoneKBack.side=THREE.BackSide;
+const stoneBack=M.stone.clone(); stoneBack.side=THREE.BackSide; const doteBack=M.dote.clone(); doteBack.side=THREE.BackSide; const stoneKBack=M.stoneK.clone(); stoneKBack.side=THREE.BackSide;
 
 /* ---------- geometry helpers ---------- */
 function geoFrom(pos,uv,idx){ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); if(idx) g.setIndex(idx); g.computeVertexNormals(); return g; }
@@ -629,7 +693,7 @@ class Batch{ constructor(){ this.p=[]; this.n=[]; this.u=[]; this.c=[]; }
     g.setAttribute('uv',new THREE.Float32BufferAttribute(this.u,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(this.c,3));
     g.computeBoundingSphere(); (parent||scene).add(mesh(g,mat,cast!==false,true)); } }
 const BKEYS=['kura','namako','roof','roofG','ridge','plaster','black','wood','noren','facade','hroof','lantern','concrete','torii','darkwood','shrineRoof','stone','stoneK','floor','inWall','inDark','lampIn','thatch','shingle','hinoki','machiya','dote','dobei','woodGrain',
-  'wallW','wallK','topK','gold','lacquer','kin','kinpaku','tatami','museum','felt','mira','carve','tower','bronze','hall','showcase','straw','shu'];
+  'wallW','wallK','topK','tiger','tiger2','crane','kiri','sangi','glass','gold','lacquer','kin','kinpaku','tatami','museum','felt','mira','carve','tower','bronze','hall','showcase','straw','shu'];
 function mkB(){ const o={}; BKEYS.forEach(k=>o[k]=new Batch()); return o; }
 let B=mkB(); const BS=B; let BM=null,BE=null;
 const GM=new THREE.Group(),GE=new THREE.Group(); scene.add(GM); scene.add(GE); GE.visible=false;
@@ -672,7 +736,7 @@ function machiRow(a0,a1,front,axis,dir,dozo){ let a=a0; while(a1-a>3.5){ let w=4
 
 
 /* ---------- ground ---------- */
-const GN=2048,DX0=-360,DZ0=-360,DW=720,GS=GN/DW;
+const GN=2048,DX0=-430,DZ0=-380,DW=880,GS=GN/DW;
 function painter(ctx){ const X=x=>(x-DX0)*GS,Z=z=>(z-DZ0)*GS; return {
   R(x0,z0,x1,z1,col){ ctx.fillStyle=col; ctx.fillRect(X(x0),Z(z0),(x1-x0)*GS,(z1-z0)*GS); },
   mot(x0,z0,x1,z1,cols,n,sz){ for(let i=0;i<n;i++){ ctx.fillStyle=pick(cols); ctx.globalAlpha=.3+rnd()*.38; const x=x0+rnd()*(x1-x0),z=z0+rnd()*(z1-z0),r=(sz*(.4+rnd()))*GS; ctx.beginPath(); ctx.ellipse(X(x),Z(z),r,r*(.5+rnd()*.6),rnd()*3,0,6.283); ctx.fill(); } ctx.globalAlpha=1; },
@@ -684,7 +748,7 @@ const gc=makeCanvas(GN,GN), gg=gc.getContext('2d'), PM=painter(gg);
 const gcE=makeCanvas(GN,GN), ge=gcE.getContext('2d'), PE=painter(ge);
 
 /* 現代 */
-PM.R(-400,-400,400,400,'#77736b'); PM.mot(-360,-360,360,360,['#6f6b63','#7e7a71','#736f67'],3000,4);
+PM.R(-460,-420,460,520,'#77736b'); PM.mot(-430,-380,450,500,['#6f6b63','#7e7a71','#736f67'],3000,4);
 PM.R(-302,-290,272,280,'#5a6e3c'); PM.mot(-302,-290,272,280,LAWN,3600,5);
 PM.R(SOTO_O.x0,SOTO_O.z0,SOTO_O.x1,SOTO_O.z1,WATERC);
 PM.R(SOTO_I.x0,SOTO_I.z0,SOTO_I.x1,SOTO_I.z1,'#5c7140'); PM.mot(SOTO_I.x0,SOTO_I.z0,SOTO_I.x1,SOTO_I.z1,LAWN,2600,5);
@@ -707,7 +771,9 @@ PM.R(272,-360,290,360,'#47484c'); PM.R(-360,282,360,298,'#47484c'); for(let x=-3
 PM.R(RIVER.x0,RIVER.z0,RIVER.x1,RIVER.z1,WATERC);
 
 /* 太閤の時代 */
-PE.R(-400,-400,400,400,'#8c7c63'); PE.mot(-360,-360,360,360,['#857560','#93836a','#7f7259'],3200,4);
+PE.R(-460,-420,460,520,'#8c7c63'); PE.mot(-430,-380,450,500,['#857560','#93836a','#7f7259'],3600,4);
+/* 惣構の外は田畑 */
+for(let x=-430;x<450;x+=18) for(let z=412;z<500;z+=12){ PE.R(x,z,x+18,z+12,pick(['#7f8a4e','#8a9256','#758046','#929a5c'])); PE.R(x,z,x+18,z+.6,'#6a6440'); PE.R(x,z,x+.6,z+12,'#6a6440'); }
 PE.R(SOTO_O.x0,SOTO_O.z0,SOTO_O.x1,SOTO_O.z1,WATERC);
 PE.R(SOTO_I.x0,SOTO_I.z0,SOTO_I.x1,SOTO_I.z1,'#8b7e67'); PE.mot(SOTO_I.x0,SOTO_I.z0,SOTO_I.x1,SOTO_I.z1,['#837760','#928570','#76815a','#6c7a50'],2600,5);
 PE.R(-232,100,202,130,'#a99a7d'); PE.R(-10,114,10,132,'#a99a7d'); PE.R(-210,-222,-190,104,'#a99a7d'); PE.R(-64,-222,-46,-136,'#a99a7d'); PE.R(145,128,165,212,'#a99a7d');
@@ -719,9 +785,11 @@ PE.R(TSUME.x0,TSUME.z0,TSUME.x1,TSUME.z1,'#b0a58b'); PE.mot(TSUME.x0,TSUME.z0,TS
 PE.R(-8,-2,72,86,'#ab9f86'); PE.R(-62,56,-8,86,'#ab9f86');
 PE.R(-360,-315,360,-258,'#9a8b70'); PE.R(-360,-312,360,-298,'#8f8068'); PE.R(-360,-287,360,-279,'#a39273');
 PE.R(-284,-258,-265,250,'#a39273'); PE.R(-305,-258,-295,320,'#a39273'); PE.R(235,-258,246,250,'#a39273'); PE.R(258,-258,266,320,'#a39273');
-PE.R(-360,245,360,250,'#a39273'); PE.R(-360,261,360,269,'#a39273'); PE.R(-360,299,360,307,'#a39273'); PE.R(-64,250,-56,320,'#a39273'); PE.R(56,250,64,320,'#a39273');
+PE.R(-372,245,350,250,'#a39273'); PE.R(-372,261,350,269,'#a39273'); PE.R(-372,299,350,307,'#a39273'); PE.R(-372,337,350,345,'#a39273'); PE.R(-64,250,-56,500,'#a39273'); PE.R(56,250,64,373,'#a39273'); PE.R(-372,-258,-362,373,'#a39273'); PE.R(340,-258,350,373,'#a39273');
+PE.R(SG.DOTE.x0,SG.DOTE.z0,SG.DOTE.x1,SG.DOTE.z1,'#6f6a45'); PE.mot(SG.DOTE.x0,SG.DOTE.z0,SG.DOTE.x1,SG.DOTE.z1,['#66713f','#77804e','#5d6a3a'],700,3); PE.R(SG.GATE.x0,SG.DOTE.z0,SG.GATE.x1,SG.DOTE.z1,'#a39273');
+PE.R(SG.S.x0,SG.S.z0,SG.S.x1,SG.S.z1,'#5b5236'); PE.R(SG.W.x0,SG.W.z0,SG.W.x1,SG.W.z1,WATERC); PE.R(SG.E.x0,SG.E.z0,SG.E.x1,SG.E.z1,WATERC);
 PE.R(RIVER.x0,RIVER.z0,RIVER.x1,RIVER.z1,WATERC);
-for(const b of BRIDGES){ if(b.id==='gokuraku') continue; PM.R(b.x0,b.z0,b.x1,b.z1,'#a69c86'); PE.R(b.x0,b.z0,b.x1,b.z1,'#a39273'); }
+for(const b of BRIDGES){ if(b.id==='gokuraku'||b.mode==='toyo') continue; PM.R(b.x0,b.z0,b.x1,b.z1,'#a69c86'); PE.R(b.x0,b.z0,b.x1,b.z1,'#a39273'); }
 
 function mkGroundMat(tex){ const m=std({map:tex,roughness:.97});
   m.onBeforeCompile=s=>{ s.uniforms.tDetail={value:tDet};
@@ -737,30 +805,121 @@ function groundGeo(shape){ const g=new THREE.ShapeGeometry(shape,1); g.rotateX(-
 const rectShape=r=>rectPath(r.x0,r.z0,r.x1,r.z1,new THREE.Shape());
 for(const [mat,par] of [[groundMat,GM],[groundMatE,GE]]){
   const sh=rectPath(-1300,-1300,1300,1300,new THREE.Shape()); sh.holes.push(rectPath(SOTO_O.x0,SOTO_O.z0,SOTO_O.x1,SOTO_O.z1)); sh.holes.push(rectPath(RIVER.x0,RIVER.z0,RIVER.x1,RIVER.z1));
+  if(par===GE){ sh.holes.push(rectPath(SG.W.x0,RIVER.z1+.2,SG.W.x1,SG.W.z1)); sh.holes.push(rectPath(SG.E.x0,RIVER.z1+.2,SG.E.x1,SG.E.z1)); sh.holes.push(rectPath(SG.W.x1+.2,SG.S.z0,SG.E.x0-.2,SG.S.z1)); }
   par.add(mesh(groundGeo(sh),mat,false,true));
   const n2=rectShape(SOTO_I); n2.holes.push(rectPath(MOAT.x0,MOAT.z0,MOAT.x1,MOAT.z1)); par.add(mesh(groundGeo(n2),mat,false,true));
   par.add(mesh(groundGeo(rectShape(ISLAND)),mat,false,true));
-  for(const b of BRIDGES){ if(b.id==='gokuraku') continue; const m=mesh(groundGeo(rectShape(b)),mat,false,true); m.position.y=.02; par.add(m); } }
+  for(const b of BRIDGES){ if(b.id==='gokuraku'||b.mode==='toyo') continue; const m=mesh(groundGeo(rectShape(b)),mat,false,true); m.position.y=.02; par.add(m); } }
 { const far=mesh(new THREE.RingGeometry(1250,7000,64,1),M.far,false,false); far.rotation.x=-Math.PI/2; far.position.y=-.6; scene.add(far); }
 
-/* 堀の石垣（現代は打込接、太閤の時代は野面積みに張り替える） */
-const eraWalls=[]; function eraWall(m,back){ m.userData.back=!!back; eraWalls.push(m); scene.add(m); return m; }
-{ const D=-WATER_Y+2.5, Y=WATER_Y-2.5;
-  const iw=eraWall(mesh(frustumGeo(ISLAND.x1-ISLAND.x0,ISLAND.z1-ISLAND.z0,D,2.6,5),M.stoneK,false,true)); iw.position.set((ISLAND.x0+ISLAND.x1)/2,Y,(ISLAND.z0+ISLAND.z1)/2);
-  const ow=eraWall(mesh(frustumGeo(MOAT.x1-MOAT.x0,MOAT.z1-MOAT.z0,D,-2.6,5),stoneKBack,false,true),true); ow.position.set((MOAT.x0+MOAT.x1)/2,Y,(MOAT.z0+MOAT.z1)/2);
-  const sw=eraWall(mesh(frustumGeo(SOTO_I.x1-SOTO_I.x0,SOTO_I.z1-SOTO_I.z0,D,2.4,5),M.stoneK,false,true)); sw.position.set((SOTO_I.x0+SOTO_I.x1)/2,Y,(SOTO_I.z0+SOTO_I.z1)/2);
-  const so=eraWall(mesh(frustumGeo(SOTO_O.x1-SOTO_O.x0,SOTO_O.z1-SOTO_O.z0,D,-2.4,5),stoneKBack,false,true),true); so.position.set((SOTO_O.x0+SOTO_O.x1)/2,Y,(SOTO_O.z0+SOTO_O.z1)/2);
-  const nw=eraWall(mesh(scaleUV(new THREE.PlaneGeometry(2600,D),2600/3,D/3),M.stoneK,false,true)); nw.position.set(0,Y+D/2,RIVER.z1);
-  const rw=eraWall(mesh(scaleUV(new THREE.PlaneGeometry(2600,D),2600/3,D/3),M.stoneK,false,true)); rw.rotation.y=Math.PI; rw.position.set(0,Y+D/2,RIVER.z0);
+/* 堀の石垣: 下ほど緩く上ほど垂直に反る「扇の勾配」、出隅は長い石を互い違いに組む「算木積み」 */
+const wallK=M.stoneK.clone(); wallK.side=THREE.DoubleSide; const wallN=M.stone.clone(); wallN.side=THREE.DoubleSide;
+const sangiN=M.sangi.clone(); sangiN.color.setRGB(.62,.6,.56);
+const eraWalls=[]; function eraWall(m,kind){ m.userData.kind=kind; eraWalls.push(m); scene.add(m); return m; }
+function moatWallGeo(r,out,yTop,yBot,bat,tile){ const N=12,pos=[],uv=[],idx=[],sg=out?1:-1;
+  const corners=o=>[[r.x0-sg*o,r.z0-sg*o],[r.x1+sg*o,r.z0-sg*o],[r.x1+sg*o,r.z1+sg*o],[r.x0-sg*o,r.z1+sg*o]];
+  for(let k=0;k<4;k++){ const base=pos.length/3;
+    for(let i=0;i<=N;i++){ const t=i/N,o=bat*Math.pow(t,1.5),y=yTop+(yBot-yTop)*t,c=corners(o),A=c[k],Bc=c[(k+1)%4],L=Math.hypot(Bc[0]-A[0],Bc[1]-A[1]);
+      pos.push(A[0],y,A[1],Bc[0],y,Bc[1]); uv.push(0,(yTop-y)/tile*1.0,L/tile,(yTop-y)/tile); }
+    for(let i=0;i<N;i++){ const a=base+i*2,b=a+1,c=a+2,d=a+3; idx.push(a,c,b,b,c,d); } }
+  return geoFrom(pos,uv,idx); }
+function sangiCorners(r,yTop,yBot,bat){ const bt=new Batch(),hs=1.25; let k=0;
+  for(let y=yTop-.05;y>yBot+.6;y-=hs,k++){ const t=(yTop-(y-hs/2))/(yTop-yBot),o=bat*Math.pow(t,1.5),yc=y-hs/2;
+    for(const [sx,sz] of [[-1,-1],[1,-1],[1,1],[-1,1]]){ const cx=(sx>0?r.x1:r.x0)+sx*o,cz=(sz>0?r.z1:r.z0)+sz*o,alt=(k+(sx*sz>0?0:1))%2===0,Lg=2.6+((k*7+sx*3+sz)%3)*.35;
+      if(alt) bt.add(boxUVGeo(Lg,hs-.07,1.1,2.4,1.2),TM(cx+sx*.1-sx*Lg/2,yc,cz+sz*.1-sz*.55));
+      else bt.add(boxUVGeo(1.1,hs-.07,Lg,1.2,1.2),TM(cx+sx*.1-sx*.55,yc,cz+sz*.1-sz*Lg/2)); } }
+  const g=new THREE.Group(); bt.build(M.sangi,false,g); return g.children[0]; }
+{ const yB=WATER_Y-3;
+  for(const [r,out,bat] of [[ISLAND,true,5.5],[MOAT,false,5],[SOTO_I,true,5],[SOTO_O,false,4.5]]){ const m=mesh(moatWallGeo(r,out,0,yB,bat,5.5),wallK,false,true); eraWall(m,'wall');
+    if(out){ const c=sangiCorners(r,0,yB,bat); c.castShadow=false; c.receiveShadow=true; eraWall(c,'corner'); } }
+  for(const z of [RIVER.z0,RIVER.z1]) eraWall(mesh(scaleUV(new THREE.PlaneGeometry(2600,-yB),2600/5.5,-yB/5.5).translate(0,yB/2,0).rotateY(z===RIVER.z0?Math.PI:0).translate(0,0,z),wallK,false,true),'wall');
   /* 空堀の底 */
   const df=mesh(scaleUV(new THREE.PlaneGeometry(DRY.x1-DRY.x0,DRY.z1-DRY.z0),40,8),M.dote,false,true); df.rotation.x=-Math.PI/2; df.position.set(0,DRY_Y,(DRY.z0+DRY.z1)/2); scene.add(df); }
-function setEraWalls(){ const t=MODE==='toyo'; eraWalls.forEach(m=>{ m.material=m.userData.back?(t?stoneBack:stoneKBack):(t?M.stone:M.stoneK); }); }
+function setEraWalls(){ const t=MODE==='toyo'; eraWalls.forEach(m=>{ m.material=m.userData.kind==='corner'?(t?sangiN:M.sangi):(t?wallN:wallK); }); }
 
 /* 土橋（堀を土で埋めた通路） */
-function causeway(b,mat){ const w=b.x1-b.x0,d=b.z1-b.z0,cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,deep=b.id==='sakura'?DRY_Y:WATER_Y-2.5; B[mat].add(boxUVGeo(w,-deep,d,3,3),TM(cx,deep/2,cz)); }
+function causeway(b,mat){ const w=b.x1-b.x0,d=b.z1-b.z0,cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,deep=b.id==='sakura'?DRY_Y:WATER_Y-3; B[mat].add(boxUVGeo(w,-deep,d,3,3),TM(cx,deep/2,cz)); }
+
+
+/* ================= 天守の各階の作り分け ================= */
+function coll(F,x0,x1,z0,z1){ (F.boxes=F.boxes||[]).push({x0:Math.min(x0,x1),x1:Math.max(x0,x1),z0:Math.min(z0,z1),z1:Math.max(z0,z1)}); }
+function bx(F,bt,w,h,d,x,y,z,ry,col,solid){ B[bt].add(new THREE.BoxGeometry(w,h,d),TM(x,y,z,ry||0),col?new THREE.Color(col):undefined); if(solid){ const r=ry&&Math.abs(Math.sin(ry))>.5; coll(F,x-(r?d:w)/2,x+(r?d:w)/2,z-(r?w:d)/2,z+(r?w:d)/2); } }
+/* 具足（鎧）: 胴・草摺・袖・兜・前立て */
+function armor(F,x,z,ry,c1,c2,solid){ const y=F.y,M0=TM(x,y,z,ry||0),A=(bt,geo,lm,col)=>addM(B[bt],geo,M0,lm,col?new THREE.Color(col):undefined);
+  A('darkwood',new THREE.BoxGeometry(.9,.12,.9),TM(0,.06,0)); A('darkwood',new THREE.BoxGeometry(.1,1.0,.1),TM(0,.6,0));
+  A('noren',new THREE.CylinderGeometry(.34,.5,.55,10,1,true),TM(0,.95,0),c2); for(let k=0;k<5;k++) A('noren',new THREE.BoxGeometry(.66,.05,.04),TM(0,.76+k*.1,.4-k*.01),k%2?c1:'#d8c9a0');
+  A('lacquer',new THREE.CylinderGeometry(.3,.33,.58,12),TM(0,1.5,0)); A('noren',new THREE.BoxGeometry(.6,.06,.62),TM(0,1.35,0),c1); A('noren',new THREE.BoxGeometry(.6,.06,.62),TM(0,1.6,0),c1);
+  for(const s of [-1,1]){ A('noren',new THREE.BoxGeometry(.1,.42,.36),TM(s*.4,1.6,0,0,1,1,1,0,s*.25),c2); A('lacquer',new THREE.BoxGeometry(.12,.5,.14),TM(s*.42,1.3,0)); }
+  A('lacquer',new THREE.SphereGeometry(.2,12,8,0,6.283,0,Math.PI/2),TM(0,1.86,0)); A('lacquer',new THREE.CylinderGeometry(.3,.34,.05,14),TM(0,1.86,0)); A('noren',new THREE.CylinderGeometry(.18,.2,.18,12),TM(0,1.8,0),'#2a1d14');
+  A('gold',new THREE.TorusGeometry(.2,.03,6,16,Math.PI),TM(0,2.02,.12)); A('gold',new THREE.BoxGeometry(.08,.22,.04),TM(0,1.98,.16));
+  if(solid!==false) coll(F,x-.5,x+.5,z-.5,z+.5); }
+function glassCase(F,x,z,w,d,h,ry,base){ const y=F.y; bx(F,'black',w+.1,base||.8,d+.1,x,y+(base||.8)/2,z,ry,null,true); B.glass.add(new THREE.BoxGeometry(w,h,d),TM(x,y+(base||.8)+h/2,z,ry||0)); B.black.add(new THREE.BoxGeometry(w+.12,.08,d+.12),TM(x,y+(base||.8)+h+.04,z,ry||0)); }
+function byobu(F,x,z,ry,n,pw,ph,mat,solid){ const M0=TM(x,F.y,z,ry||0); for(let k=0;k<n;k++){ const o=(k-(n-1)/2)*pw*.96,a=(k%2?.35:-.35); addM(B[mat||'kin'],new THREE.BoxGeometry(pw,ph,.04),M0,TM(o,ph/2+.02,(k%2)*pw*.28,a)); addM(B.lacquer,new THREE.BoxGeometry(pw,.05,.06),M0,TM(o,ph+.02,(k%2)*pw*.28,a)); }
+  if(solid!==false){ const L=n*pw*.96/2,r=ry&&Math.abs(Math.sin(ry))>.5; coll(F,x-(r?.6:L),x+(r?.6:L),z-(r?L:.6),z+(r?L:.6)); } }
+const FIG_COL=['#7a2d24','#26406a','#2f4f3e','#c79f45','#3b3a52','#5a4c3e','#9c4126','#e8dfcc'];
+function diorama(F,x,z,w,d,seed){ bx(F,'darkwood',w,.85,d,x,F.y+.42,z,0,null,true); bx(F,'dote',w-.1,.05,d-.1,x,F.y+.87,z); B.glass.add(new THREE.BoxGeometry(w,.9,d),TM(x,F.y+.85+.45,z));
+  /* 小さな石垣・櫓・人形 */ bx(F,'stoneK',w*.35,.18,d*.4,x-w*.18,F.y+.98,z-d*.1); bx(F,'wallW',w*.12,.16,d*.12,x-w*.2,F.y+1.15,z-d*.12); bx(F,'roofG',w*.15,.05,d*.15,x-w*.2,F.y+1.25,z-d*.12);
+  for(let i=0;i<90;i++){ const fx=x-w/2+.15+rnd()*(w-.3),fz=z-d/2+.15+rnd()*(d-.3); B.noren.add(new THREE.BoxGeometry(.025,.07,.025),TM(fx,F.y+.93,fz),new THREE.Color(pick(FIG_COL))); if(i%9===0) B.noren.add(new THREE.BoxGeometry(.01,.16,.01),TM(fx+.02,F.y+1,fz),new THREE.Color('#c23a2b')); } }
+function panel(F,x,z,ry,w,h){ bx(F,'showcase',w,h,.06,x,F.y+1.5,z,ry); bx(F,'black',w+.1,h+.1,.04,x,F.y+1.5,z,ry); }
+/* 掛け軸用のテクスチャ（墨の山水） */
+const cScroll=makeCanvas(128,320);{ const g=cScroll.getContext('2d'); g.fillStyle='#6b5a3a'; g.fillRect(0,0,128,320); g.fillStyle='#efe6cf'; g.fillRect(14,30,100,260); g.strokeStyle='rgba(30,25,20,.75)';
+  for(let i=0;i<5;i++){ g.lineWidth=2+rnd()*3; g.beginPath(); const y=120+i*30; g.moveTo(16,y); for(let x=16;x<114;x+=8) g.lineTo(x,y-Math.abs(Math.sin(x*.07+i))*30*rnd()); g.stroke(); } g.fillStyle='rgba(30,25,20,.55)'; g.beginPath(); g.arc(90,60,10,0,6.283); g.fill(); g.fillStyle='#b0301e'; g.fillRect(96,262,10,12); }
+M.scroll=std({map:toTex(cScroll,true,false),roughness:.9}); BKEYS.push('scroll'); BS.scroll=new Batch();
+/* 現代: 博物館の天守閣 */
+function decorModern(T){ const F=T.FL,cx=T.cx,cz=T.cz;
+  /* エレベーター（1〜7階） */ for(let i=1;i<=7;i++){ const f=F[i]; bx(f,'concrete',3.2,f.h-.3,2.8,cx+6.6,f.y+(f.h-.3)/2,cz+5.4,0,null,true); for(const s of [-.5,.5]) bx(f,'bronze',.9,2.3,.06,cx+4.97,f.y+1.15,cz+5.4+s,Math.PI/2); bx(f,'lampIn',.3,.15,.05,cx+4.95,f.y+2.55,cz+5.4,Math.PI/2); }
+  { const f=F[1]; /* 受付・売店・シアター */ bx(f,'wood',6,1.1,.9,cx-7,f.y+.55,cz+9,0,null,true); bx(f,'hall',6.2,.06,1.1,cx-7,f.y+1.12,cz+9);
+    for(let k=0;k<4;k++){ const z=cz-9+k*3.4; bx(f,'wood',.9,1.8,3,cx-f.w/2+1.4,f.y+.9,z,0,null,true); for(let j=0;j<10;j++) bx(f,'noren',.22,.22,.22,cx-f.w/2+1.4+(rnd()-.5)*.4,f.y+.5+((j/5)|0)*.6+.12,z-1.2+(j%5)*.6,0,pick(FIG_COL)); }
+    bx(f,'showcase',9,3.4,.08,cx,f.y+2.2,cz+f.d/2-.42); bx(f,'black',9.4,3.8,.06,cx,f.y+2.2,cz+f.d/2-.38); for(let k=0;k<3;k++) bx(f,'felt',8,.45,.6,cx,f.y+.22,cz+f.d/2-3.4-k*1.4,0,null,true); }
+  { const f=F[2]; /* 兜・陣羽織の試着コーナーと解説パネル */ armor(f,cx+9,cz-8,-Math.PI/2,'#7a2d24','#26406a'); armor(f,cx+9,cz-10.2,-Math.PI/2,'#2f4f3e','#c79f45'); armor(f,cx+9,cz-5.8,-Math.PI/2,'#3b3a52','#9c4126');
+    bx(f,'kin',.08,2.6,5,cx+f.w/2-.5,f.y+1.6,cz-8,0); bx(f,'wood',2.4,.45,.5,cx+5.8,f.y+.22,cz-8,0,null,true);
+    for(let k=0;k<5;k++) panel(f,cx-11+k*5.2,cz-f.d/2+.45,0,3.6,1.6); for(let k=0;k<3;k++) panel(f,cx-f.w/2+.45,cz-6+k*5.5,Math.PI/2,3.4,1.6); }
+  for(const i of [3,4]){ const f=F[i]; /* 収蔵品の展示: 壁際の長い展示ケースと中央の独立ケース */
+    for(const sz of [-1,1]){ const z=cz+sz*(f.d/2-1.15); glassCase(f,cx-1,z,f.w-6,1.1,1.6,0,.6); for(let k=0;k<4;k++) byobu(f,cx-9+k*5.2,z,0,6,.7,1.3,'kin',false); }
+    for(const [x,z] of [[cx-9,cz-4.5],[cx-9,cz+4.5],[cx+8.5,cz-3]]){ if(i===3){ armor(f,x,z,0,pick(['#7a2d24','#2f4f3e','#3b3a52']),pick(['#c79f45','#26406a']),false); glassCase(f,x,z,1.4,1.4,2.3,0,.08); }
+      else { glassCase(f,x,z,2.6,1.2,1,0,.8); for(let k=0;k<3;k++){ bx(f,'black',2.2,.05,.06,x,f.y+.95+k*.22,z-.3+k*.3); bx(f,'gold',.18,.06,.08,x-.95,f.y+.95+k*.22,z-.3+k*.3); } } }
+    bx(f,'scroll',1.3,3.2,.04,cx-f.w/2+.42,f.y+2,cz,Math.PI/2); }
+  { const f=F[5]; /* 大坂夏の陣図屏風の世界 */ for(const sz of [-1,1]) byobu(f,cx,cz+sz*(f.d/2-.9),0,12,1.3,2.4,'kin',true); diorama(f,cx-6.4,cz,2.2,5.6,1); diorama(f,cx+6.5,cz-5.5,2.2,2.2,2); }
+  { const f=F[6]; /* 非公開の回廊 */ for(const s of [-1,1]){ bx(f,'darkwood',.1,1,.1,cx+s*6,f.y+.5,cz+6.5,0); } bx(f,'felt',12,.06,.06,cx,f.y+.95,cz+6.5); bx(f,'showcase',1.4,.5,.05,cx,f.y+1.3,cz+6.45); coll(f,cx-6.2,cx+6.2,cz+6,cz+7); }
+  { const f=F[7]; /* 秀吉の一生: 壁に並ぶミニチュアの舞台 */ for(const sz of [-1,1]) for(let k=0;k<3;k++){ const x=cx-5.5+k*5.5,z=cz+sz*(f.d/2-.75);
+      bx(f,'black',3.4,1.6,1,x,f.y+1.6,z,0,null,true); bx(f,'lampIn',3.1,.05,.7,x,f.y+2.35,z); bx(f,'dote',3.1,.05,.8,x,f.y+.85,z); for(let j=0;j<12;j++) bx(f,'noren',.08,.22,.08,x-1.3+rnd()*2.6,f.y+.98,z-.3+rnd()*.6,0,pick(FIG_COL)); bx(f,'wood',.9,.5,.5,x+(rnd()-.5)*1.6,f.y+1.13,z-.1); bx(f,'roof',1.1,.2,.7,x+(rnd()-.5)*1.6,f.y+1.45,z-.1); }
+    bx(f,'showcase',.06,2,4,cx-f.w/2+.42,f.y+1.8,cz); }
+  { const f=F[8]; /* 展望台: 売店と望遠鏡 */ bx(f,'wood',1.2,1,2.6,cx-4,f.y+.5,cz+1.5,0,null,true); for(let j=0;j<8;j++) bx(f,'noren',.2,.2,.2,cx-4,f.y+1.1,cz+.4+j*.28,0,pick(FIG_COL));
+    const ra=f.w/2+f.bal-.6,rb=f.d/2+f.bal-.6; for(const [x,z] of [[cx,cz-rb],[cx,cz+rb],[cx-ra,cz],[cx+ra,cz]]){ bx(f,'bronze',.14,1.1,.14,x,f.y+.55,z); bx(f,'bronze',.24,.24,.5,x,f.y+1.2,z,x===cx?0:Math.PI/2); coll(f,x-.25,x+.25,z-.25,z+.25); } } }
+/* 豊臣期: 史料では各階に宝物が納められていたと伝わる。部屋の使い方は想像 */
+function decorToyo(T){ const F=T.FL,cx=T.cx,cz=T.cz;
+  { const f=F[1]; /* 武具: 槍掛け・鉄砲掛け・具足 */ const a=f.w/2-.6;
+    for(const sz of [-1,1]) for(let k=0;k<3;k++){ const x=cx-8+k*6,z=cz+sz*(f.d/2-.8); bx(f,'darkwood',4,.12,.3,x,f.y+2.6,z); bx(f,'darkwood',4,.12,.3,x,f.y+.5,z); coll(f,x-2.1,x+2.1,z-.4,z+.4);
+      for(let j=0;j<11;j++){ B.darkwood.add(new THREE.CylinderGeometry(.03,.03,3.4,5),TM(x-1.8+j*.36,f.y+1.75,z)); B.black.add(new THREE.ConeGeometry(.05,.3,4),TM(x-1.8+j*.36,f.y+3.58,z)); } }
+    for(const sx of [-1,1]){ const x=cx+sx*a,z=cz; bx(f,'darkwood',.3,2.2,6,x,f.y+1.1,z,0,null,true); for(let j=0;j<6;j++){ bx(f,'darkwood',.12,.1,1.4,x-sx*.2,f.y+.5+j*.3,z-1.8,0); bx(f,'darkwood',.12,.1,1.4,x-sx*.2,f.y+.5+j*.3,z+1.8,0); bx(f,'black',.06,.06,1.5,x-sx*.25,f.y+.56+j*.3,z+1.8,0); } }
+    armor(f,cx-8,cz-3.6,0,'#7a2d24','#c79f45'); armor(f,cx-8,cz+3.6,Math.PI,'#26406a','#c79f45'); armor(f,cx+8.5,cz-4,0,'#0e0e10','#9c4126');
+    for(let k=0;k<4;k++){ bx(f,'lacquer',1.2,.9,.8,cx-8+k*1.6,f.y+.45,cz+6.6,0,null,true); bx(f,'gold',1.24,.08,.84,cx-8+k*1.6,f.y+.92,cz+6.6); } }
+  { const f=F[2]; /* 宝物蔵: 長持・金銀・名物の茶道具 */
+    for(const sz of [-1,1]) for(let k=0;k<5;k++){ const x=cx-9+k*3.4,z=cz+sz*(f.d/2-1.2); bx(f,'lacquer',2.2,.9,1,x,f.y+.45,z,0,null,true); bx(f,'gold',2.24,.06,1.04,x,f.y+.6,z); bx(f,'gold',.3,.25,.06,x,f.y+.75,z-sz*.52); bx(f,'darkwood',2.6,.12,.12,x,f.y+1.1,z); }
+    for(const [x,z] of [[cx-9,cz-2.5],[cx-9,cz+2.5]]){ bx(f,'darkwood',1.6,.3,1.2,x,f.y+.15,z,0,null,true); for(let j=0;j<18;j++) bx(f,'gold',.5,.12,.24,x-.5+(j%3)*.5,f.y+.36+((j/9)|0)*.13,z-.4+((j/3)%3|0)*.36); }
+    for(const sx of [-1,1]){ const x=cx+sx*(f.w/2-.8); bx(f,'darkwood',.6,2.2,7,x,f.y+1.1,cz,0,null,true); for(let r=0;r<4;r++){ bx(f,'woodGrain',.62,.05,7,x,f.y+.4+r*.5,cz); for(let j=0;j<6;j++){ B.noren.add(new THREE.CylinderGeometry(.12,.08,.14,10),TM(x,f.y+.5+r*.5,cz-3+j*1.2),new THREE.Color(pick(['#3a2a1c','#6b4a2a','#2a2a28','#8a6a3a','#c9b38a']))); } } } }
+  { const f=F[3]; /* 金碧の間と黄金の茶室 */ byobu(f,cx+7,cz+5.5,Math.PI,6,.9,1.7,'kin'); byobu(f,cx+7,cz-5.5,0,6,.9,1.7,'kin'); }
+  { const f=F[4]; /* 衣装: 衣桁にかけた小袖 */ const KC=['#a52a1c','#26406a','#e8dfcc','#2f4f3e','#8a3a6a','#c79f45'];
+    for(let k=0;k<4;k++){ const x=cx-7+k*4.6,z=cz-f.d/2+1.4; bx(f,'lacquer',2.2,.08,.08,x,f.y+1.7,z); for(const s of [-1,1]) bx(f,'lacquer',.08,1.8,.08,x+s*1.05,f.y+.9,z); bx(f,'lacquer',.6,.06,.6,x-1.05,f.y+.03,z); bx(f,'lacquer',.6,.06,.6,x+1.05,f.y+.03,z);
+      B.noren.add(new THREE.PlaneGeometry(2,1.5),TM(x,f.y+.95,z+.04),new THREE.Color(KC[k])); B.gold.add(new THREE.PlaneGeometry(.6,.6),TM(x+(k%2?.4:-.4),f.y+1.1,z+.05)); coll(f,x-1.2,x+1.2,z-.4,z+.4); }
+    byobu(f,cx+2,cz+f.d/2-1.4,Math.PI,6,.9,1.6,'kin'); for(let k=0;k<3;k++){ bx(f,'lacquer',1.4,.7,.8,cx-7+k*1.8,f.y+.35,cz+4,0,null,true); bx(f,'gold',.2,.2,.05,cx-7+k*1.8,f.y+.5,cz+3.58); } }
+  { const f=F[5]; /* 書院: 床の間・違い棚・付書院 */ const z=cz-f.d/2+.9;
+    bx(f,'darkwood',3.2,.18,1.2,cx-4,f.y+.09,z,0,null,true); bx(f,'scroll',1,2.2,.04,cx-4,f.y+1.6,z-.55); B.noren.add(new THREE.CylinderGeometry(.14,.1,.36,10),TM(cx-3.2,f.y+.36,z),new THREE.Color('#2a4d30'));
+    bx(f,'darkwood',2.4,1.6,1,cx-1,f.y+.8,z-.05,0,null,true); for(const [dx,dy] of [[-.5,.4],[.5,.8],[-.3,1.3]]) bx(f,'lacquer',1.2,.06,.9,cx-1+dx,f.y+dy,z); bx(f,'kinpaku',2.4,.7,.06,cx-1,f.y+1.9,z+.46);
+    bx(f,'darkwood',.12,2.6,.12,cx-2.5,f.y+1.3,z+.6); bx(f,'darkwood',.12,2.6,.12,cx-5.6,f.y+1.3,z+.6);
+    bx(f,'wood',1.2,.8,1.6,cx-f.w/2+1.1,f.y+.4,cz-2,0,null,true); bx(f,'showcase',.06,1,1.4,cx-f.w/2+.5,f.y+1.3,cz-2); }
+  { const f=F[6]; /* 上段の間: 一段高い座と屏風 */ bx(f,'tatami',6,.3,2.4,cx+4,f.y+.15,cz+4.3,0,null,true); bx(f,'lacquer',6.1,.08,.1,cx+4,f.y+.3,cz+3.1);
+    byobu(f,cx+4,cz+5.3,Math.PI,6,1,1.9,'kin',false); bx(f,'lacquer',.7,.32,.3,cx+4,f.y+.46,cz+4.2); bx(f,'felt',.9,.06,.9,cx+4,f.y+.33,cz+4.4); }
+}
 
 
 /* ================= 城の部品 ================= */
+/* 巨石（蛸石・肥後石）: 一枚の大きな花崗岩 */
+function bigStoneMat(seed){ const c=makeCanvas(512,256),h=makeCanvas(512,256),g=c.getContext('2d'),k=h.getContext('2d'); g.fillStyle='#9a958a'; g.fillRect(0,0,512,256); mottleTex(g,512,256,260,['#8a857a','#aaa59a','#7e7a70','#b4afa3','#958d7e'],.55); speckle(g,512,256,16000,.18);
+  k.fillStyle='#808080'; k.fillRect(0,0,512,256); mottleTex(k,512,256,120,['#707070','#909090'],.6); speckle(k,512,256,6000,.3);
+  for(let i=0;i<5;i++){ g.strokeStyle='rgba(50,44,38,.35)'; g.lineWidth=1.5; g.beginPath(); let x=rnd()*512,y=rnd()*256; g.moveTo(x,y); for(let j=0;j<8;j++){ x+=(rnd()-.5)*60; y+=(rnd()-.3)*30; g.lineTo(x,y); } g.stroke(); }
+  g.fillStyle='rgba(120,80,60,.35)'; g.beginPath(); g.ellipse(70+seed*30,180,40,22,.5,0,6.283); g.fill(); const gr=g.createLinearGradient(0,0,0,256); gr.addColorStop(0,'rgba(255,255,255,.08)'); gr.addColorStop(1,'rgba(0,0,0,.25)'); g.fillStyle=gr; g.fillRect(0,0,512,256);
+  g.strokeStyle='rgba(30,26,22,.8)'; g.lineWidth=6; g.strokeRect(3,3,506,250); return std({map:toTex(c,true,false),bumpMap:toTex(h,false,false),bumpScale:2,roughness:.9}); }
 /* 寄棟＋入母屋の最上部の屋根。mats: {roof, gable, gold(bool)} */
 function shachi(par,x,y,z,s,ry){ const g=new THREE.Group(); g.position.set(x,y,z); g.rotation.y=ry||0; g.scale.setScalar(s);
   const b=mesh(new THREE.SphereGeometry(.42,10,8),M.gold); b.scale.set(.75,1.1,.9); b.position.y=.35; g.add(b);
@@ -774,12 +933,12 @@ function hipRoof(w,d,oh,mats,noSh){ const g=new THREE.Group(),a0=w/2+oh,b0=d/2+o
   if(mats.gold){ const ge=mesh(new THREE.BoxGeometry(.06,.5,2*b1*.5),M.gold); for(const s of [-1,1]){ const q=ge.clone(); q.position.set(s*(a1+.2),rise+H2*.45,0); g.add(q); } }
   const ry=rise-.08+H2+.12; const rd=mesh(new THREE.BoxGeometry(2*a1+1.1,.5,.66),M.ridge); rd.position.y=ry; g.add(rd);
   if(mats.gold){ const gl=mesh(new THREE.BoxGeometry(2*a1+1.15,.12,.7),M.gold); gl.position.y=ry+.2; g.add(gl); }
-  if(!noSh) for(const s of [-1,1]) shachi(g,s*(a1+.35),ry+.2,0,1.25*(mats.shs||1),s>0?Math.PI/2:-Math.PI/2);
+  if(!noSh) for(const s of [-1,1]){ shachi(g,s*(a1+.35),ry+.2,0,1.25*(mats.shs||1),s>0?Math.PI/2:-Math.PI/2); const k=mesh(new THREE.CircleGeometry(.62*(mats.shs||1),24),M.kiri); k.position.set(s*(a1+.58),ry-.05,0); k.rotation.y=s*Math.PI/2; g.add(k); }
   return g; }
 function chidori(par,x,y,z,ry,W,H,mats){ const g=new THREE.Group(); g.position.set(x,y,z); g.rotation.y=ry;
   g.add(mesh(gableRoofGeo(3.4,W,H,.4,.3),mats.roof)); g.add(mesh(gableEndsGeo(3.2,W-.2,H-.08),mats.gable));
   const rd=mesh(new THREE.BoxGeometry(3.8,.3,.38),M.ridge); rd.position.y=H+.06; g.add(rd);
-  if(mats.gold){ const gm=mesh(new THREE.BoxGeometry(.08,.55,.55),M.gold); gm.position.set(1.66,H*.55,0); g.add(gm); } par.add(g); }
+  if(mats.gold||mats.orn){ const gm=mesh(new THREE.BoxGeometry(.08,.7,.6),M.gold); gm.position.set(1.66,H*.62,0); g.add(gm); const gk=mesh(new THREE.ConeGeometry(.3,.5,4),M.gold); gk.rotation.z=Math.PI; gk.position.set(1.68,H*.62-.55,0); g.add(gk); } par.add(g); }
 function karahafu(par,x,y,z,ry,W,mats){ const g=new THREE.Group(); g.position.set(x,y,z); g.rotation.y=ry; const L=3.2;
   const r=mesh(karaGeo(W,L),mats.roof); r.position.set(0,1.1,0); g.add(r);
   const f=mesh(karaFaceGeo(W*.92),mats.gable); f.position.set(0,1.1,L/2-.15); g.add(f);
@@ -804,6 +963,7 @@ function yagura(cx,cz,w,d,ry,o){ o=o||{}; const g=new THREE.Group(); g.position.
   const h1=o.h1||4.2,h2=o.h2||3.6,wall=M[o.wall||'wallW'],mats={roof:o.roof||M.roof,gable:o.gable||M.plaster,gold:!!o.gold,shs:.7};
   if(o.base){ const b=mesh(frustumGeo(w+1,d+1,o.base,.6,4,true),o.stone||M.stoneK); g.add(b); }
   const yb=o.base||0; const w1=mesh(wallBoxGeo(w,h1,d),wall); w1.position.y=yb+h1/2; g.add(w1);
+  /* 石落とし: 壁から張り出して真下へ石や鉄砲を撃ち下ろす仕掛け */ for(const sx of [-1,1]) for(const sz of [-1,1]){ const so=mesh(new THREE.BoxGeometry(1.5,1.3,.6),wall); so.position.set(sx*(w/2-1.1),yb+h1-1.9,sz*(d/2+.3)); g.add(so); const sr=mesh(new THREE.BoxGeometry(1.6,.12,.7),M.ridge); sr.position.set(sx*(w/2-1.1),yb+h1-1.2,sz*(d/2+.32)); g.add(sr); }
   if(o.single){ const r=hipRoof(w,d,1.3,mats); r.position.y=yb+h1-.1; g.add(r); }
   else { const w2v=w-2.4,d2v=d-2.4,a0=w/2+1.2,b0=d/2+1.2,rise=Math.max(a0-w2v/2,b0-d2v/2)*.55; const [sk,fr]=skirtParts(a0,b0,w2v/2,d2v/2,rise,.4); const s=mesh(sk,mats.roof); s.position.y=yb+h1-.1; g.add(s); if(o.gold){ const f=mesh(fr,M.gold); f.position.y=yb+h1-.1; g.add(f); }
     const w2=mesh(wallBoxGeo(w2v,h2,d2v),wall); w2.position.y=yb+h1+h2/2; g.add(w2); const r=hipRoof(w2v,d2v,1.2,mats); r.position.y=yb+h1+h2-.1; g.add(r); }
@@ -853,8 +1013,14 @@ function buildTenshuInterior(T){ const {cx,cz,FL,ST}=T,MT=T.mat;
     slab(B[MT.floor],wp,clipR(wp,ST[i-1]),F.y,.25);
     const last=i===FL.length-1; slab(B[MT.ceil],fp,last?null:clipR(fp,ST[i]),F.y+F.h-(last?0:.25),.2);
     const H=F.h-.25,a=F.w/2-.3,b=F.d/2-.3,sides=[[2*a,cx,cz-b,0],[2*a,cx,cz+b,0],[2*b,cx-a,cz,Math.PI/2],[2*b,cx+a,cz,Math.PI/2]];
-    if(F.open){ for(const [L,x,z,ry] of sides){ B[MT.top].add(new THREE.BoxGeometry(L,H-2.4,.3),TM(x,F.y+2.4+(H-2.4)/2,z,ry)); B.darkwood.add(new THREE.BoxGeometry(L,.12,.3),TM(x,F.y+.06,z,ry));
-        const n=Math.max(2,Math.round(L/1.8)); for(let k=0;k<=n;k++){ const o=-L/2+k*L/n; B[MT.post].add(new THREE.BoxGeometry(.32,H,.32),TM(ry?x:x+o,F.y+H/2,ry?z+o:z)); } }
+    if(F.open){ for(const [L,x,z,ry] of sides){ const half=L/2,dg=1.2,Ls=half-dg;
+        /* 腰壁に伏虎、窓の上の小壁に鶴、中央は廻縁への戸口 */
+        for(const sg of [-1,1]){ const o=sg*(dg+Ls/2),px=ry?x:x+o,pz=ry?z+o:z; B[sg<0?MT.tigerA:MT.tigerB].add(new THREE.BoxGeometry(Ls,1.05,.3),TM(px,F.y+.6,pz,ry)); B.gold.add(new THREE.BoxGeometry(Ls,.08,.36),TM(px,F.y+1.14,pz,ry));
+          if(ry) coll(F,x-.3,x+.3,z+o-Ls/2,z+o+Ls/2); else coll(F,x+o-Ls/2,x+o+Ls/2,z-.3,z+.3); }
+        B[MT.crane].add(new THREE.BoxGeometry(L,H-2.4,.3),TM(x,F.y+2.4+(H-2.4)/2,z,ry)); B.gold.add(new THREE.BoxGeometry(L,.12,.36),TM(x,F.y+2.36,z,ry)); B.darkwood.add(new THREE.BoxGeometry(L,.12,.3),TM(x,F.y+.06,z,ry));
+        const n=Math.max(2,Math.round(L/1.6)); for(let k=0;k<=n;k++){ const o=-L/2+k*L/n; if(Math.abs(o)<dg-.1) continue; B[MT.post].add(new THREE.BoxGeometry(.3,H,.3),TM(ry?x:x+o,F.y+H/2,ry?z+o:z)); B.gold.add(new THREE.BoxGeometry(.34,.14,.34),TM(ry?x:x+o,F.y+1.2,ry?z+o:z)); }
+        for(const sg of [-1,1]){ const o=sg*dg; B[MT.post].add(new THREE.BoxGeometry(.36,H,.36),TM(ry?x:x+o,F.y+H/2,ry?z+o:z)); }
+        for(const sg of [-1,1]){ const o=sg*(dg+Ls/2); B.black.add(new THREE.BoxGeometry(Ls,.06,.08),TM(ry?x:x+o,F.y+1.75,ry?z+o:z,ry)); } }
       /* 廻縁の高欄 */
       const ra=F.w/2+bal-.15,rb=F.d/2+bal-.15; for(const [L,x,z,ry] of [[2*ra,cx,cz-rb,0],[2*ra,cx,cz+rb,0],[2*rb,cx-ra,cz,Math.PI/2],[2*rb,cx+ra,cz,Math.PI/2]]){
         B[MT.rail].add(new THREE.BoxGeometry(L,.12,.16),TM(x,F.y+1.05,z,ry)); B[MT.rail].add(new THREE.BoxGeometry(L,.08,.12),TM(x,F.y+.55,z,ry)); B[MT.rail].add(new THREE.BoxGeometry(L,.1,.2),TM(x,F.y+.05,z,ry));
@@ -898,19 +1064,15 @@ for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stoneK');
       {lv:3,name:'天守閣 7階',kana:'ななかい',text:'豊臣秀吉の生涯を、ミニチュアの舞台や映像で紹介する階です。',meta:[['テーマ','秀吉の一生']]},
       {lv:4,name:'天守閣 8階（展望台）',kana:'はっかい',text:'最上階の展望台。四方を巡る回廊から大阪の街を一望できます。外壁には、豊臣時代の天守にならった金色の虎と鶴の飾りが付いています。',meta:[['高さ','地上約50m'],['見どころ','虎と鶴の金の飾り']]}],
     f0:{name:'天守閣入口',kana:'てんしゅかくいりぐち',text:'天守台の石垣の内側をくぐる通路。奥の階段を上ると天守閣の1階に出ます。',meta:[['この先','天守閣 1階']]},
-    mat:{wall:'museum',floor:'floor',ceil:'hall',stone:'stoneK',rail:'black',post:'black',top:'topK',eaveRoof:'roofG'},sign:signTex('天守閣入口')});
+    mat:{wall:'museum',floor:'floor',ceil:'hall',stone:'stoneK',rail:'black',post:'black',top:'topK',tigerA:'tiger',tigerB:'tiger2',crane:'crane',eaveRoof:'roofG'},sign:signTex('天守閣入口')});
   const base=mesh(frustumGeo(T.bw,T.bd,T.bh+.02,T.bat,5,false),M.stoneK); base.position.set(T.cx,0,T.cz); GM.add(base);
   for(const r of [{x0:-T.bw/2,x1:T.bw/2,z0:-T.bd/2,z1:-T.ext[0].d/2},{x0:-T.bw/2,x1:T.bw/2,z0:T.ext[0].d/2,z1:T.bd/2},{x0:-T.bw/2,x1:-T.ext[0].w/2,z0:-T.ext[0].d/2,z1:T.ext[0].d/2},{x0:T.ext[0].w/2,x1:T.bw/2,z0:-T.ext[0].d/2,z1:T.ext[0].d/2}]) box(B.stoneK,T.cx+r.x0,T.cx+r.x1,T.bh-.3,T.bh,T.cz+r.z0,T.cz+r.z1);
   block(T.cx-T.bw/2-T.bat,T.cz-T.bd/2-T.bat,T.cx+T.bw/2+T.bat,T.cz+T.bd/2+T.bat,'castle');
-  const mats={roof:M.roofG,gable:M.plaster,gold:false,oh:T.oh};
+  const mats={roof:M.roofG,gable:M.plaster,gold:false,orn:true,oh:T.oh};
   const X=tenshuExt(GM,T.cx,T.bh,T.cz,T.ext.map(e=>Object.assign({},e)),mats); T.X=X;
   addDormers(X,[['c',0,'s',7,2.6],['c',0,'n',7,2.6],['k',1,'s',7],['k',1,'n',7],['c',1,'e',6,2.3],['c',1,'w',6,2.3],['c',2,'s',5.5,2],['c',2,'n',5.5,2],['k',3,'e',5.5],['k',3,'w',5.5]],mats);
   buildTenshuInterior(T);
-  /* 館内の展示ケースと屏風 */
-  const F=T.FL; const sc=(f,x,z,w,d,h)=>{ B.showcase.add(new THREE.BoxGeometry(w,h,d),TM(x,f.y+.8+h/2,z)); B.black.add(new THREE.BoxGeometry(w+.1,.8,d+.1),TM(x,f.y+.4,z)); };
-  for(const i of [2,3,4]){ const f=F[i]; for(const dz of [-f.d/2+2.2,f.d/2-2.2]) for(let k=-2;k<=2;k++) if(Math.abs(k*4.2+T.cx-T.cx)>.1||true) sc(f,T.cx+k*4.2,T.cz+dz,2.6,1,1.2); }
-  { const f=F[5]; B.kin.add(new THREE.BoxGeometry(14,2.6,.1),TM(T.cx,f.y+1.6,T.cz+f.d/2-.5)); B.kin.add(new THREE.BoxGeometry(14,2.6,.1),TM(T.cx,f.y+1.6,T.cz-f.d/2+.5)); sc(f,T.cx-6,T.cz,3,5,.5); }
-  { const f=F[7]; sc(f,T.cx-6,T.cz+5,3,2,1.4); sc(f,T.cx+6,T.cz-5,3,2,1.4); B.kin.add(new THREE.BoxGeometry(.1,2.4,10),TM(T.cx-f.w/2+.5,f.y+1.6,T.cz)); }
+  decorModern(T);
 }
 
 /* 桜門と枡形、蛸石 */
@@ -919,9 +1081,7 @@ for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stoneK');
   for(const sx of [-1,1]){ box(B.stoneK,sx>0?5.1:-20,sx>0?20:-5.1,0,4,83.6,85.4); block(sx>0?5.1:-20,83.6,sx>0?20:-5.1,85.4,'castle'); }
   /* 蛸石: 枡形の正面に据えられた巨石 */
   const g=new THREE.Group(); g.position.set(-6,0,56.08); GM.add(g);
-  const tc=makeCanvas(256,128),t=tc.getContext('2d'); t.fillStyle='#8d877b'; t.fillRect(0,0,256,128); mottleTex(t,256,128,80,['#7d776b','#9d978b','#857f73','#6f6a60'],.6); speckle(t,256,128,2500,.15);
-  t.fillStyle='rgba(90,70,60,.55)'; t.beginPath(); t.ellipse(40,90,26,16,.5,0,6.283); t.fill(); t.strokeStyle='rgba(40,35,30,.5)'; t.lineWidth=3; t.strokeRect(2,2,252,124);
-  const tako=mesh(new THREE.PlaneGeometry(11.7,5.5),std({map:toTex(tc,true,false),roughness:.9})); tako.position.y=2.75; g.add(tako); }
+  const tako=mesh(new THREE.BoxGeometry(11.7,5.5,.7),bigStoneMat(1)); tako.position.set(0,2.75,.25); g.add(tako); }
 /* 金蔵・ミライザ大阪城・時空の玉 */
 { B.plaster.add(boxUVGeo(10,4.2,6,3,3),TM(26,2.1,-22)); B.namako.add(boxUVGeo(10.05,1.2,6.05,2.2,2.2),TM(26,.6,-22)); B.roof.add(gableRoofGeo(10,6,1.6,.7,.4),TM(26,4.2,-22)); B.plaster.add(gableEndsGeo(10,6,1.6),TM(26,4.2,-22)); B.ridge.add(new THREE.BoxGeometry(11,.4,.5),TM(26,5.9,-22)); block(25-6,-26,32,-18,'castle');
   for(const [x,z] of [[22,-18.9],[30,-18.9]]) B.black.add(new THREE.BoxGeometry(1.4,2,.1),TM(x,2.2,z));
@@ -935,7 +1095,7 @@ for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stoneK');
 { const N=16,x0=-28,x1=-20,cx=(x0+x1)/2; for(let i=0;i<N;i++){ const t0=i/N,t1=(i+1)/N,z0=-130+30*t0,z1=-130+30*t1,y0=.3+1.1*Math.sin(Math.PI*t0),y1=.3+1.1*Math.sin(Math.PI*t1);
     const len=Math.hypot(z1-z0,y1-y0),ang=-Math.atan2(y1-y0,z1-z0); B.concrete.add(new THREE.BoxGeometry(8,.5,len+.06),TM(cx,(y0+y1)/2-.25,(z0+z1)/2,0,1,1,1,ang));
     for(const sx of [x0+.2,x1-.2]) B.darkwood.add(new THREE.BoxGeometry(.18,.14,len+.06),TM(sx,(y0+y1)/2+.95,(z0+z1)/2,0,1,1,1,ang)); if(i%2===0) for(const sx of [x0+.2,x1-.2]) B.darkwood.add(new THREE.BoxGeometry(.22,1,.22),TM(sx,y0+.45,z0)); }
-  for(const t of [.33,.66]) B.concrete.add(new THREE.BoxGeometry(7,8.5,1.2),TM(cx,-3.2,-130+30*t)); }
+  for(const t of [.33,.66]) B.concrete.add(new THREE.BoxGeometry(7,15,1.2),TM(cx,-7,-130+30*t)); }
 /* 山里丸の碑 */
 { B.stoneK.add(boxUVGeo(2.4,.5,1.4,1,1),TM(-42,.25,-88)); B.torii.add(boxUVGeo(1.1,2.4,.5,1,1),TM(-42,1.7,-88)); block(-43.4,-89,-40.6,-87,'castle'); }
 /* 大手門（高麗門）・多聞櫓・千貫櫓 */
@@ -946,11 +1106,18 @@ for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stoneK');
   for(const z of [103.2,110.8]) B.darkwood.add(new THREE.BoxGeometry(.7,6.2,.7),TM(-205.5,3.1,z));
   yagura(-224,86,12,9,0,{base:0});
   /* 乾櫓（L字の二重櫓）、六番櫓・一番櫓、青屋門、焔硝蔵 */
-  yagura(-222,-212,12,9,0); yagura(-214,-205,9,12,0,{h1:4,h2:3.4});
+  yagura(-223,-215,11,8,0); yagura(-226,-205,8,10,0,{h1:4,h2:3.4});
   yagura(60,205,16,9,0); yagura(120,205,14,9,0);
   gate(-55,-219,8,0,{h:3.8,roof:M.roof}); stoneBlock(B.stoneK,-68,-60,-224,-214,4); stoneBlock(B.stoneK,-50,-42,-224,-214,4); tamon(B,-68,-42,-224,-214,4.2,4,{wall:'wallW',roof:'roof',gable:'plaster'});
   B.stoneK.add(boxUVGeo(14,4.6,9,3,3),TM(-150,2.3,-170)); B.stoneK.add(gableRoofGeo(14,9,2,.5,.3),TM(-150,4.6,-170)); B.stoneK.add(gableEndsGeo(14,9,2),TM(-150,4.6,-170)); block(-157.5,-175,-142.5,-165,'castle');
-  gate(-200,-219,8,0,{h:5,roof:M.roof}); gate(155,209,8,0,{h:5,roof:M.roof}); }
+  gate(-200,-219,8,0,{h:5,roof:M.roof}); gate(155,209,8,0,{h:5,roof:M.roof});
+  /* 京橋口の枡形: 門を入ると石垣に囲まれ、直角に曲がらないと先へ進めない。正面に肥後石 */
+  stoneBlock(B.stoneK,-217,-204.6,-222,-218,5); stoneBlock(B.stoneK,-195.4,-183,-222,-218,5);
+  stoneBlock(B.stoneK,-217,-213,-218,-193,5); stoneBlock(B.stoneK,-213,-187,-197,-193,5); stoneBlock(B.stoneK,-187,-183,-218,-206,5);
+  dobei(-215,-218,-215,-193,2.2,'castle',5,true); dobei(-213,-195,-187,-195,2.2,'castle',5,true); dobei(-185,-218,-185,-206,2.2,'castle',5,true);
+  { const hi=mesh(new THREE.BoxGeometry(10.8,4.9,.7),bigStoneMat(2)); hi.position.set(-212.6,2.5,-206); hi.rotation.y=Math.PI/2; GM.add(hi); }
+  /* 雁木: 枡形の内側から石垣の上へ上る石段 */
+  for(let k=0;k<10;k++) box(B.stoneK,-210.5+k*.9,-209.6+k*.9,0,(k+1)*.5,-198.6,-197); block(-210.5,-198.6,-201.5,-197,'castle'); }
 /* 豊国神社と秀吉像 */
 { for(const s of [-1,1]) B.torii.add(new THREE.CylinderGeometry(.42,.48,7,14),TM(-40+s*3.6,3.5,136)); B.torii.add(new THREE.BoxGeometry(10.6,.6,.9),TM(-40,7.1,136)); B.torii.add(new THREE.BoxGeometry(8.6,.42,.5),TM(-40,5.9,136));
   for(const s of [-1,1]) block(-40+s*3.6-.6,135.4,-40+s*3.6+.6,136.6,'town');
@@ -964,7 +1131,7 @@ for(let z=-210;z<100;z+=18) lamp(-211,z);
 
 /* 城の外の現代の街（ビル） */
 const RESERVED=[{x0:SOTO_O.x0-6,x1:SOTO_O.x1+6,z0:SOTO_O.z0-6,z1:SOTO_O.z1+6},{x0:-1300,x1:1300,z0:RIVER.z0-6,z1:RIVER.z1+16},{x0:-325,x1:-301,z0:-400,z1:400},{x0:268,x1:294,z0:-400,z1:400},{x0:-400,x1:400,z0:278,z1:302}];
-{ for(let cx=-350;cx<340;cx+=22) for(let cz=-350;cz<350;cz+=22){ const w=9+rnd()*10,d=9+rnd()*10,x=cx+2+rnd()*(18-w),z=cz+2+rnd()*(18-d); const r={x0:x,z0:z,x1:x+w,z1:z+d};
+{ for(let cx=-420;cx<400;cx+=22) for(let cz=-350;cz<450;cz+=22){ const w=9+rnd()*10,d=9+rnd()*10,x=cx+2+rnd()*(18-w),z=cz+2+rnd()*(18-d); const r={x0:x,z0:z,x1:x+w,z1:z+d};
     if(RESERVED.some(q=>r.x0<q.x1+1&&r.x1>q.x0-1&&r.z0<q.z1+1&&r.z1>q.z0-1)) continue; const tint=new THREE.Color().setHSL(.07+rnd()*.07,.05+rnd()*.12,.62+rnd()*.25),mx=x+w/2,mz=z+d/2;
     if(rnd()<.25){ const h=6+rnd()*3; B.facade.add(facadeBoxGeo(w,h,d),TM(mx,h/2,mz),tint); B.hroof.add(new THREE.BoxGeometry(w+.3,.5,d+.3),TM(mx,h+.25,mz),new THREE.Color('#5a5650')); }
     else if(rnd()<.8){ const h=12+rnd()*30; B.facade.add(facadeBoxGeo(w,h,d),TM(mx,h/2,mz),tint); B.facade.add(new THREE.BoxGeometry(w+.3,.6,d+.3),TM(mx,h+.3,mz),tint.clone().multiplyScalar(.85)); }
@@ -1000,7 +1167,7 @@ const TG={roof:M.roof,gable:M.lacquer,gold:true};
       {lv:3,name:'天守 6階',kana:'ろっかい',text:'最上階の下の階。秀吉は訪れた大名や宣教師を天守に案内し、自ら中を見せて回ったと伝えられています。',meta:[['記録','宣教師フロイスらの記録']]},
       {lv:4,name:'天守 最上階',kana:'さいじょうかい',text:'四方に廻縁（まわりえん）と高欄をめぐらせた最上階。黒い壁には金の虎や鶴が描かれていたことが、屏風絵などから知られています。',meta:[['廻縁','外に出て一周できます']]}],
     f0:{name:'天守入口（穴蔵）',kana:'あなぐら',text:'天守台の石垣の中の地階「穴蔵」。秀吉の天守は、外観五重で地下の階を持つ高層の建物だったといわれます。',meta:[['この先','天守 1階']]},
-    mat:{wall:'kin',floor:'tatami',ceil:'kinpaku',stone:'stone',rail:'lacquer',post:'lacquer',top:'topK',eaveRoof:'roof',gold:true},sign:signTex('天守入口')});
+    mat:{wall:'kin',floor:'tatami',ceil:'kinpaku',stone:'stone',rail:'lacquer',post:'lacquer',top:'topK',tigerA:'tiger',tigerB:'tiger2',crane:'crane',eaveRoof:'roof',gold:true},sign:signTex('天守入口')});
   const base=mesh(frustumGeo(T.bw,T.bd,T.bh+.02,T.bat,5,false),M.stone); base.position.set(T.cx,T.g0,T.cz); GE.add(base);
   const e0=T.ext[0]; for(const r of [{x0:-T.bw/2,x1:T.bw/2,z0:-T.bd/2,z1:-e0.d/2},{x0:-T.bw/2,x1:T.bw/2,z0:e0.d/2,z1:T.bd/2},{x0:-T.bw/2,x1:-e0.w/2,z0:-e0.d/2,z1:e0.d/2},{x0:e0.w/2,x1:T.bw/2,z0:-e0.d/2,z1:e0.d/2}]) box(B.stone,T.cx+r.x0,T.cx+r.x1,T.g0+T.bh-.3,T.g0+T.bh,T.cz+r.z0,T.cz+r.z1);
   block(T.cx-T.bw/2-T.bat,T.cz-T.bd/2-T.bat,T.cx+T.bw/2+T.bat,T.cz+T.bd/2+T.bat,'castle');
@@ -1015,8 +1182,7 @@ const TG={roof:M.roof,gable:M.lacquer,gold:true};
   B.kinpaku.add(new THREE.BoxGeometry(3,.06,3),TM(x,f.y+2.6,z)); B.gold.add(gableRoofGeo(3.2,3.2,.7,.25,.2),TM(x,f.y+2.62,z));
   B.gold.add(new THREE.CylinderGeometry(.22,.18,.3,12),TM(x,f.y+.55,z-.2)); B.gold.add(new THREE.CylinderGeometry(.12,.1,.12,10),TM(x+.4,f.y+.45,z+.2));
   T.FL[3].pillars.push([x-1.42,z-1.42],[x+1.42,z-1.42],[x-1.42,z+1.42],[x+1.42,z+1.42],[x-1.42,z],[x+1.42,z],[x,z-1.42],[x-.7,z-1.42],[x+.7,z-1.42],[x-1.42,z-.7],[x+1.42,z-.7],[x-1.42,z+.7],[x+1.42,z+.7]);
-  /* 1階の武具 */
-  { const f1=T.FL[1]; for(let k=0;k<6;k++){ B.lacquer.add(new THREE.BoxGeometry(1.2,.9,.8),TM(T.cx-8+k*2,f1.y+.45,T.cz-f1.d/2+1.6)); B.gold.add(new THREE.BoxGeometry(1.24,.08,.84),TM(T.cx-8+k*2,f1.y+.92,T.cz-f1.d/2+1.6)); } } }
+  decorToyo(T); }
 /* 本丸御殿（表御殿の千畳敷・奥御殿） */
 function goten(cx,cz,w,d,h,y,o){ o=o||{}; y=y||0; B.stone.add(boxUVGeo(w+1.6,.9,d+1.6,3,3),TM(cx,y+.45,cz)); B.wood.add(boxUVGeo(w,h,d,2.6,h),TM(cx,y+.9+h/2,cz));
   for(let x=-w/2+1;x<w/2;x+=2.2) for(const s of [-1,1]){ B.lacquer.add(new THREE.BoxGeometry(.3,h,.3),TM(cx+x,y+.9+h/2,cz+s*(d/2+.15))); }
@@ -1035,7 +1201,7 @@ goten(26,34,48,26,5.4,0,{kara:true}); goten(-46,36,26,18,4.6); goten(-14,-43,36,
   for(const sx of [x0+.3,x1-.3]){ B.lacquer.add(new THREE.BoxGeometry(.16,.14,z1-z0),TM(sx,y+1,(z0+z1)/2)); B.gold.add(new THREE.BoxGeometry(.2,.1,z1-z0),TM(sx,y+1.08,(z0+z1)/2)); }
   B.hinoki.add(gableRoofGeo(z1-z0,x1-x0,1.8,1.1,.6),TM(cx,y+3.6,(z0+z1)/2,Math.PI/2)); B.lacquer.add(gableEndsGeo(z1-z0,x1-x0,1.8),TM(cx,y+3.6,(z0+z1)/2,Math.PI/2)); B.gold.add(new THREE.BoxGeometry(.5,.24,z1-z0+1.4),TM(cx,y+5.45,(z0+z1)/2));
   for(const z of [z0+.1,z1-.1]){ const g=new THREE.Group(); g.position.set(cx,y+2.5,z); g.rotation.y=z<-110?Math.PI:0; GE.add(g); karahafu(g,0,0,0,0,8,{roof:M.hinoki,gable:M.lacquer,gold:true}); }
-  for(const t of [.3,.7]) for(const sx of [x0+1,x1-1]) B.lacquer.add(new THREE.CylinderGeometry(.3,.3,8,8),TM(sx,y-4.4,z0+(z1-z0)*t)); }
+  for(const t of [.3,.7]) for(const sx of [x0+1,x1-1]) B.lacquer.add(new THREE.CylinderGeometry(.3,.3,15,8),TM(sx,y-7.5,z0+(z1-z0)*t)); }
 /* 桜門の場所: 唐門 */
 { gate(0,84.5,8,0,{h:5.6,roof:M.hinoki,gable:M.lacquer,gold:true,kara:true,post:'lacquer',par:GE});
   for(const sx of [-1,1]) dobei(sx*5,84.6,sx*74,84.6,2.4,'castle',0,false); }
@@ -1063,10 +1229,47 @@ function daimyo(x0,z0,x1,z1,face){ const w=x1-x0,d=z1-z0,cx=(x0+x1)/2,cz=(z0+z1)
 { let x=-126; while(x<114){ const w=Math.min(28+rnd()*10,114-x); if(w<16) break; if(!(x<-40&&x+w>-70)) daimyo(x,-214,x+w,-160,'s'); x+=w+2; } }
 { for(const [xa,xb] of [[-226,-60],[20,140]]){ let x=xa; while(xb-x>16){ const w=Math.min(26+rnd()*10,xb-x); daimyo(x,140,x+w,204,'n'); x+=w+2; } } }
 /* 城下町（上町）の町家、大川の船着き場 */
-machiRow(-300,-64,261,'x',1,false); machiRow(-56,56,261,'x',1,false); machiRow(64,292,261,'x',1,false);
-machiRow(-300,-64,269,'x',-1,true); machiRow(-56,56,269,'x',-1,true); machiRow(64,292,269,'x',-1,true);
-machiRow(-300,-64,299,'x',1,false); machiRow(-56,56,299,'x',1,false); machiRow(64,292,299,'x',1,true);
-machiRow(-300,-64,307,'x',-1,true); machiRow(-56,56,307,'x',-1,false); machiRow(64,292,307,'x',-1,true);
+/* ================= 惣構: 城下町ごと堀と土塁で囲む ================= */
+/* 町家の通り（南へ拡張） */
+for(const [front,dir,dz] of [[261,1,false],[269,-1,true],[299,1,false],[307,-1,true],[337,1,false]]) for(const [a0,a1] of [[-362,-66],[-54,54],[66,340]]) machiRow(a0,a1,front,'x',dir,dz);
+/* 木戸: 通りの辻ごとに門を設け、夜は閉めて町を区切った */
+function kido(x,zs){ const z0=zs+.35,z1=zs+7.65; for(const z of [z0,z1]){ B.darkwood.add(new THREE.BoxGeometry(.34,3.6,.34),TM(x,1.8,z)); block(x-.3,z-.3,x+.3,z+.3,'machi'); }
+  B.darkwood.add(new THREE.BoxGeometry(.3,.3,8),TM(x,3.3,zs+4)); B.shingle.add(gableRoofGeo(8.6,1.2,.45,.25,.2),TM(x,3.45,zs+4,Math.PI/2));
+  for(const [z,s] of [[z0,1],[z1,-1]]) B.woodGrain.add(boxUVGeo(.08,2.9,1.8,.6,2),TM(x+.9,1.5,z+s*.95,0)); }
+for(const zs of [261,299,337]) for(const x of [-366,-67,-53,53,67,343]) kido(x,zs);
+/* 寺町: 惣構の内側に寺を集め、広い境内と塀を守りの拠点にした */
+function tera(x0,x1,z0,z1){ const cx=(x0+x1)/2,w=x1-x0,d=z1-z0; dobei(x0,z1,x1,z1,2.4,'buke'); dobei(x0,z0,x0,z1,2.4,'buke'); dobei(x1,z0,x1,z1,2.4,'buke'); dobei(x0,z0,cx-3.5,z0,2.4,'buke'); dobei(cx+3.5,z0,x1,z0,2.4,'buke');
+  gate(cx,z0,6,0,{h:5,roof:M.roof,gable:M.plaster,par:GE});
+  const hw=Math.min(w-10,18),hd=Math.min(d-9,11),hz=z0+d*.6; B.stone.add(boxUVGeo(hw+2,.9,hd+2,3,3),TM(cx,.45,hz)); B.wood.add(boxUVGeo(hw,5,hd,2.6,5),TM(cx,3.4,hz));
+  for(let x=-hw/2;x<=hw/2+.01;x+=hw/6) B.darkwood.add(new THREE.CylinderGeometry(.25,.25,5,8),TM(cx+x,3.4,hz-hd/2-.2));
+  const r=hipRoof(hw,hd,2.6,{roof:M.roof,gable:M.plaster},true); r.position.set(cx,5.8,hz); GE.add(r);
+  const bxp=x0+4,bzp=z0+4.5; B.darkwood.add(boxUVGeo(3,3.2,3,1.2,3),TM(bxp,1.6,bzp)); B.roof.add(gableRoofGeo(3.6,3.6,1.4,.6,.4),TM(bxp,3.2,bzp)); B.bronze.add(new THREE.CylinderGeometry(.55,.7,1.3,12),TM(bxp,2.6,bzp));
+  block(x0-.3,z0-.3,x1+.3,z1+.3,'buke'); TOYO_TREES.push([x1-4,z0+4,'pine'],[cx+hw/2+3,z1-4,'round']); }
+for(const [xa,xb] of [[-362,-66],[-54,54],[66,340]]){ let x=xa; while(xb-x>24){ const w=Math.min(34+rnd()*14,xb-x); tera(x,x+w,346,371); x+=w+3; } }
+/* 土塁と塀 */
+{ const D=SG.DOTE,zc=(D.z0+D.z1)/2,H=5.5,bat=4.5,td=D.z1-D.z0-2*bat;
+  for(const [a,b] of [[D.x0,SG.GATE.x0-1],[SG.GATE.x1+1,D.x1]]){ const L=b-a; const m=mesh(frustumGeo(L-2*bat,td,H,bat,4,true),M.dote,false,true); m.position.set((a+b)/2,0,zc); GE.add(m);
+    dobei(a+bat+.5,zc,b-bat-.5,zc,2.4,'castle',H,true); block(a,D.z0,b,D.z1,'castle'); }
+  /* 惣構の門（櫓門） */
+  for(const sx of [SG.GATE.x0-1,SG.GATE.x1+1]) box(B.stone,sx-1.5,sx+1.5,0,H,D.z0+1,D.z1-1);
+  gate((SG.GATE.x0+SG.GATE.x1)/2,D.z0+3,8,0,{h:H,roof:M.roof,gable:M.lacquer,par:GE});
+  tamon(B,SG.GATE.x0-2.5,SG.GATE.x1+2.5,D.z0+1,D.z1-1,3.6,H,{wall:'wallK',roof:'roof',gable:'lacquer',gold:true}); B.darkwood.add(new THREE.BoxGeometry(SG.GATE.x1-SG.GATE.x0+1,.5,D.z1-D.z0-2),TM((SG.GATE.x0+SG.GATE.x1)/2,H-.25,zc)); }
+/* 南の空堀 */
+{ const S=SG.S,x0=SG.W.x1,x1=SG.E.x0,L=x1-x0,dep=7; const fl=mesh(scaleUV(new THREE.PlaneGeometry(L,S.z1-S.z0),L/6,4),M.dote,false,true); fl.rotation.x=-Math.PI/2; fl.position.set((x0+x1)/2,-dep,(S.z0+S.z1)/2); GE.add(fl);
+  const v=[],uv=[]; quad(v,uv,[x0,0,S.z0],[x1,0,S.z0],[x1,-dep,S.z0+4],[x0,-dep,S.z0+4],L/5,2); quad(v,uv,[x1,0,S.z1],[x0,0,S.z1],[x0,-dep,S.z1-4],[x1,-dep,S.z1-4],L/5,2);
+  const sl=mesh(geoFrom(v,uv),doteBack,false,true); GE.add(sl); const sl2=mesh(geoFrom(v,uv),M.dote,false,true); GE.add(sl2);
+  /* 底の逆茂木（さかもぎ） */ for(let x=x0+6;x<x1-6;x+=9){ if(Math.abs(x+60)<8) continue; B.darkwood.add(new THREE.CylinderGeometry(.08,.1,2.4,5),TM(x,-dep+.9,(S.z0+S.z1)/2,0,1,1,1,.6)); B.darkwood.add(new THREE.CylinderGeometry(.08,.1,2.4,5),TM(x+1,-dep+.9,(S.z0+S.z1)/2,0,1,1,1,-.6)); } }
+/* 東横堀川・猫間川の石垣護岸 */
+for(const r of [SG.W,SG.E]) for(const x of [r.x0,r.x1]){ const L=SG.S.z1-RIVER.z1,g=scaleUV(new THREE.PlaneGeometry(L,17),L/5.5,17/5.5); g.rotateY(Math.PI/2); g.translate(x,-8.5,(RIVER.z1+SG.S.z1)/2); B.stone.add(g,new THREE.Matrix4()); }
+{ const r=SG.W; const g=scaleUV(new THREE.PlaneGeometry(r.x1-r.x0,17),2,3); g.translate((r.x0+r.x1)/2,-8.5,SG.S.z1); B.stone.add(g,new THREE.Matrix4()); const g2=scaleUV(new THREE.PlaneGeometry(SG.E.x1-SG.E.x0,17),2,3); g2.translate((SG.E.x0+SG.E.x1)/2,-8.5,SG.S.z1); B.stone.add(g2,new THREE.Matrix4()); }
+/* 橋（惣構の門前・高麗橋・猫間川） */
+function archBridge(b,alongX,mat){ const N=14,len=alongX?b.x1-b.x0:b.z1-b.z0,wid=alongX?b.z1-b.z0:b.x1-b.x0;
+  for(let i=0;i<N;i++){ const t0=i/N,t1=(i+1)/N,p0=(alongX?b.x0:b.z0)+len*t0,p1=(alongX?b.x0:b.z0)+len*t1,y0=b.h(alongX?p0:(b.x0+b.x1)/2,alongX?(b.z0+b.z1)/2:p0),y1=b.h(alongX?p1:(b.x0+b.x1)/2,alongX?(b.z0+b.z1)/2:p1);
+    const l=Math.hypot(p1-p0,y1-y0),ang=Math.atan2(y1-y0,p1-p0),mp=(p0+p1)/2,my=(y0+y1)/2;
+    if(alongX){ B[mat].add(new THREE.BoxGeometry(l+.06,.35,wid),TM(mp,my-.17,(b.z0+b.z1)/2,0,1,1,1,0,ang)); for(const z of [b.z0+.2,b.z1-.2]){ B[mat].add(new THREE.BoxGeometry(l+.06,.12,.14),TM(mp,my+.95,z,0,1,1,1,0,ang)); if(i%2===0) B[mat].add(new THREE.BoxGeometry(.18,1,.18),TM(p0,y0+.5,z)); if(MODE==='toyo'&&i%4===0) B.gold.add(new THREE.SphereGeometry(.16,8,6),TM(p0,y0+1.1,z)); } }
+    else { B[mat].add(new THREE.BoxGeometry(wid,.35,l+.06),TM((b.x0+b.x1)/2,my-.17,mp,0,1,1,1,-ang)); for(const x of [b.x0+.2,b.x1-.2]){ B[mat].add(new THREE.BoxGeometry(.14,.12,l+.06),TM(x,my+.95,mp,0,1,1,1,-ang)); if(i%2===0) B[mat].add(new THREE.BoxGeometry(.18,1,.18),TM(x,y0+.5,p0)); } } }
+  for(let t=.25;t<.8;t+=.25) for(const s of [-1,1]){ const p=(alongX?b.x0:b.z0)+len*t,o=s*(wid/2-.6); if(alongX) B[mat].add(new THREE.CylinderGeometry(.24,.24,16,8),TM(p,-8,(b.z0+b.z1)/2+o)); else B[mat].add(new THREE.CylinderGeometry(.24,.24,9,8),TM((b.x0+b.x1)/2+o,-4.5,p)); } }
+MODE='toyo'; for(const b of BRIDGES) if(b.mode==='toyo') archBridge(b,b.id!=='sogamae','darkwood'); MODE='modern';
 for(const [xa,xb] of [[-330,-240],[-160,-80],[60,150],[200,300]]){ let x=xa; while(xb-x>8){ const w=6+rnd()*5; B.wood.add(boxUVGeo(w,3,6,2.6,3),TM(x+w/2,1.5,-305)); B.shingle.add(gableRoofGeo(w,6,1.3,.6,.2),TM(x+w/2,3,-305)); B.wood.add(gableEndsGeo(w,6,1.3),TM(x+w/2,3,-305)); block(x,-308,x+w,-302,'machi'); x+=w+1.5; } }
 for(let x=-300;x<300;x+=40){ B.darkwood.add(boxUVGeo(10,.3,8,2,2),TM(x,-.15,-311)); for(const sx of [-4,4]) B.darkwood.add(new THREE.CylinderGeometry(.2,.2,8,6),TM(x+sx,-3.8,-314)); }
 for(const [x,z] of [[-229,96.5],[-229,117.5],[-40,-225],[-70,-225],[150,215],[160,215]]) lamp(x,z);
@@ -1192,6 +1395,7 @@ function waterRect(x0,z0,x1,z1,par){ const m=new THREE.Mesh(new THREE.PlaneGeome
 waterRect(MOAT.x0,MOAT.z0,MOAT.x1,ISLAND.z0); waterRect(MOAT.x0,ISLAND.z0,ISLAND.x0,DRY.z0); waterRect(ISLAND.x1,ISLAND.z0,MOAT.x1,DRY.z0);
 waterRect(SOTO_O.x0,SOTO_O.z0,SOTO_O.x1,SOTO_I.z0); waterRect(SOTO_O.x0,SOTO_I.z1,SOTO_O.x1,SOTO_O.z1); waterRect(SOTO_O.x0,SOTO_I.z0,SOTO_I.x0,SOTO_I.z1); waterRect(SOTO_I.x1,SOTO_I.z0,SOTO_O.x1,SOTO_I.z1);
 waterRect(RIVER.x0,RIVER.z0,RIVER.x1,RIVER.z1);
+waterRect(SG.W.x0,RIVER.z1,SG.W.x1,SG.S.z1,GE); waterRect(SG.E.x0,RIVER.z1,SG.E.x1,SG.S.z1,GE);
 let inBoost=0; const inLamp=new THREE.PointLight(0xffd7a8,0,16,2); scene.add(inLamp); const inFill=new THREE.AmbientLight(0xfff1dc,0); scene.add(inFill);
 const hemi=new THREE.HemisphereLight(0xffffff,0x444444,.5); scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffffff,2.5); sun.castShadow=true; sun.shadow.bias=-.0004; sun.shadow.normalBias=.04; scene.add(sun); scene.add(sun.target);
@@ -1244,12 +1448,13 @@ function sizeRT(){ const pr=renderer.getPixelRatio(); rt.setSize(Math.max(256,(i
 sizeRT();
 
 
+
 /* ---------- spots & areas ---------- */
 /* q: Wikimedia Commons で探す写真の検索語。toyo: 太閤の時代に切り替えたときの上書き */
 const SPOTS=[
   {id:'tenshu',name:'大阪城天守閣',kana:'おおさかじょう てんしゅかく',at:[-6,-46],pos:[-6,42],look:[-6,30,-46],q:'Osaka Castle main tower',
-   text:'1931年（昭和6年）、市民の寄付によって鉄筋コンクリートで再建された天守閣。徳川時代に築かれた天守台の上に、豊臣時代の天守を描いた「大坂夏の陣図屏風」を手がかりに建てられ、最上層の黒い壁には金の虎や鶴が輝きます。外観は五重、内部は8階で、国の登録有形文化財です。',
-   meta:[['再建','1931年（昭和6年）'],['高さ','約55m（天守台を含む）'],['内部','8階・最上階は展望台']],
+   text:'1931年（昭和6年）、市民の寄付によって鉄筋コンクリートで再建された天守閣。徳川時代に築かれた天守台の上に、豊臣時代の天守を描いた「大坂夏の陣図屏風」を手がかりに建てられました。1〜4層目は徳川時代風の白漆喰、5層目（最上層）だけは豊臣時代風の黒漆塗りで、腰壁には金の伏虎（ふくこ）、その上には金の鶴が飾られています。屋根の上には金の鯱（しゃちほこ）と桐紋の鬼板が輝きます。外観は五重、内部は8階で、国の登録有形文化財です。',
+   meta:[['再建','1931年（昭和6年）'],['高さ','約55m（天守台を含む）'],['最上層','黒漆に金の伏虎と鶴'],['内部','8階・最上階は展望台']],
    toyo:{name:'豊臣期の天守',kana:'とよとみき の てんしゅ',at:[30,-44],pos:[24,8],look:[30,26,-44],text:'秀吉が1583年（天正11年）から築いた大坂城の天守。黒漆塗りの壁に金箔瓦や金の飾りを施した、豪華な外観だったと伝わります。高い石垣の上に建つ外観五重の大天守で、城下のどこからでも見えたことでしょう。建物の細部は屏風絵などをもとにした想像復元です。',meta:[['築城','1583年（天正11年）から'],['外観','黒漆・金箔瓦'],['再現','想像を交えた復元']]}},
   {id:'iriguchi',name:'天守閣入口',kana:'てんしゅかく いりぐち',at:[18,-40],pos:[25,-40],look:[14,2,-40],q:'Osaka Castle main tower entrance',
    text:'天守台の東側の入口。石垣の内側の通路を抜け、階段を上ると天守閣の1階に出ます。このアプリでは各階を歩いて巡り、8階の展望台に出られます。',meta:[['この先','1階〜8階（展望台）']],
@@ -1287,7 +1492,7 @@ const SPOTS=[
   {id:'rokuban',modernOnly:true,name:'六番櫓',kana:'ろくばんやぐら',at:[60,205],pos:[60,180],look:[60,5,205],q:'Rokuban-yagura Osaka Castle',
    text:'二の丸の南側に建つ二重櫓。かつて南側に並んでいた七つの櫓のうち、今も残る一つで、重要文化財です。',meta:[['建築','1628年（寛永5年）']]},
   {id:'kyobashi',name:'京橋口',kana:'きょうばしぐち',at:[-200,-226],pos:[-200,-205],look:[-200,3,-250],q:'Kyobashi-guchi Osaka Castle',
-   text:'二の丸の北西の入口。外堀を渡った先には大川（旧淀川）が流れ、京都へ向かう道の出発点だったことが名の由来とされます。',meta:[['場所','二の丸の北西']],
+   look:[-213,2.5,-206],text:'二の丸の北西の入口。門をくぐると四方を石垣に囲まれた枡形になり、直角に曲がらないと先へ進めません。正面の「肥後石」は畳約33枚分の巨石で、蛸石に次ぐ大きさです。名は、京都へ向かう道の出発点だったことに由来するとされます。',meta:[['つくり','枡形'],['巨石','肥後石（約33畳敷）']],
    toyo:{name:'京橋口と大川の湊',kana:'みなと',at:[-200,-290],pos:[-200,-275],look:[-180,1,-330],text:'城の北を流れる大川は、京・伏見と大坂を結ぶ水運の大動脈でした。川沿いには船着き場や蔵が並び、全国から物資が集まりました。',meta:[['川','大川（淀川）'],['結ぶ先','京・伏見']]}},
   {id:'tama',modernOnly:true,name:'玉造口',kana:'たまつくりぐち',at:[155,209],pos:[155,190],look:[155,3,212],q:'Tamatsukuri-guchi Osaka Castle',
    text:'二の丸の南東の入口。JR森ノ宮駅方面から城に入る道の一つです。',meta:[['場所','二の丸の南東']]},
@@ -1297,6 +1502,12 @@ const SPOTS=[
    text:'本丸の中でも一段高い区画。天守と、秀吉や家族が暮らした奥御殿がありました。坂を上り、唐門をくぐって入ります。',meta:[['建物','天守・奥御殿']]},
   {id:'daimyo',toyoOnly:true,name:'大名屋敷',kana:'だいみょうやしき',at:[-156,-60],pos:[-200,-40],look:[-156,3,-60],
    text:'城の周りには、秀吉に仕える諸大名の屋敷が建ち並びました。大名は妻子を大坂に住まわせ、豪華な門や御殿を競い合ったといわれます。',meta:[['住んだ人','諸大名とその家族'],['再現','配置は想像']]},
+  {id:'sogamae',toyoOnly:true,name:'惣構の空堀と門',kana:'そうがまえ',at:[-60,398],pos:[-60,366],look:[-60,3,392],
+   text:'1594年（文禄3年）から、秀吉は城下町全体を堀と土塁で囲む「惣構（そうがまえ）」を築かせました。範囲はおよそ2km四方とされ、北は大川、西は東横堀川、東は猫間川、南は空堀で囲まれ、町そのものが城の守りの一部になりました。南の空堀の名は、今の「空堀商店街」に残るといわれます。このアプリでは距離を縮めて再現しています。',meta:[['築造','1594年（文禄3年）から'],['範囲','約2km四方'],['再現','距離を縮めた想像復元']]},
+  {id:'teramachi',toyoOnly:true,name:'寺町',kana:'てらまち',at:[-120,358],pos:[-120,341],look:[-120,4,362],
+   text:'惣構の内側の縁に寺を並べた一画。広い境内と塀を持つ寺を町の外周に集めると、いざというときの守りの拠点にもなったと考えられています。',meta:[['再現','配置は想像']]},
+  {id:'koraibashi',toyoOnly:true,name:'東横堀川と高麗橋',kana:'こうらいばし',at:[-384,265],pos:[-356,265],look:[-384,1,265],
+   text:'惣構の西を流れる東横堀川。城の守りの堀であると同時に、舟で荷を運ぶ水路でもありました。高麗橋は城下の西の玄関口として、築城のころに架けられたと伝わります。',meta:[['堀','東横堀川'],['橋','高麗橋（伝承）']]},
   {id:'joka',toyoOnly:true,name:'城下町（上町）',kana:'じょうかまち',at:[0,265],pos:[0,265],look:[60,3,265],
    text:'城の南に広がる町人の町。築城とともに堺や平野などから商人が集められ、大坂は日本有数の商業都市へと育っていきました。',meta:[['住んだ人','商人・職人'],['再現','町並みは想像']]}
 ];
@@ -1306,10 +1517,10 @@ function areaAt(x,z){ const t=MODE==='toyo';
   if(inR(ISLAND,x,z,0)){ if(z<-74) return '山里丸'; if(t&&inR(TSUME,x,z,1)) return '詰ノ丸'; if(!t&&inR({x0:-26,x1:26,z0:52,z1:85},x,z,0)) return '桜門の枡形'; return t?'本丸（表御殿）':'本丸'; }
   if(inR(MOAT,x,z,4)) return z>85?'南の空堀':'内堀のほとり';
   if(inR(SOTO_I,x,z,0)){ if(t) return x<-118?'二の丸（大名屋敷）':z<-130?'二の丸の北':'二の丸';
-    if(inR({x0:-232,x1:-201,z0:90,z1:134},x,z,0)) return '大手門の枡形'; if(inR({x0:-228,x1:-118,z0:-205,z1:94},x,z,0)) return '西の丸庭園'; if(inR({x0:112,x1:198,z0:-218,z1:-128},x,z,0)) return '梅林';
+    if(inR({x0:-232,x1:-201,z0:90,z1:134},x,z,0)) return '大手門の枡形'; if(inR({x0:-217,x1:-183,z0:-222,z1:-193},x,z,0)) return '京橋口の枡形'; if(inR({x0:-228,x1:-118,z0:-205,z1:94},x,z,0)) return '西の丸庭園'; if(inR({x0:112,x1:198,z0:-218,z1:-128},x,z,0)) return '梅林';
     if(inR({x0:-60,x1:-20,z0:132,z1:190},x,z,0)) return '豊國神社'; return '大阪城公園（二の丸）'; }
   if(z<SOTO_O.z0) return t?'大川のほとり':'大川（旧淀川）沿い';
-  if(t) return z>SOTO_O.z1?'城下町（上町）':'城の外';
+  if(t){ if(x<SG.W.x1+1) return '東横堀川'; if(x>SG.E.x0-1) return '猫間川'; if(z>=SG.S.z0-1) return '惣構の空堀'; if(z>=SG.DOTE.z0) return '惣構の門'; if(z>=346) return '寺町'; return z>SOTO_O.z1?'城下町（上町）':'城の外'; }
   return '大阪の街なか'; }
 
 
@@ -1324,7 +1535,7 @@ function inWalk(L,nx,nz,ox,oz){ const ns=stairAt(L,nx,nz),os=stairAt(L,ox,oz);
   if(ns){ if(nx<ns.s.x0+.35||nx>ns.s.x1-.35) return false; if(!os){ if(ns.dir>0&&ns.t>.2) return false; if(ns.dir<0&&ns.t<.8) return false; } return true; }
   if(os){ if(os.dir>0&&os.t>.2) return false; if(os.dir<0&&os.t<.8) return false; }
   const F=FL[L]; if(!F.rects.some(r=>inR(r,nx,nz,0))) return false; for(const p of F.pillars) if(Math.abs(p[0]-nx)<.5&&Math.abs(p[1]-nz)<.5) return false; return true; }
-function walkFloor(L,x,z){ const F=FL[L]; if(!F||!F.rects.some(r=>inR(r,x,z,0))) return false; for(const p of F.pillars) if(Math.abs(p[0]-x)<.5&&Math.abs(p[1]-z)<.5) return false; return true; }
+function walkFloor(L,x,z){ const F=FL[L]; if(!F||!F.rects.some(r=>inR(r,x,z,0))) return false; if(F.boxes&&F.boxes.some(b=>inR(b,x,z,.22))) return false; for(const p of F.pillars) if(Math.abs(p[0]-x)<.5&&Math.abs(p[1]-z)<.5) return false; return true; }
 /* 階段の端で取り残されないよう、段の外へ出た瞬間に上下の階へ乗り移る */
 function stepIn(L,ox,oz,nx,nz){ const os=stairAt(L,ox,oz),ns=stairAt(L,nx,nz);
   if(os){ if(ns&&ns.s===os.s) return (nx<os.s.x0+.35||nx>os.s.x1-.35)?-1:L;
@@ -1412,7 +1623,7 @@ const CH_PLACE=[
   ['musume',[[-280,264.5],[280,264.5]],.9],['pilgrim',[[260,266],[-260,266]],1.0],
   ['okami',[[30,262.2]]],['cooper',[[-120,268]]],
   ['peddler',[[-60,248],[-60,318]],.85],['hikyaku',[[-300,247.5],[280,247.5]],4.2],
-  ['boy',[[-250,302],[250,302]],2.6],['farmwoman',[[260,304.5],[-240,304.5]],.8]];
+  ['boy',[[-250,302],[250,302]],2.6],['farmwoman',[[260,304.5],[-240,304.5]],.8],['guard_spear',[[-65.5,371]]],['guard_staff',[[-54.5,371]]],['peddler',[[-350,341],[330,341]],.9],['pilgrim',[[-60,318],[-60,368]],1]];
 const CHG=new THREE.Group(); GE.add(CHG); const chars=[];
 { const tl=new THREE.TextureLoader(), shGeo=new THREE.CircleGeometry(.5,20); shGeo.rotateX(-Math.PI/2);
   const shMat=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.32,depthWrite:false}); const texCache={};
