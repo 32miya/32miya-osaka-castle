@@ -2774,6 +2774,35 @@ function areaAt(x,z){ const t=MODE==='toyo';
 /* ---------- player & input ---------- */
 const P={x:-6,z:110,y:1.6,yaw:0,pitch:.1,mode:'walk',bob:0,level:-1,room:null};
 ROOMS.forEach(R=>{ R.door=[(R.zone.x0+R.zone.x1)/2,(R.zone.z0+R.zone.z1)/2]; });
+/* ---------- 入口の目印: 暗い戸口・枠・のれん・看板・浮かぶ目印 ---------- */
+function labelSprite(text,sub){ const c=makeCanvas(512,160),g=c.getContext('2d'); g.fillStyle='rgba(17,18,20,.82)'; g.beginPath(); g.roundRect?g.roundRect(4,4,504,152,26):g.rect(4,4,504,152); g.fill(); g.strokeStyle='#d2452c'; g.lineWidth=6; g.stroke();
+  g.fillStyle='#d2452c'; g.save(); g.translate(46,80); g.rotate(Math.PI/4); g.fillRect(-13,-13,26,26); g.restore();
+  g.fillStyle='#eef0f1'; g.font='bold 52px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif'; g.textBaseline='middle'; g.fillText(text,82,62); g.font='34px "Hiragino Sans","Noto Sans JP",sans-serif'; g.fillStyle='#c9ccd0'; g.fillText(sub,84,118);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthWrite:false,toneMapped:false,fog:false})); s.scale.set(5.2,1.62,1); s.renderOrder=5; return s; }
+const DOOR_MARKS=[];
+function doorMark(par,era,x,z,nx,nz,name,w,h,o){ o=o||{}; const old=MODE; MODE=era; let wx=x,wz=z; for(let k=0;k<40&&!hitBlock(wx,wz,0);k++){ wx-=nx*.1; wz-=nz*.1; } MODE=old;
+  const ry=Math.atan2(nx,nz),y0=o.y||0,g=new THREE.Group(); g.position.set(wx+nx*.06,y0,wz+nz*.06); g.rotation.y=ry; par.add(g);
+  const dk=mesh(new THREE.PlaneGeometry(w,h),M.black,false,false); dk.position.y=h/2; g.add(dk);
+  const glow=new THREE.Mesh(new THREE.PlaneGeometry(w*.8,h*.9),new THREE.MeshBasicMaterial({color:0x6a4a28,transparent:true,opacity:.55})); glow.position.set(0,h*.46,.01); g.add(glow);
+  for(const s of [-1,1]){ const p=mesh(new THREE.BoxGeometry(.24,h+.3,.24),M.darkwood); p.position.set(s*(w/2+.12),(h+.3)/2,.1); g.add(p); }
+  const l=mesh(new THREE.BoxGeometry(w+.8,.26,.3),M.darkwood); l.position.set(0,h+.25,.12); g.add(l);
+  if(!o.noNoren){ const n=mesh(new THREE.PlaneGeometry(w*.94,.8),o.norenMat||M.noren); n.position.set(0,h-.42,.16); g.add(n); if(n.geometry.attributes&&!o.norenMat){ const c=new Float32Array(n.geometry.attributes.position.count*3); const col=new THREE.Color(o.noren||'#26406a').convertSRGBToLinear(); for(let i=0;i<c.length;i+=3){ c[i]=col.r; c[i+1]=col.g; c[i+2]=col.b; } n.geometry.setAttribute('color',new THREE.BufferAttribute(c,3)); } }
+  const lp=mesh(new THREE.BoxGeometry(.32,.46,.32),M.lantern,false,false); lp.position.set(w/2+.55,h*.72,.35); g.add(lp);
+  const sp=labelSprite(name,o.sub||'入口 · 近づくと入れます'); sp.position.set(0,h+1.9,.4); g.add(sp);
+  DOOR_MARKS.push({sp,base:h+1.9,era,x:wx+nx*1.2,z:wz+nz*1.2}); }
+ROOMS.forEach(R=>{ const dx=R.exitPos[0]-R.door[0],dz=R.exitPos[1]-R.door[1],l=Math.hypot(dx,dz)||1; R.nrm=[dx/l,dz/l];
+  const small=R.name.includes('茶室'); doorMark(R.era==='modern'?GM:GE,R.era,R.door[0],R.door[1],dx/l,dz/l,R.name.replace(/（.*?）/g,''),small?.8:1.8,small?.9:2.4,{noren:R.era==='modern'?'#3b3a52':'#26406a',noNoren:small,sub:small?'にじり口 · 近づくと入れます':undefined}); });
+{ const T=TEN.modern; doorMark(GM,'modern',T.door.x+.5,(T.door.z0+T.door.z1)/2,1,0,'天守閣 1階入口',1.9,2.5,{y:10,noNoren:true,sub:'入口 · 石段を上った先'}); 
+  const t=labelSprite('天守閣入口','石段を上って天守台の上へ'); t.position.set(13.3,4,-22); GM.add(t); DOOR_MARKS.push({sp:t,base:4,era:'modern',x:13.3,z:-22}); }
+{ const T=TEN.toyo,E=T.entry; const t=labelSprite('天守入口（穴蔵）','近づくと入れます'); t.position.set(E.X+.6,T.g0+4.6,E.zc); GE.add(t); DOOR_MARKS.push({sp:t,base:T.g0+4.6,era:'toyo',x:E.X+1,z:E.zc}); }
+function updateDoorMarks(t){ for(const d of DOOR_MARKS){ d.sp.position.y=d.base+Math.sin(t*2+d.x)*.12; const dist=Math.hypot(P.x-d.x,P.z-d.z); d.sp.visible=!P.room&&P.level<0&&dist<140&&dist>7; d.sp.material.opacity=Math.min(1,Math.max(.25,1.3-dist/120)); } }
+/* 近くの入口 → 画面下のボタンで入る */
+function doorSpot(){ if(P.room){ const R=P.room; return Math.hypot(P.x-(R.exitZone.x0+R.exitZone.x1)/2,P.z-(R.exitZone.z0+R.exitZone.z1)/2)<2.6?{name:'外に出る',exit:true}:null; }
+  if(P.level>=0||P.mode!=='walk') return null; let best=null,bd=7; for(const R of ROOMS){ if(R.era!==MODE) continue; const d=Math.hypot(P.x-R.exitPos[0],P.z-R.exitPos[1]); if(d<bd){ bd=d; best=R; } }
+  if(best) return {name:best.name.replace(/（.*?）/g,'')+'に入る',enter:best};
+  const T=TEN[MODE]; if(T.door){ if(Math.hypot(P.x-(T.door.x+1.5),P.z-(T.door.z0+T.door.z1)/2)<5&&groundH(P.x,P.z)>9) return {name:'天守閣に入る',keep:true}; }
+  else if(Math.hypot(P.x-(T.entry.X+2),P.z-T.entry.zc)<6) return {name:'天守に入る',keep:true}; return null; }
+
 function roomOK(R,x,z){ return R.rects.some(r=>inR(r,x,z,0))&&!R.boxes.some(b=>inR(b,x,z,.25)); }
 function enterRoom(R){ P.room=R; P.level=-1; P.x=R.spawn[0]; P.z=R.spawn[1]; P.yaw=R.spawn[2]; P.y=R.y+1.6; P.pitch=0; lastArea=''; showHint(R.name+'に入りました。出口へ向かうと外に出ます'); }
 function exitRoom(){ const R=P.room; P.room=null; P.x=R.exitPos[0]; P.z=R.exitPos[1]; P.yaw=R.exitPos[2]; P.y=groundH(P.x,P.z)+1.6; lastArea=''; showHint('外に出ました'); }
@@ -2973,7 +3002,9 @@ $('cardX').onclick=closeCard; $('mapX').onclick=closeMap; $('mini').onclick=()=>
 /* 天守閣のエレベーター（1階⇔5階） */
 const ELV={up:{name:'エレベーターで5階へ',elev:5},dn:{name:'エレベーターで1階へ',elev:1}};
 function elevSpot(){ if(MODE!=='modern'||P.room||!(P.level===1||P.level===5)) return null; const T=TEN.modern; return Math.hypot(P.x-(T.cx+4.2),P.z-(T.cz+5.4))<1.8?(P.level===1?ELV.up:ELV.dn):null; }
-$('poi').onclick=()=>{ if(!nearSpot) return; if(nearSpot.elev){ const T=TEN.modern; P.level=nearSpot.elev; P.x=T.cx+3.9; P.z=T.cz+5.4; P.y=T.FL[P.level].y+1.6; P.yaw=Math.PI/2; showHint(P.level===5?'5階に着きました。ここから階段で8階の展望台まで上れます':'1階に着きました'); nearSpot=null; return; } openCard(nearSpot); };
+$('poi').onclick=()=>{ if(!nearSpot) return; if(nearSpot.enter){ enterRoom(nearSpot.enter); nearSpot=null; return; } if(nearSpot.exit){ exitRoom(); nearSpot=null; return; }
+  if(nearSpot.keep){ const T=TEN[MODE]; if(T.door){ P.level=1; P.x=T.door.xIn; P.z=(T.door.z0+T.door.z1)/2; P.y=T.FL[1].y+1.6; P.yaw=Math.PI/2; showHint('天守閣1階に入りました'); } else { P.level=0; P.x=T.entry.X-.2; P.z=T.entry.zc; P.y=T.g0+1.6; P.yaw=Math.PI/2; showHint('天守の穴蔵に入りました。奥の階段を上ると1階です'); } nearSpot=null; return; }
+  if(nearSpot.elev){ const T=TEN.modern; P.level=nearSpot.elev; P.x=T.cx+3.9; P.z=T.cz+5.4; P.y=T.FL[P.level].y+1.6; P.yaw=Math.PI/2; showHint(P.level===5?'5階に着きました。ここから階段で8階の展望台まで上れます':'1階に着きました'); nearSpot=null; return; } openCard(nearSpot); };
 function nearestSpot(){ return curSpots.reduce((a,b)=>Math.hypot(b.pos[0]-P.x,b.pos[1]-P.z)<Math.hypot(a.pos[0]-P.x,a.pos[1]-P.z)?b:a); }
 $('tView').onclick=()=>{ if(!started) return; if(P.mode==='walk'){ if(P.room) exitRoom(); if(P.level>=0){ const E=TEN[MODE].entry,TD=TEN[MODE].door; P.level=-1; if(TD){ P.x=20; P.z=-28; } else { P.x=E.X+6; P.z=E.zc; } } P.mode='drone'; $('vView').textContent='空撮'; P.pitch=Math.min(P.pitch,-.25); }
   else { P.mode='walk'; $('vView').textContent='歩く'; if(!walkable(P.x,P.z)){ const s=nearestSpot(); P.x=s.pos[0]; P.z=s.pos[1]; } P.pitch=Math.max(P.pitch,-.2); } };
@@ -2987,7 +3018,7 @@ $('tEra').onclick=()=>setMode(MODE==='toyo'?'modern':'toyo');
 $('tQual').onclick=()=>{ quality=quality==='high'?'low':'high'; $('vQual').textContent=quality==='high'?'高':'軽'; waterMat.uniforms.uRefl.value=quality==='high'?1:0; applyPR(); renderer.setSize(innerWidth,innerHeight); sizeRT(); setShadow(); };
 function updateHUD(){ const a=P.room?P.room.name:P.level>=0?FL[P.level].name:areaAt(P.x,P.z); if(a!==lastArea){ lastArea=a; $('area').textContent=a; }
   let best=null,bd=1e9; for(const s of curSpots){ const d=Math.hypot(s.pos[0]-P.x,s.pos[1]-P.z); if(d<bd){ bd=d; best=s; } }
-  const ns=elevSpot()||(P.room?P.room:P.level>=0?FL[P.level]:(bd<20?best:null)); if(ns!==nearSpot){ nearSpot=ns; if(ns){ $('poiName').textContent=ns.name; } }
+  const ns=doorSpot()||elevSpot()||(P.room?P.room:P.level>=0?FL[P.level]:(bd<20?best:null)); if(ns!==nearSpot){ nearSpot=ns; if(ns){ $('poiName').textContent=ns.name; } }
   $('poi').hidden=!nearSpot||!$('card').hidden||!$('map').hidden||!$('spots').hidden; }
 $('goBtn').onclick=()=>{ if(!ready) return; started=true; $('start').hidden=true; if(isTouch) document.body.classList.add('touchui'); syncPad(); teleport(curSpots[0]);
   showHint(isTouch?'左でなぞって移動 · 右でなぞって見回す':'WASDで移動 · ドラッグで見回す · Shiftで走る'); };
@@ -3015,7 +3046,7 @@ function frame(now){ const dt=Math.min(.05,(now-last)/1000); last=now; clock+=dt
   { const T=TIMES[timeIdx],tgt=(started&&(P.level>=0||P.room))?1:0; inBoost+=(tgt-inBoost)*Math.min(1,dt*3); const lt=(P.level>=0&&FL[P.level]&&FL[P.level].light)||(P.room&&P.room.light)||1; curLF+=(lt-curLF)*Math.min(1,dt*2.5);
     hemi.intensity=T.hi*(1+inBoost*1.4)*(1-inBoost*(1-curLF)); renderer.toneMappingExposure=T.exp*(1+inBoost*.3)*(1-inBoost*(1-curLF)*.6);
     inLamp.intensity=inBoost*(.8+(T.night>.5?.5:0)); inLamp.position.set(camera.position.x,camera.position.y+.45,camera.position.z); inFill.intensity=inBoost*.55; }
-  updateBoats(dt,clock); updatePJ(dt); updateChars(dt); waterMat.uniforms.uTime.value=clock; sky.position.copy(camera.position);
+  updateBoats(dt,clock); updateDoorMarks(clock); updatePJ(dt); updateChars(dt); waterMat.uniforms.uTime.value=clock; sky.position.copy(camera.position);
   if(started) _tgt.set(P.x,0,P.z); else { const c=TEN[MODE]; _tgt.set(c.cx,0,c.cz); }
   sun.position.copy(_tgt).addScaledVector(sunDir,320); sun.target.position.copy(_tgt); sun.target.updateMatrixWorld();
   renderer.shadowMap.needsUpdate=true; camera.updateMatrixWorld();
