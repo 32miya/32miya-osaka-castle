@@ -1574,10 +1574,11 @@ const M={
 for(const k in M){ if(M[k].color) M[k].color.convertSRGBToLinear(); if(M[k].emissive) M[k].emissive.convertSRGBToLinear(); }
 /* ---------- 質感の強化（PBR）: 高さ画像から法線マップを作り、凹凸を光で見せる ---------- */
 /* 凹凸: 高さ画像から光の当たり方を計算するバンプマップを主要な素材に（法線マップと同じ効果を軽く出す） */
-const toBump=c=>toTex(c,false);
+/* ちらつき防止: 凹凸の画像はぼかして細かすぎるノイズを除く */
+const toBump=(c,bl)=>{ const b=makeCanvas(c.width,c.height),g=b.getContext('2d'); g.filter='blur('+(bl||2)+'px)'; for(const ox of [-c.width,0,c.width]) for(const oy of [-c.height,0,c.height]) g.drawImage(c,ox,oy); return toTex(b,false); };
 for(const [k,c,sc] of [['roof',cRoof,1.1],['roofG',cRoofG,1.1],['hinoki',cShingle,1.2],['shingle',cShingle,1.2],['stone',cStoneH,2.2],['stoneK',cStoneKH,1.8],['sangi',cSangi,1.2],['wood',cWood,.9],['woodGrain',cWood,.8],
   ['plaster',cPlaster,.5],['wallW',cWallW,.35],['dobei',cDobei,.6],['thatch',cThatch,1.6],['carve',cCarve,2.2],['dote',cDote,1.2],['kura',cKura,.5],['namako',cNamako,1],['wallK',cWallK,.5],['kin',cKin,.6],['lattice',cLattice,1.2],['greenP',cGreenP,.8],['lacqK',cKanagu,.8]]){
-  const m=M[k]; if(!m) continue; if(!m.bumpMap) m.bumpMap=toBump(c); m.bumpScale=sc; m.needsUpdate=true; }
+  const m=M[k]; if(!m) continue; m.bumpMap=toBump(c,k==='stone'||k==='stoneK'||k==='sangi'?3:2); m.bumpScale=sc*.75; m.needsUpdate=true; }
 /* 周囲の映り込み（環境マップ）: 時刻ごとの空と地面を小さなキューブマップに描く */
 const envFaces=[0,1,2,3,4,5].map(()=>makeCanvas(64,64)); const envCube=new THREE.CubeTexture(envFaces); envCube.encoding=THREE.sRGBEncoding;
 function paintEnv(T,sd){ const top='#'+new THREE.Color(T.top).getHexString(),hor='#'+new THREE.Color(T.hor).getHexString(),gnd=T.night>.5?'#0b0c10':'#5a5648';
@@ -1602,6 +1603,7 @@ function addPJ(m){ m.onBeforeCompile=sh=>{ sh.uniforms.uPJ=PJU.uPJ; sh.uniforms.
   sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vPjW,vPjN;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvPjW=(modelMatrix*vec4(transformed,1.0)).xyz; vPjN=normalize(mat3(modelMatrix)*objectNormal);');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\n'+PJ_GLSL).replace('vec3 outgoingLight =','totalEmissiveRadiance+=pjShow()*(0.45+0.9*diffuseColor.rgb);\n\tvec3 outgoingLight ='); }; m.customProgramCacheKey=()=>'pj'; }
 [M.wallW,M.stoneK,M.roofG,M.plaster,M.ridge,M.topK,M.black,M.gold].forEach(addPJ);
+for(const k of ['stone','stoneK','dote','sangi']) M[k].side=THREE.DoubleSide;
 const stoneBack=M.stone.clone(); stoneBack.side=THREE.BackSide; const doteBack=M.dote.clone(); doteBack.side=THREE.BackSide; const stoneKBack=M.stoneK.clone(); stoneKBack.side=THREE.BackSide;
 
 /* ---------- geometry helpers ---------- */
@@ -1611,7 +1613,7 @@ function scaleUV(g,su,sv){ const u=g.attributes.uv; for(let i=0;i<u.count;i++) u
 function boxUVGeo(w,h,d,tu,tv){ const g=new THREE.BoxGeometry(w,h,d), u=g.attributes.uv;
   for(let f=0;f<6;f++) for(let k=0;k<4;k++){ const i=f*4+k; const su=f<2?d/tu:w/tu, sv=(f===2||f===3)?d/tv:h/tv; u.setXY(i,u.getX(i)*su,u.getY(i)*sv); } return g; }
 function wallBoxGeo(w,h,d){ const g=new THREE.BoxGeometry(w,h,d), u=g.attributes.uv, bx=Math.max(1,Math.round(d/3.6)), bz=Math.max(1,Math.round(w/3.6));
-  for(let f=0;f<6;f++) for(let k=0;k<4;k++){ const i=f*4+k; if(f<2) u.setX(i,u.getX(i)*bx); else if(f<4) u.setXY(i,.02,.5); else u.setX(i,u.getX(i)*bz); } for(let k=18;k<24;k++) g.index.setX(k,0); return g; }
+  for(let f=0;f<6;f++) for(let k=0;k<4;k++){ const i=f*4+k; if(f<2) u.setX(i,u.getX(i)*bx); else if(f<4) u.setXY(i,.02,.5); else u.setX(i,u.getX(i)*bz); } return g; }
 function facadeBoxGeo(w,h,d){ const g=new THREE.BoxGeometry(w,h,d), u=g.attributes.uv;
   for(let f=0;f<6;f++) for(let k=0;k<4;k++){ const i=f*4+k; if(f===2||f===3) u.setXY(i,.01,.01); else u.setXY(i,u.getX(i)*(f<2?d:w)/12,u.getY(i)*h/12); } return g; }
 function frustumGeo(wT,dT,h,bat,tile,cap){ const a=wT/2,b=dT/2,A=a+bat,B=b+bat,v=[],uv=[],t=tile||3,sl=Math.hypot(h,bat)/t;
@@ -1811,6 +1813,8 @@ function sangiCorners(r,yTop,yBot,bat){ const bt=new Batch(),hs=1.25; let k=0;
   for(const [r,out,bat] of [[ISLAND,true,5.5],[MOAT,false,5],[SOTO_I,true,5],[SOTO_O,false,4.5]]){ const m=mesh(moatWallGeo(r,out,0,yB,bat,5.5),wallK,false,true); eraWall(m,'wall');
     if(out){ const c=sangiCorners(r,0,yB,bat); c.castShadow=false; c.receiveShadow=true; eraWall(c,'corner'); } }
   for(const z of [RIVER.z0,RIVER.z1]) eraWall(mesh(scaleUV(new THREE.PlaneGeometry(2600,-yB),2600/5.5,-yB/5.5).translate(0,yB/2,0).rotateY(z===RIVER.z0?Math.PI:0).translate(0,0,z),wallK,false,true),'wall');
+  /* 水堀と空堀の境: 石垣で仕切る（隙間が見えないように） */
+  for(const [a,b] of [[MOAT.x0,ISLAND.x0],[ISLAND.x1,MOAT.x1]]){ const g=scaleUV(new THREE.PlaneGeometry(b-a,DRY_Y-yB),(b-a)/5.5,(DRY_Y-yB)/5.5); g.translate((a+b)/2,(DRY_Y+yB)/2,DRY.z0); eraWall(mesh(g,wallK,false,true),'wall'); }
   /* 空堀の底 */
   const df=mesh(scaleUV(new THREE.PlaneGeometry(DRY.x1-DRY.x0,DRY.z1-DRY.z0),40,8),M.dote,false,true); df.rotation.x=-Math.PI/2; df.position.set(0,DRY_Y,(DRY.z0+DRY.z1)/2); scene.add(df); }
 function setEraWalls(){ const t=MODE==='toyo'; eraWalls.forEach(m=>{ m.material=m.userData.kind==='corner'?(t?sangiN:M.sangi):(t?wallN:wallK); }); }
@@ -1980,6 +1984,8 @@ function yagura(cx,cz,w,d,ry,o){ o=o||{}; const g=new THREE.Group(); g.position.
   const h1=o.h1||4.2,h2=o.h2||3.6,wall=M[o.wall||'wallW'],mats={roof:o.roof||M.roof,gable:o.gable||M.plaster,gold:!!o.gold,shs:.7};
   if(o.base){ const b=mesh(frustumGeo(w+1,d+1,o.base,.6,4,true),o.stone||M.stoneK); g.add(b); }
   const yb=o.base||0; const w1=mesh(wallBoxGeo(w,h1,d),wall); w1.position.y=yb+h1/2; g.add(w1);
+  /* 床板（底面）と、高い所に建つ櫓は地面までの石垣の台 */ const fl=mesh(new THREE.BoxGeometry(w,.3,d),M.darkwood); fl.position.y=yb+.15; g.add(fl);
+  if(o.y>0){ const st=mesh(boxUVGeo(w+.6,o.y,d+.6,3,3),o.stone||M.stone); st.position.y=-o.y/2+.01; g.add(st); }
   /* 石落とし: 壁から張り出して真下へ石や鉄砲を撃ち下ろす仕掛け */ for(const sx of [-1,1]) for(const sz of [-1,1]){ const so=mesh(new THREE.BoxGeometry(1.5,1.3,.6),wall); so.position.set(sx*(w/2-1.1),yb+h1-1.9,sz*(d/2+.3)); g.add(so); const sr=mesh(new THREE.BoxGeometry(1.6,.12,.7),M.ridge); sr.position.set(sx*(w/2-1.1),yb+h1-1.2,sz*(d/2+.32)); g.add(sr); }
   if(o.single){ const r=hipRoof(w,d,1.3,mats); r.position.y=yb+h1-.1; g.add(r); }
   else { const w2v=w-2.4,d2v=d-2.4,a0=w/2+1.2,b0=d/2+1.2,rise=Math.max(a0-w2v/2,b0-d2v/2)*.55; const [sk,fr]=skirtParts(a0,b0,w2v/2,d2v/2,rise,.4); const s=mesh(sk,mats.roof); s.position.y=yb+h1-.1; g.add(s); if(o.gold){ const f=mesh(fr,M.gold); f.position.y=yb+h1-.1; g.add(f); }
@@ -2165,7 +2171,7 @@ for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stoneK');
   const g=new THREE.Group(); g.position.set(-40,2.6,152); GM.add(g); const bd=mesh(new THREE.CylinderGeometry(.5,.9,1.9,10),M.bronze); bd.position.y=.95; g.add(bd); const hd=mesh(new THREE.SphereGeometry(.32,12,10),M.bronze); hd.position.y=2.15; g.add(hd);
   const ka=mesh(new THREE.BoxGeometry(.5,.55,.3),M.bronze); ka.position.set(0,2.5,0); g.add(ka); const sl=mesh(new THREE.BoxGeometry(2.2,.9,.5),M.bronze); sl.position.y=1.5; g.add(sl); }
 /* 公園の灯りと売店 */
-for(let x=-220;x<200;x+=18){ lamp(x,100.5); lamp(x+9,131.5); }
+for(let x=-220;x<200;x+=18){ if(!inR(MOAT,x,100.5,3)) lamp(x,100.5); if(!inR(MOAT,x+9,131.5,3)) lamp(x+9,131.5); }
 for(let z=-210;z<100;z+=18) lamp(-211,z);
 
 /* 城の外の現代の街（ビル） */
@@ -3032,7 +3038,7 @@ const GRADE={uniforms:{tDiffuse:{value:null},uNight:{value:0}},vertexShader:'var
   void main(){ vec3 c=toSRGB(texture2D(tDiffuse,vUv).rgb); float l=dot(c,vec3(.299,.587,.114)); c=mix(vec3(l),c,1.1); c=(c-.5)*1.05+.5;
     c*=mix(vec3(1.03,1.0,.95),vec3(.95,.98,1.06),uNight); vec2 d=vUv-.5; c*=1.0-dot(d,d)*.55; gl_FragColor=vec4(c,1.0); }`};
 let composer=null,bloom=null,grade=null;
-try{ if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.ShaderPass){ const rtc=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:renderer.capabilities.isWebGL2?THREE.HalfFloatType:THREE.UnsignedByteType});
+try{ if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.ShaderPass){ const o2={type:renderer.capabilities.isWebGL2?THREE.HalfFloatType:THREE.UnsignedByteType}; let rtc; if(renderer.capabilities.isWebGL2&&THREE.WebGLMultisampleRenderTarget){ rtc=new THREE.WebGLMultisampleRenderTarget(innerWidth,innerHeight,o2); rtc.samples=4; } else rtc=new THREE.WebGLRenderTarget(innerWidth,innerHeight,o2);
   composer=new THREE.EffectComposer(renderer,rtc); composer.addPass(new THREE.RenderPass(scene,camera)); bloom=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2,innerHeight/2),.28,.5,.88); composer.addPass(bloom); grade=new THREE.ShaderPass(GRADE); composer.addPass(grade);
   composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth,innerHeight); } }catch(e){ composer=null; }
 function sizePost(){ if(composer){ composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth,innerHeight); } }
@@ -3040,7 +3046,7 @@ addEventListener('resize',sizePost); $('tQual').addEventListener('click',sizePos
 
 /* ---------- loop ---------- */
 applyTime(1);
-let last=performance.now(),clock=0,fr=0,curLF=1; const _tgt=V3();
+let last=performance.now(),clock=0,fr=0,curLF=1; const _f=V3(),_r=V3(),_u=V3(),_up=V3(0,1,0); const _tgt=V3();
 function frame(now){ const dt=Math.min(.05,(now-last)/1000); last=now; clock+=dt; fr++;
   if(started) updatePlayer(dt); else attract(dt);
   { const T=TIMES[timeIdx],tgt=(started&&(P.level>=0||P.room))?1:0; inBoost+=(tgt-inBoost)*Math.min(1,dt*3); const lt=(P.level>=0&&FL[P.level]&&FL[P.level].light)||(P.room&&P.room.light)||1; curLF+=(lt-curLF)*Math.min(1,dt*2.5);
@@ -3048,6 +3054,9 @@ function frame(now){ const dt=Math.min(.05,(now-last)/1000); last=now; clock+=dt
     inLamp.intensity=inBoost*(.8+(T.night>.5?.5:0)); inLamp.position.set(camera.position.x,camera.position.y+.45,camera.position.z); inFill.intensity=inBoost*.55; }
   updateBoats(dt,clock); updateDoorMarks(clock); updatePJ(dt); updateChars(dt); waterMat.uniforms.uTime.value=clock; sky.position.copy(camera.position);
   if(started) _tgt.set(P.x,0,P.z); else { const c=TEN[MODE]; _tgt.set(c.cx,0,c.cz); }
+  /* 影のちらつき防止: 影を描く範囲を影の画素の格子に合わせて動かす */
+  { const sz=sun.shadow.mapSize.x,ext=sun.shadow.camera.right,tx=2*ext/sz; _f.copy(sunDir).negate(); _r.crossVectors(_up,_f).normalize(); _u.crossVectors(_f,_r);
+    const a=Math.round(_tgt.dot(_r)/tx)*tx,b=Math.round(_tgt.dot(_u)/tx)*tx,c=_tgt.dot(_f); _tgt.copy(_r).multiplyScalar(a).addScaledVector(_u,b).addScaledVector(_f,c); }
   sun.position.copy(_tgt).addScaledVector(sunDir,320); sun.target.position.copy(_tgt); sun.target.updateMatrixWorld();
   renderer.shadowMap.needsUpdate=true; camera.updateMatrixWorld();
   if(quality==='high') renderReflection();
@@ -3057,7 +3066,7 @@ function frame(now){ const dt=Math.min(.05,(now-last)/1000); last=now; clock+=dt
   requestAnimationFrame(frame); }
 try{ const m=new URLSearchParams(location.search).get('era'); if(m==='toyo') setMode('toyo'); }catch(e){}
 requestAnimationFrame(frame);
-window.__oc={P,ROOMS,walkable,groundH,walkFloor:(L,x,z)=>walkFloor(L,x,z),spots:()=>curSpots,enterRoom,sim:(n,dt,k)=>{ Object.assign(keys,k||{}); for(let i=0;i<n;i++) updatePlayer(dt||.05); for(const q in k||{}) keys[q]=false; },setMode,teleport:id=>{ const s=curSpots.find(q=>q.id===id); if(s) teleport(s); },start:()=>$('goBtn').click(),TEN,get MODE(){ return MODE; }};
+window.__oc={P,dbg:{renderer,M,sun},ROOMS,walkable,groundH,walkFloor:(L,x,z)=>walkFloor(L,x,z),spots:()=>curSpots,enterRoom,sim:(n,dt,k)=>{ Object.assign(keys,k||{}); for(let i=0;i<n;i++) updatePlayer(dt||.05); for(const q in k||{}) keys[q]=false; },setMode,teleport:id=>{ const s=curSpots.find(q=>q.id===id); if(s) teleport(s); },start:()=>$('goBtn').click(),TEN,get MODE(){ return MODE; }};
 })();
 
 </script>
