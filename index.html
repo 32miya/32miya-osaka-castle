@@ -1414,8 +1414,15 @@ const tKin=toTex(cKin);
 const cKinP=makeCanvas(256,256);{ const g=cKinP.getContext('2d'); for(let y=0;y<256;y+=32) for(let x=0;x<256;x+=32){ const l=rnd()*24-12; g.fillStyle=`rgb(${222+l|0},${180+l|0},${80+l*.5|0})`; g.fillRect(x,y,32,32); g.fillStyle='rgba(120,80,20,.25)'; g.fillRect(x,y,32,1); g.fillRect(x,y,1,32); } }
 const tKinP=toTex(cKinP);
 /* 畳 */
-const cTatami=makeCanvas(256,256);{ const g=cTatami.getContext('2d'); g.fillStyle='#b9b27a'; g.fillRect(0,0,256,256); for(let y=0;y<256;y+=3){ g.fillStyle=`rgba(90,80,30,${(.08+rnd()*.08).toFixed(2)})`; g.fillRect(0,y,256,1); }
-  g.fillStyle='#1d1a14'; for(const x of [0,128]) g.fillRect(x,0,7,256); g.fillRect(0,0,128,7); g.fillRect(128,128,128,7); }
+/* 畳: 1.8m四方に2枚（各1.8m×0.9m）。い草の目、長辺に黒い縁、色のむら */
+const cTatami=makeCanvas(512,512);{ const g=cTatami.getContext('2d');
+  for(let m=0;m<2;m++){ const y0=m*256,base=[178+rnd()*14,172+rnd()*12,112+rnd()*10];
+    g.fillStyle=`rgb(${base[0]|0},${base[1]|0},${base[2]|0})`; g.fillRect(0,y0,512,256);
+    for(let x=0;x<512;x+=3){ const l=(rnd()-.5)*26; g.fillStyle=`rgba(${60+l|0},${70+l|0},${20},${(.10+rnd()*.08).toFixed(2)})`; g.fillRect(x,y0,1.4,256); }
+    for(let y=y0+6;y<y0+256;y+=9){ g.fillStyle='rgba(70,64,30,.10)'; g.fillRect(0,y,512,1); }
+    for(let i=0;i<40;i++){ g.fillStyle=`rgba(${rnd()<.5?120:200},${rnd()<.5?130:190},70,.06)`; g.fillRect(rnd()*512,y0+rnd()*256,20+rnd()*80,6+rnd()*30); }
+    /* 縁（へり）: 長辺に黒い布 */ for(const yy of [y0,y0+256-18]){ g.fillStyle='#17140f'; g.fillRect(0,yy,512,18); g.fillStyle='rgba(255,255,255,.06)'; for(let x=0;x<512;x+=4) g.fillRect(x,yy+3,2,12); }
+    g.fillStyle='rgba(40,35,20,.55)'; g.fillRect(0,y0,2,256); g.fillRect(510,y0,2,256); } }
 const tTatami=toTex(cTatami);
 /* 展示室（現在の天守閣の館内） */
 const cMus=makeCanvas(256,512),cMusE=makeCanvas(256,512);{ const g=cMus.getContext('2d'),e=cMusE.getContext('2d');
@@ -1548,7 +1555,7 @@ const M={
   greenP:std({map:tGreenP,roughness:.4,metalness:.2,side:DS}),
   kin:std({map:tKin,emissiveMap:tKin,emissive:new THREE.Color(0xffffff),emissiveIntensity:.32,roughness:.45,metalness:.35,side:DS}),
   kinpaku:std({map:tKinP,emissiveMap:tKinP,emissive:new THREE.Color(0xffffff),emissiveIntensity:.4,roughness:.3,metalness:.6,side:DS}),
-  tatami:std({map:tTatami,roughness:.85}),
+  tatami:std({map:tTatami,bumpMap:tTatami,bumpScale:.25,roughness:.9,color:0xd8d2bc}),
   museum:std({map:tMus,emissiveMap:tMusE,emissive:new THREE.Color(0xffffff),emissiveIntensity:.8,roughness:.75,side:DS}),
   felt:std({color:0xb0202a,roughness:1}),
   mira:std({map:tMira,roughness:.85}),
@@ -1975,7 +1982,7 @@ function buildTenshuInterior(T){ const {cx,cz,FL,ST}=T,MT=T.mat;
   FL.forEach((F,i)=>{ if(i===0) return; const fp={x0:cx-F.w/2,x1:cx+F.w/2,z0:cz-F.d/2,z1:cz+F.d/2},bal=F.bal;
     const wp=bal?{x0:fp.x0-bal,x1:fp.x1+bal,z0:fp.z0-bal,z1:fp.z1+bal}:fp;
     F.rects=[bal?{x0:wp.x0+.35,x1:wp.x1-.35,z0:wp.z0+.35,z1:wp.z1-.35}:{x0:fp.x0+.9,x1:fp.x1-.9,z0:fp.z0+.9,z1:fp.z1-.9}];
-    slab(B[MT.floor],wp,clipR(wp,ST[i-1]),F.y,.25);
+    slab(B[F.floorMat||MT.floor],wp,clipR(wp,ST[i-1]),F.y,.25);
     const last=i===FL.length-1; slab(B[MT.ceil],fp,last?null:clipR(fp,ST[i]),F.y+F.h-(last?0:.25),.2);
     const H=F.h-.25,a=F.w/2-.3,b=F.d/2-.3; let sides=[[2*a,cx,cz-b,0],[2*a,cx,cz+b,0],[2*b,cx-a,cz,Math.PI/2],[2*b,cx+a,cz,Math.PI/2]];
     if(i===1&&T.doorE){ const d0=T.doorE.z0,d1=T.doorE.z1; sides=sides.slice(0,3).concat([[d0-(cz-b),cx+a,(cz-b+d0)/2,Math.PI/2],[(cz+b)-d1,cx+a,(d1+cz+b)/2,Math.PI/2]]); B[MT.wall].add(inWallGeo(d1-d0,H-3),TM(cx+a,F.y+3+(H-3)/2,(d0+d1)/2,Math.PI/2)); for(const z of [d0,d1]) B.black.add(new THREE.BoxGeometry(.3,3,.2),TM(cx+a,F.y+1.5,z)); }
@@ -2141,13 +2148,13 @@ const TG={roof:M.roof,gable:M.lacquer,gold:true};
 /* 豊臣期の天守: 黒漆の壁、金箔瓦、最上層に金の虎と鶴 */
 { const T=TEN.toyo=planTenshu({par:GE,cx:30,cz:-44,g0:TS_H,bw:30,bd:26,bh:10,bat:3,oh:2.0,entZ:5,
     ext:[{w:26,d:22,h:9,wall:'wallK'},{w:22,d:18,h:4.6,wall:'wallK'},{w:19,d:15,h:9,wall:'wallK',slope:.6},{w:15,d:12,h:4.6,wall:'wallK'},{w:11,d:9,h:4.6,wall:'topK',open:true,bal:1.4}],
-    floors:[{lv:0,name:'天守 1階',kana:'いっかい',text:'太い柱が並ぶ広い階。秀吉の天守には金銀や名物の道具、武具が納められていたと伝わります。ここからは想像を交えた復元です。',meta:[['再現','想像を交えた復元']]},
-      {lv:0,name:'天守 2階',kana:'にかい',text:'壁一面に金地の障壁画（しょうへきが）を描いた想定の階。桃山時代の城や御殿は、金箔を使った華やかな絵で飾られました。',meta:[['見どころ','金碧障壁画（想定）']]},
+    floors:[{lv:0,floorMat:'floor',name:'天守 1階',kana:'いっかい',text:'太い柱が並ぶ板敷きの広い階。天守の下の階は武具や物資を納める場所だったと考え、畳ではなく板の床にしています。秀吉の天守には金銀や名物の道具、武具が納められていたと伝わります。ここからは想像を交えた復元です。',meta:[['再現','想像を交えた復元']]},
+      {lv:0,floorMat:'floor',name:'天守 2階',kana:'にかい',text:'壁一面に金地の障壁画（しょうへきが）を描いた想定の階。桃山時代の城や御殿は、金箔を使った華やかな絵で飾られました。',meta:[['見どころ','金碧障壁画（想定）']]},
       {lv:1,name:'天守 3階',kana:'さんがい',text:'組み立て式の「黄金の茶室」を置いてみた階。秀吉は壁も柱も金で仕立てた茶室をつくらせ、1586年には宮中へ運んで茶会を開いたといわれます。大坂城にも置かれたと伝わります。',meta:[['黄金の茶室','組み立て式（三畳）']]},
       {lv:2,name:'天守 4階',kana:'よんかい',text:'上の階へ向かう途中の階。外からは屋根に隠れて見えにくい位置にあたります。',meta:[]},
       {lv:2,name:'天守 5階',kana:'ごかい',text:'城下と大川（淀川）を見下ろせる階。天守からは遠く堺や大坂湾の方角まで見渡せたと想像されます。',meta:[]},
       {lv:3,name:'天守 6階',kana:'ろっかい',text:'最上階の下の階。秀吉は訪れた大名や宣教師を天守に案内し、自ら中を見せて回ったと伝えられています。',meta:[['記録','宣教師フロイスらの記録']]},
-      {lv:4,name:'天守 最上階',kana:'さいじょうかい',text:'四方に廻縁（まわりえん）と高欄をめぐらせた最上階。黒い壁には金の虎や鶴が描かれていたことが、屏風絵などから知られています。',meta:[['廻縁','外に出て一周できます']]}],
+      {lv:4,floorMat:'floor',name:'天守 最上階',kana:'さいじょうかい',text:'四方に廻縁（まわりえん）と高欄をめぐらせた最上階。黒い壁には金の虎や鶴が描かれていたことが、屏風絵などから知られています。',meta:[['廻縁','外に出て一周できます']]}],
     f0:{name:'天守入口（穴蔵）',kana:'あなぐら',text:'天守台の石垣の中の地階「穴蔵」。秀吉の天守は、外観五重で地下の階を持つ高層の建物だったといわれます。',meta:[['この先','天守 1階']]},
     mat:{wall:'kin',floor:'tatami',ceil:'kinpaku',stone:'stone',rail:'lacquer',post:'lacquer',top:'topK',tigerA:'tiger',tigerB:'tiger2',crane:'crane',eaveRoof:'roof',gold:true},sign:signTex('天守入口')});
   const base=mesh(frustumGeo(T.bw,T.bd,T.bh+.02,T.bat,5,false),M.stone); base.position.set(T.cx,T.g0,T.cz); GE.add(base);
