@@ -3134,7 +3134,7 @@ for(const S of STREETS){ const half=S.w/2; for(const side of [-1,1]){ const fz=S
       else if(r<.88){ if(!okW(x,fz-side*1.6,.6)||!okW(x+1.2,fz-side*1.4,.4)) continue; decoT.add('kasa',x,0,fz-side*1.6,{}); decoT.add('stool',x+1.2,0,fz-side*1.4,{}); decoT.add('tray_r',x+1.2,.45,fz-side*1.4,{shadow:false}); }
       else if(r<.94) { if(okW(x,fz-side*1.8,.3)) decoT.add(pick(['cart','cart2']),x,0,fz-side*1.8,{}); }
       else { if(okW(x,fz-side*.4,.3)) decoT.add(pick(['nb_white','nb_red','nb_blue','nb_yellow']),x,0,fz-side*.4,{s:.7}); } } } }
-for(const [x,z] of [[-7,90],[7,90],[-70,828],[-50,828],[-70,428],[-50,428],[-232,96],[-232,118]]) decoT.add('kagaribi',x,gyT(x,z),z,{s:1});
+for(const [x,z] of [[-5.5,80],[5.5,80],[-70,828],[-50,828],[-70,428],[-50,428],[-224,98],[-224,116]]) decoT.add('kagaribi',x,gyT(x,z),z,{s:1});
 for(const [x,z] of [[19,57],[33,57]]) decoT.add('toro4',x,0,z); for(const [x,z] of [[-46,-80],[-54,-80],[22,-82],[30,-82]]) decoT.add('toro2',x,0,z);
 decoT.add('maku_p',21,0,49.9,{yaw:0}); decoT.add('maku_w',31,0,49.9,{yaw:0});
 for(const T2 of TERA){ for(const s of [-1,1]) decoT.add('toro2',T2.cx+s*4,0,T2.hz-T2.hd/2-3); }
@@ -3248,7 +3248,7 @@ function unit(o){ const u=Object.assign({n:12,w:24,d:6,y:null,fire:0,loss:0,mill
 function unitProg(u,t){ if(!u.to) return 0; const t0=u.t0||0,dur=u.dur||20; let k=Math.min(1,Math.max(0,(t-t0)/dur)); k=k*k*(3-2*k); if(u.back){ const kb=Math.min(1,Math.max(0,(t-t0-dur-(u.hold||4))/(u.bdur||dur))); k-=kb*u.back; } return k; }
 function unitPos(u,m,t){ const k=unitProg(u,t),bx=u.at[0]+((u.to||u.at)[0]-u.at[0])*k,bz=u.at[1]+((u.to||u.at)[1]-u.at[1])*k; let x=bx+u.right[0]*m.ox+u.fwd[0]*m.oz,z=bz+u.right[1]*m.ox+u.fwd[1]*m.oz;
   if(u.mill){ const s=Math.sin(t*u.mill*.3+m.mx*6.283); x+=u.fwd[0]*s*u.millR; z+=u.fwd[1]*s*u.millR; } if(u.scatter&&t>u.scatter){ const e=Math.min(1,(t-u.scatter)/6)*14; x+=Math.cos(m.mx*9)*e; z+=Math.sin(m.mx*9)*e; }
-  if(u.y===null&&hitBlock(x,z,.3)){ let ok=false; for(let d=1;d<=8&&!ok;d++) for(const sg of [1,-1]){ const xx=x+u.right[0]*d*sg,zz=z+u.right[1]*d*sg; if(!hitBlock(xx,zz,.3)){ x=xx; z=zz; ok=true; break; } } if(!ok) for(let d=1;d<=8&&!ok;d++) for(const sg of [1,-1]){ const xx=x+u.fwd[0]*d*sg,zz=z+u.fwd[1]*d*sg; if(!hitBlock(xx,zz,.3)){ x=xx; z=zz; ok=true; break; } } }
+  const bad=(xx,zz)=>hitBlock(xx,zz,.3)||(waterAt(xx,zz,.3)&&!walkable(xx,zz)); if(u.y===null&&bad(x,z)){ let ok=false; for(let d=1;d<=8&&!ok;d++) for(const sg of [1,-1]){ const xx=x+u.right[0]*d*sg,zz=z+u.right[1]*d*sg; if(!bad(xx,zz)){ x=xx; z=zz; ok=true; break; } } if(!ok) for(let d=1;d<=8&&!ok;d++) for(const sg of [1,-1]){ const xx=x+u.fwd[0]*d*sg,zz=z+u.fwd[1]*d*sg; if(!bad(xx,zz)){ x=xx; z=zz; ok=true; break; } } }
   const y=u.y!==null?u.y:withScen(()=>groundH(x,z)); return [x,y,z,k]; }
 function withScen(f){ return f(); }
 function clearUnits(){ bCrowd.clear(); UNITS=[]; FXS=[]; FX.clear(); }
@@ -3314,12 +3314,12 @@ const SCENS={
   {date:'天正12〜13年（1584〜85）',title:'天守の建築',gnd:[8,-24,30,-44],time:1,cam:[80,40,0.75,-.15,1],fill:{soto:true,m3:true,sg:true},keep:[0,1],keepDur:45,
    text:'高い天守台の上に、黒漆と金で飾った五重の天守が組み上がっていきます。天守は1585年ごろには完成していたと考えられています。（足場や作業の様子は想像です）',
    build(){ for(const [x,z] of [[53,-30],[8,-60],[53,-60],[8,-28]]) unit({spr:WORK,n:8,at:[x,z],w:6,d:4,y:TS_H,mill:1,millR:2.5,dust:.4}); unit({spr:['log','workers'],n:6,at:[30,-22],w:10,d:2,y:TS_H,mill:1.2,millR:4}); for(const [x,z] of [[-2,-62],[58,-46]]) worksite(x,z,TS_H,3); }},
-  {date:'天正14〜16年（1586〜88）',title:'二の丸の普請',gnd:[-80,246,-30,232],time:1,cam:[-60,300,0,-.35,1],fill:{soto:false,m3:true,sg:true},keep:[1,1],
+  {date:'天正14〜16年（1586〜88）',title:'二の丸の普請',gnd:[-150,252,-230,254],time:1,cam:[-60,300,0,-.35,1],fill:{soto:false,m3:true,sg:true},keep:[1,1],
    text:'本丸を囲む二の丸の堀と石垣が築かれます。西国の大名も動員され、大名ごとに受け持ちの区画（丁場）が割り当てられました。石垣には今も、担当した大名の印（刻印）が残ります。',
-   build(){ for(let i=0;i<8;i++){ const x=-220+i*55,z=232; unit({spr:WORK,n:10,at:[x,z],w:12,d:4,mill:1,millR:3,dust:.5,face:[0,-1],flags:1,fl:[K_FLAG[i%K_FLAG.length]]}); DC(pick(['crates','tawara','kome']),x+8,z+8,{}); DC(pick(['cart','cart2']),x-8,z+9,{}); DC(K_FLAG[i%K_FLAG.length],x+10,z+5,{}); } }},
-  {date:'文禄3年（1594）',title:'惣構の普請',gnd:[-60,818,-20,852],time:2,cam:[-60,900,0,-.3,1],fill:{soto:false,m3:true,sg:false},keep:[1,1],
+   build(){ for(let i=0;i<8;i++){ const x=-220+i*55,z=254; unit({spr:WORK,n:10,at:[x,z],w:12,d:3,mill:1,millR:2,dust:.5,face:[0,-1],flags:1,fl:[K_FLAG[i%K_FLAG.length]]}); DC(pick(['crates','tawara','kome']),x+8,z+5,{}); DC(pick(['cart','cart2']),x-8,z+6,{}); DC(K_FLAG[i%K_FLAG.length],x+10,z-2,{}); } }},
+  {date:'文禄3年（1594）',title:'惣構の普請',gnd:[-30,896,-20,880],time:2,cam:[-60,900,0,-.3,1],fill:{soto:false,m3:true,sg:false},keep:[1,1],
    text:'城下町全体を、堀と土塁で囲む「惣構（そうがまえ）」の工事が始まります。範囲はおよそ2km四方とされ、町そのものが城の守りに組み込まれました。',
-   build(){ for(let i=0;i<10;i++){ const x=-560+i*110,z=852; unit({spr:WORK,n:10,at:[x,z],w:14,d:3,mill:1,millR:3,dust:.8,y:0}); worksite(x,884,undefined,3); } for(let i=0;i<5;i++) DC('cart',-500+i*230,884); }},
+   build(){ for(let i=0;i<10;i++){ const x=-560+i*110,z=884; unit({spr:WORK,n:10,at:[x,z],w:14,d:3,mill:1,millR:3,dust:.8,y:0}); worksite(x+40,892,undefined,3); } for(let i=0;i<5;i++) DC('cart',-500+i*230,884); }},
   {date:'慶長3年（1598）',title:'三の丸の普請と完成',gnd:[-60,440,0,422],time:1,cam:[-60,520,0,-.3,1],fill:{soto:false,m3:false,sg:false},keep:[1,1],
    text:'晩年の秀吉は、城と城下町の間にさらに三の丸を築かせ、大名屋敷を集めました。1598年8月、秀吉は伏見城で亡くなります。こうして完成した大坂城は、子の秀頼に受け継がれました。',
    build(){ for(let i=0;i<9;i++){ unit({spr:WORK,n:8,at:[-540+i*120,422],w:12,d:3,mill:1,millR:2.5,dust:.5}); DC(pick(['crates','tawara','barrels','cart']),-532+i*120,464,{}); } }}]},
@@ -3336,7 +3336,7 @@ const SCENS={
   {date:'12月16日',title:'大砲の砲撃',gnd:[10,12,30,-44],time:2,cam:[40,-210,0.2,-.12,1],
    text:'家康は城の北の備前島などから、大砲で天守を狙って撃ちかけさせました。砲弾が天守に届いて侍女に死者が出たと伝わり、淀殿は和睦へと傾いていきます。',
    build(){ fuyuBase(); bizenCannons(true); for(let i=0;i<4;i++) FXS.push({type:'cannon',from:[-250+i*160,0,1000],to:[KEEP.cx,30,KEEP.cz],every:6+rnd()*3,spread:14}); }},
-  {date:'12月19日〜翌年1月',title:'和睦と堀の埋め立て',gnd:[-60,842,0,858],time:1,cam:[-60,920,0,-.4,1],fill:{soto:false,m3:false,sg:true},
+  {date:'12月19日〜翌年1月',title:'和睦と堀の埋め立て',gnd:[-60,842,0,858],time:1,cam:[-60,920,0,-.4,1],fill:{soto:false,m3:true,sg:true},
    text:'和睦が結ばれ、条件として惣構などの堀が埋められることになりました。徳川方は大勢の人手で、惣構だけでなく二の丸・三の丸の堀まで急いで埋め立てたといわれます。大坂城は本丸だけの「裸城」になっていきました。',
    build(){ campsOnly(); siegeDeco([[-230,1010],[250,1060]]); for(let i=0;i<10;i++) DC(pick(['tawara','kome','bucket','cart']),-555+i*110,840,{}); for(let i=0;i<10;i++) unit({spr:WORK,n:10,at:[-560+i*110,858],w:16,d:6,mill:1,millR:3,dust:1.2}); for(let i=0;i<6;i++) unit({spr:WORK,n:8,at:[-500+i*190,444],w:14,d:4,mill:1,millR:2.5,dust:.8}); }}]},
  natsu:{name:'大坂夏の陣',sub:'1615年',fill:{soto:true,m3:true,sg:true},phases:[
@@ -3418,7 +3418,7 @@ $('scAuto').onclick=()=>{ auto=!auto; $('scAuto').classList.toggle('on',auto); }
 window.__scn={FX,get FXS(){return FXS},get phT(){return phT},get UNITS(){return UNITS}};
 /* 検査用: 建物にめり込んだ人・物、宙に浮いた人・物を数える */
 window.__scn.audit=(C)=>{ C=C||bCrowd; const bad=[]; for(const it of C.items){ if(it.hidden) continue; const g=groundH(it.x,it.z); const blk=hitBlock(it.x,it.z,.25);
-  if(it.y<g-.3) bad.push(['sunk',it.name,it.x|0,it.z|0,+it.y.toFixed(1),+g.toFixed(1)]); else if(blk&&it.y<g+.5) bad.push(['inBlock',it.name,it.x|0,it.z|0]); else if(!blk&&it.y>g+.6&&it.y<30&&!/^lan_(white|red|tomoe)|tray_r|kg_|ranma|mon_|oni|kumo|houou|ryu|tora|shishi|taka_c|hana_c|pillar/.test(it.name)) bad.push(['float',it.name,it.x|0,it.z|0,+it.y.toFixed(1),+g.toFixed(1)]); } return bad; };
+  if(it.y<g-.3) bad.push(['sunk',it.name,it.x|0,it.z|0,+it.y.toFixed(1),+g.toFixed(1)]); else if(blk&&it.y<g+.5) bad.push(['inBlock',it.name,it.x|0,it.z|0]); else if(it.y<g+.5&&waterAt(it.x,it.z,.2)&&!walkable(it.x,it.z)) bad.push(['inWater',it.name,it.x|0,it.z|0]); else if(!blk&&it.y>g+.6&&it.y<30&&!/^lan_(white|red|tomoe)|tray_r|kg_|ranma|mon_|oni|kumo|houou|ryu|tora|shishi|taka_c|hana_c|pillar/.test(it.name)) bad.push(['float',it.name,it.x|0,it.z|0,+it.y.toFixed(1),+g.toFixed(1)]); } return bad; };
 window.__scn.npcAudit=()=>window.__scn.audit(__npc.npcCrowd);
 
 /* 影は地面・石垣・堀・床などの「ほぼ水平な面」と石垣だけが受ける。壁や屋根は受けない（スマホのGPUで影が縞模様に崩れるため） */
