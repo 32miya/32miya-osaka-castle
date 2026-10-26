@@ -3416,7 +3416,7 @@ function sanadaFort(alive){ if(!alive) return; const S=SANADA,R=S.main;
   /* 塀の内側の土塁の上に赤備えの兵と六文銭ののぼり */ const per=(o,step,f)=>{ const r={x0:R.x0+o,x1:R.x1-o,z0:R.z0+o,z1:R.z1-o}; for(const [a,b] of [[[r.x0,r.z0],[r.x1,r.z0]],[[r.x1,r.z0],[r.x1,r.z1]],[[r.x1,r.z1],[r.x0,r.z1]],[[r.x0,r.z1],[r.x0,r.z0]]]){ const L=Math.hypot(b[0]-a[0],b[1]-a[1]); for(let u=step/2;u<L;u+=step){ const x=a[0]+(b[0]-a[0])*u/L,z=a[1]+(b[1]-a[1])*u/L; if(Math.abs(z-S.gateZ)<5&&Math.abs(b[1]-a[1])>1) continue; if(SYG().some(([yx,yz])=>Math.abs(x-yx)<3.8&&Math.abs(z-yz)<3.8)) continue; f(x,z); } } };
   let k=0; per(4.6,4.5,(x,z)=>{ bCrowd.add(RED[k%4],x,6,z,{}); if(k%4===0) bCrowd.add('nb_red',x,6,z,{s:.85}); k++; });
   per(6.2,7,(x,z)=>{ bCrowd.add(pick(['r_yumi','t_teppo','teppo_a','r_bushou']),x,4.5,z,{}); });
-  for(let i=0;i<14;i++){ const x=R.x0+14+rnd()*(R.x1-R.x0-28),z=R.z0+14+rnd()*(R.z1-R.z0-28); bCrowd.add(RED[i%RED.length],x,3,z,{}); }
+  for(let i=0;i<14;i++){ const x=R.x0+14+rnd()*(R.x1-R.x0-28),z=R.z0+14+rnd()*(R.z1-R.z0-28); if(SEIRO.some(([a,b])=>Math.abs(x-a)<3&&Math.abs(z-b)<3)) continue; bCrowd.add(RED[i%RED.length],x,3,z,{}); }
   for(const [x,z] of SEIRO){ bCrowd.add('t_teppo',x-1.2,7.5,z-1.3,{}); bCrowd.add('nb_red',x+1.5,7.5,z-1.5,{s:.8}); }
   /* 空堀の外土手の斜面の乱杭・逆茂木 */ const RO={x0:R.x0-S.moat,x1:R.x1+S.moat,z1:R.z1+S.moat}; for(let x=RO.x0+4;x<RO.x1-4;x+=4.2) bCrowd.add(rnd()<.5?'sakamogi':'saku',x,.6,RO.z1-.6,{yaw:0});
   for(const x of [RO.x0+.6,RO.x1-.6]) for(let z=R.z0;z<RO.z1-2;z+=4.2){ if(Math.abs(z-S.gateZ)<6) continue; bCrowd.add('sakamogi',x,.6,z,{yaw:Math.PI/2}); }
