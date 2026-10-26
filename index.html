@@ -3164,7 +3164,11 @@ function rp(R,spr,x,y,z,o,solid,talk){ const C=R.era==='modern'?decoRoomM:decoRo
   /* 大名屋敷の書院 */ rp(R5,'lord_purple',-3,0,-2.4,{},true,['大名','よう参られた。大坂の屋敷は国元より賑やかでのう。']); rp(R5,'sam_haori',4,0,1.2,{},true,['家老','殿は明日、太閤殿下に茶会へ招かれておる。']); rp(R5,'kabuto',-5.3,.6,2.2,{s:.9}); rp(R5,'by_kiri',6.75,0,-2,{yaw:-Math.PI/2}); rp(R5,'taka',1.4,.4,-4.4); rp(R5,'ogi',-.5,0,2.5,{s:.9});
   /* 現代: 櫓と蔵の展示 */ for(const z of [-12,0,12]) rp(R7,pick(['spears','guns','bows']),-3.75,0,z,{yaw:Math.PI/2}); for(const z of [-6,6]) rp(R7,'arrows',3.4,0,z); for(let i=0;i<4;i++) rp(R9,'barrels',-3.5+i*2.4,0,1.6,{},true); rp(R8,'cannon',-3,0,2.6,{},true); }
 /* 豊臣期の天守の各階 */
-{ const T=TEN.toyo,F=T.FL,cx=T.cx,cz=T.cz,C=decoRoomT; const at=(f,s,x,z,y,o,solid)=>{ const it=C.add(s,cx+x,f.y+(y||0),cz+z,o); if(it&&solid){ const w=Math.max(.5,it.w*.4); coll(f,cx+x-w,cx+x+w,cz+z-.45,cz+z+.45); } return it; };
+/* 天守の階に置く物は、階段・吹き抜け・柱・壁際を避けて、歩ける床の上に置く */
+function keepSpot(T,f,x,z,r){ const oF=FL,oS=ST; FL=T.FL; ST=T.ST; try{ return keepSpot0(T,f,x,z,r); } finally{ FL=oF; ST=oS; } }
+function keepSpot0(T,f,x,z,r){ const L=T.FL.indexOf(f),ok=(xx,zz)=>walkFloor(L,xx,zz)&&walkFloor(L,xx+r,zz)&&walkFloor(L,xx-r,zz)&&walkFloor(L,xx,zz+r)&&walkFloor(L,xx,zz-r)&&!T.ST.some(q=>inR(q,xx,zz,1.2));
+  if(ok(x,z)) return [x,z]; for(let d=.5;d<8;d+=.5) for(let a=0;a<6.283;a+=.4){ const xx=x+Math.cos(a)*d,zz=z+Math.sin(a)*d; if(ok(xx,zz)) return [xx,zz]; } return [x,z]; }
+{ const T=TEN.toyo,F=T.FL,cx=T.cx,cz=T.cz,C=decoRoomT; const at=(f,s,x,z,y,o,solid)=>{ if(!y&&!(o&&o.yaw!==undefined)){ const I=sprInfo(s),p=keepSpot(T,f,cx+x,cz+z,I?Math.max(.4,I.h*(o&&o.s||1)*I.aspect*.5):.5); x=p[0]-cx; z=p[1]-cz; } const it=C.add(s,cx+x,f.y+(y||0),cz+z,o); if(it&&solid){ const w=Math.max(.5,it.w*.4); coll(f,cx+x-w,cx+x+w,cz+z-.45,cz+z+.45); } return it; };
   at(F[1],'guns',-1,-F[1].d/2+.55,0,{yaw:0}); at(F[1],'bows',6,-F[1].d/2+.55,0,{yaw:0}); at(F[1],'spears',-6,F[1].d/2-.55,0,{yaw:Math.PI}); at(F[1],'arrows',9,6,0,{},true); for(let k=0;k<3;k++) at(F[1],'kabuto',-8+k*1.6,6.6,.95,{s:.7});
   at(F[2],'jar',6.5,2.5,0,{},true); at(F[2],'vase',6.5,-2.5,0,{},true); at(F[2],'box_l',-5,0,0,{},true); at(F[2],'chest_m',8.5,6,0,{},true);
   at(F[3],'chaki',-6,3.5,.38,{s:1.1}); at(F[3],'ikebana',2,-6.8,0,{},true); at(F[3],'andon_g',-9,-6,0,{},true);
@@ -3192,7 +3196,7 @@ function pickTalk(sx,sy){ let best=null,bd=1e9; for(const t of TALK){ if(t.it.hi
     let h=typeof o.size==='number'?o.size:(o.size.w/I.aspect); if(o.size&&o.size.hmax&&h>o.size.hmax) h=o.size.hmax;
     let C=crowds.get(root); if(!C){ C=new Crowd(root,900,false); crowds.set(root,C); }
     const top=o.spr.startsWith('kg_')||o.spr==='pillar_k'; C.add(o.spr,x,top?y:y-h/2,z,{yaw,s:h/I.h}); } }
-window.__npc={NPCS,npcCrowd,GNPC}; window.__decoT=decoT;
+window.__npc={NPCS,npcCrowd,GNPC}; window.__decoT=decoT; window.__decoRoom={T:decoRoomT,M:decoRoomM};
 
 
 /* ================= 合戦と築城の体験（シナリオ） ================= */
