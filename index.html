@@ -1979,7 +1979,7 @@ function karahafu(par,x,y,z,ry,W,mats){ const g=new THREE.Group(); g.position.se
 /* 天守の外観。levels: [{w,d,h,slope,wall}] */
 function tenshuExt(par,cx,y0,cz,levels,mats){ const g=new THREE.Group(); g.position.set(cx,y0,cz); par.add(g); let y=0; const info=[];
   levels.forEach((L,i)=>{ const nx=levels[i+1];
-    if(!L.open){ const w=mesh(wallBoxGeo(L.w,L.h,L.d),M[L.wall]); w.position.y=y+L.h/2; g.add(w); }
+    if(!L.open){ const wg=wallBoxGeo(L.w,L.h,L.d); for(let k=12;k<24;k++) wg.index.setX(k,0); const w=mesh(wg,M[L.wall]); w.position.y=y+L.h/2; g.add(w); }
     const ey=y+L.h-.1;
     if(nx){ const a0=L.w/2+mats.oh,b0=L.d/2+mats.oh,a1=nx.w/2+(nx.bal||0),b1=nx.d/2+(nx.bal||0),rise=Math.max(a0-a1,b0-b1)*(L.slope||.55);
       const [sk,fr]=skirtParts(a0,b0,a1,b1,rise,.5); const s=mesh(sk,mats.roof); s.position.y=ey; g.add(s); if(mats.gold){ const f=mesh(fr,M.gold); f.position.y=ey; g.add(f); }
@@ -2059,7 +2059,11 @@ function buildTenshuInterior(T){ const {cx,cz,FL,ST}=T,MT=T.mat;
         /* 腰壁に伏虎、窓の上の小壁に鶴、中央は廻縁への戸口 */
         for(const sg of [-1,1]){ const o=sg*(dg+Ls/2),px=ry?x:x+o,pz=ry?z+o:z; B[sg<0?MT.tigerA:MT.tigerB].add(new THREE.BoxGeometry(Ls,1.05,.3),TM(px,F.y+.6,pz,ry)); B.gold.add(new THREE.BoxGeometry(Ls,.08,.36),TM(px,F.y+1.14,pz,ry));
           if(ry) coll(F,x-.3,x+.3,z+o-Ls/2,z+o+Ls/2); else coll(F,x+o-Ls/2,x+o+Ls/2,z-.3,z+.3); }
-        B[MT.crane].add(new THREE.BoxGeometry(L,H-2.4,.3),TM(x,F.y+2.4+(H-2.4)/2,z,ry)); B.gold.add(new THREE.BoxGeometry(L,.12,.36),TM(x,F.y+2.36,z,ry)); B.darkwood.add(new THREE.BoxGeometry(L,.12,.3),TM(x,F.y+.06,z,ry));
+        B[MT.crane].add(new THREE.BoxGeometry(L,H-2.4,.3),TM(x,F.y+2.4+(H-2.4)/2,z,ry));
+        /* 虎と鶴は外側だけの飾り。内側は無地の壁（現代: 白い内壁、豊臣期: 黒漆）にする */
+        { const ix=Math.sign(cx-x)*(ry?1:0),iz=Math.sign(cz-z)*(ry?0:1),im=MT.inner||'hall';
+          for(const sg of [-1,1]){ const o=sg*(dg+Ls/2); B[im].add(new THREE.BoxGeometry(Ls,1.05,.04),TM((ry?x:x+o)+ix*.18,F.y+.6,(ry?z+o:z)+iz*.18,ry)); }
+          B[im].add(new THREE.BoxGeometry(L,H-2.4,.04),TM(x+ix*.18,F.y+2.4+(H-2.4)/2,z+iz*.18,ry)); } B.gold.add(new THREE.BoxGeometry(L,.12,.36),TM(x,F.y+2.36,z,ry)); B.darkwood.add(new THREE.BoxGeometry(L,.12,.3),TM(x,F.y+.06,z,ry));
         const n=Math.max(2,Math.round(L/1.6)); for(let k=0;k<=n;k++){ const o=-L/2+k*L/n; if(Math.abs(o)<dg-.1) continue; B[MT.post].add(new THREE.BoxGeometry(.3,H,.3),TM(ry?x:x+o,F.y+H/2,ry?z+o:z)); B.gold.add(new THREE.BoxGeometry(.34,.14,.34),TM(ry?x:x+o,F.y+1.2,ry?z+o:z)); }
         for(const sg of [-1,1]){ const o=sg*dg; B[MT.post].add(new THREE.BoxGeometry(.36,H,.36),TM(ry?x:x+o,F.y+H/2,ry?z+o:z)); }
         for(const sg of [-1,1]){ const o=sg*(dg+Ls/2); B.black.add(new THREE.BoxGeometry(Ls,.06,.08),TM(ry?x:x+o,F.y+1.75,ry?z+o:z,ry)); } }
@@ -2107,7 +2111,7 @@ for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stoneK');
       {lv:3,name:'天守閣 7階',kana:'ななかい',text:'豊臣秀吉の生涯を、ミニチュアの舞台や3D映像で紹介する階です。',meta:[['テーマ','秀吉の一生']]},
       {lv:4,name:'天守閣 8階（展望台）',kana:'はっかい',text:'最上階の展望台。四方を巡る回廊から大阪の街を一望できます。外壁には、豊臣時代の天守にならった金色の虎と鶴の飾りが付いています。',meta:[['高さ','地上約50m'],['見どころ','虎と鶴の金の飾り']]}],
     f0:{name:'天守閣入口',kana:'てんしゅかくいりぐち',text:'天守台の石垣の内側をくぐる通路。奥の階段を上ると天守閣の1階に出ます。',meta:[['この先','天守閣 1階']]},
-    mat:{wall:'museum',floor:'floor',ceil:'hall',stone:'stoneK',rail:'black',post:'black',top:'topK',tigerA:'tiger',tigerB:'tiger2',crane:'crane',eaveRoof:'roofG'},sign:signTex('天守閣入口')});
+    mat:{inner:'hall',wall:'museum',floor:'floor',ceil:'hall',stone:'stoneK',rail:'black',post:'black',top:'topK',tigerA:'tiger',tigerB:'tiger2',crane:'crane',eaveRoof:'roofG'},sign:signTex('天守閣入口')});
   const base=mesh(frustumGeo(T.bw,T.bd,T.bh+.02,T.bat,5,false),M.stoneK); base.position.set(T.cx,0,T.cz); GM.add(base);
   for(const r of [{x0:-T.bw/2,x1:T.bw/2,z0:-T.bd/2,z1:-T.ext[0].d/2},{x0:-T.bw/2,x1:T.bw/2,z0:T.ext[0].d/2,z1:T.bd/2},{x0:-T.bw/2,x1:-T.ext[0].w/2,z0:-T.ext[0].d/2,z1:T.ext[0].d/2},{x0:T.ext[0].w/2,x1:T.bw/2,z0:-T.ext[0].d/2,z1:T.ext[0].d/2}]) box(B.stoneK,T.cx+r.x0,T.cx+r.x1,T.bh-.3,T.bh,T.cz+r.z0,T.cz+r.z1);
   /* 観光の入口: 地上の券売所と改札 → 天守台脇の石段（と外部エレベーター）→ 天守台の上の踊り場 → 1階の入口 */
@@ -2119,7 +2123,7 @@ for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stoneK');
     for(const x of [Ld.x0+1,Ld.x1-.1]) B.black.add(new THREE.BoxGeometry(.06,1,.06),TM(x,10.5,Ld.z0+.1)); B.black.add(new THREE.BoxGeometry(Ld.x1-Ld.x0,.08,.08),TM((Ld.x0+Ld.x1)/2,11,Ld.z0+.1));
     block(cx-T.bw/2-T.bat,cz-T.bd/2-T.bat,cx+15,cz+T.bd/2+T.bat,'castle'); block(cx+15,cz-T.bd/2-T.bat,cx+20,Ld.z0,'castle'); block(cx+15,S.z0,S.x0,cz+T.bd/2+T.bat,'castle');
     block(S.x1,Ld.z0,S.x1+.4,S.z1-3,'castle'); block(cx+15,Ld.z0-.4,S.x1+.4,Ld.z0,'castle');
-    /* 1階入口の扉と庇 */ B.glass.add(new THREE.BoxGeometry(.08,2.6,2),TM(cx+15.06,11.3,-49.2)); B.bronze.add(new THREE.BoxGeometry(.14,2.8,.12),TM(cx+15.07,11.4,-50.25)); B.bronze.add(new THREE.BoxGeometry(.14,2.8,.12),TM(cx+15.07,11.4,-48.15)); B.bronze.add(new THREE.BoxGeometry(.14,.14,2.2),TM(cx+15.07,12.8,-49.2));
+    /* 1階入口の庇（扉は開けたまま） */ B.bronze.add(new THREE.BoxGeometry(.14,2.8,.12),TM(cx+15.07,11.4,-50.25)); B.bronze.add(new THREE.BoxGeometry(.14,2.8,.12),TM(cx+15.07,11.4,-48.15)); B.bronze.add(new THREE.BoxGeometry(.14,.14,2.2),TM(cx+15.07,12.8,-49.2));
     B.roofG.add(gableRoofGeo(3.2,2,.5,.25,.1),TM(cx+15.6,13.1,-49.2,Math.PI/2));
     /* 外部エレベーター */ box(B.glass,S.x1+.6,S.x1+3,0,12.5,Ld.z0,Ld.z0+2.6); box(B.concrete,S.x1+.5,S.x1+3.1,12.5,12.9,Ld.z0-.1,Ld.z0+2.7); for(const [x,z] of [[S.x1+.6,Ld.z0],[S.x1+3,Ld.z0],[S.x1+.6,Ld.z0+2.6],[S.x1+3,Ld.z0+2.6]]) box(B.bronze,x-.08,x+.08,0,12.5,z-.08,z+.08); block(S.x1+.4,Ld.z0,S.x1+3.1,Ld.z0+2.7,'castle');
     box(B.concrete,S.x1,S.x1+.6,9.6,10,Ld.z0+.3,Ld.z0+2.3);
@@ -2127,6 +2131,13 @@ for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stoneK');
     for(let k=0;k<4;k++){ const x=S.x0+.4+k*(S.x1-S.x0-.8)/3; B.concrete.add(new THREE.BoxGeometry(.24,1,1.2),TM(x,.5,S.z1+1.6)); } }
   const mats={roof:M.roofG,gable:M.plaster,gold:false,orn:true,oh:T.oh};
   const X=tenshuExt(GM,T.cx,T.bh,T.cz,T.ext.map(e=>Object.assign({},e)),mats); T.X=X;
+  /* 1階の入口: 外壁（東面）に戸口をあける */
+  { const w0=X.g.children[0],E=T.ext[0],g=w0.geometry,dz0=T.doorE.z0-T.cz,dz1=T.doorE.z1-T.cz,dh=3,hx=E.w/2;
+    for(let k=0;k<6;k++) g.index.setX(k,0); g.index.needsUpdate=true;
+    const seg=(z0,z1,y0,y1)=>{ const pg=new THREE.PlaneGeometry(z1-z0,y1-y0); const u=pg.attributes.uv; for(let i=0;i<u.count;i++) u.setXY(i,u.getX(i)*(z1-z0)/3.6,u.getY(i)); const m=mesh(pg,M[E.wall]); m.rotation.y=Math.PI/2; m.position.set(hx,y1/2+y0/2-E.h/2+E.h/2,(z0+z1)/2); w0.parent.add(m); };
+    const yb=w0.position.y-E.h/2; const seg2=(z0,z1,y0,y1)=>{ const pg=new THREE.PlaneGeometry(z1-z0,y1-y0); const m=mesh(pg,M[E.wall]); m.rotation.y=Math.PI/2; m.position.set(hx,yb+(y0+y1)/2,(z0+z1)/2); w0.parent.add(m); };
+    seg2(-E.d/2,dz0,0,E.h); seg2(dz1,E.d/2,0,E.h); seg2(dz0,dz1,dh,E.h);
+    /* 戸口の側面と上の見込み */ for(const z of [dz0,dz1]){ const j=mesh(new THREE.BoxGeometry(.7,dh,.08),M.black); j.position.set(hx-.35,yb+dh/2,z); w0.parent.add(j); } const hd=mesh(new THREE.BoxGeometry(.7,.08,dz1-dz0),M.black); hd.position.set(hx-.35,yb+dh,(dz0+dz1)/2); w0.parent.add(hd); }
   addDormers(X,[['c',0,'s',7,2.6],['c',0,'n',7,2.6],['k',1,'s',7],['k',1,'n',7],['c',1,'e',6,2.3],['c',1,'w',6,2.3],['c',2,'s',5.5,2],['c',2,'n',5.5,2],['k',3,'e',5.5],['k',3,'w',5.5]],mats);
   /* 階ごとの内装（現代の天守閣＝博物館） */
   Object.assign(T.FL[1],{floorMat:'tileF',wallMat:'hall',ceilMat:'hall',light:1.1}); Object.assign(T.FL[2],{floorMat:'floor',wallMat:'museum',ceilMat:'hall',light:1});
@@ -2230,7 +2241,7 @@ const TG={roof:M.roof,gable:M.lacquer,gold:true};
       {lv:3,name:'天守 6階',kana:'ろっかい',text:'最上階の下の階。秀吉は訪れた大名や宣教師を天守に案内し、自ら中を見せて回ったと伝えられています。',meta:[['記録','宣教師フロイスらの記録']]},
       {lv:4,floorMat:'floor',name:'天守 最上階',kana:'さいじょうかい',text:'四方に廻縁（まわりえん）と高欄をめぐらせた最上階。黒い壁には金の虎や鶴が描かれていたことが、屏風絵などから知られています。',meta:[['廻縁','外に出て一周できます']]}],
     f0:{name:'天守入口（穴蔵）',kana:'あなぐら',text:'天守台の石垣の中の地階「穴蔵」。秀吉の天守は、外観五重で地下の階を持つ高層の建物だったといわれます。',meta:[['この先','天守 1階']]},
-    mat:{wall:'kin',floor:'tatami',ceil:'kinpaku',stone:'stone',rail:'lacquer',post:'lacquer',top:'topK',tigerA:'tiger',tigerB:'tiger2',crane:'crane',eaveRoof:'roof',gold:true},sign:signTex('天守入口')});
+    mat:{inner:'kin',wall:'kin',floor:'tatami',ceil:'kinpaku',stone:'stone',rail:'lacquer',post:'lacquer',top:'topK',tigerA:'tiger',tigerB:'tiger2',crane:'crane',eaveRoof:'roof',gold:true},sign:signTex('天守入口')});
   const base=mesh(frustumGeo(T.bw,T.bd,T.bh+.02,T.bat,5,false),M.stone); base.position.set(T.cx,T.g0,T.cz); GE.add(base);
   const e0=T.ext[0]; for(const r of [{x0:-T.bw/2,x1:T.bw/2,z0:-T.bd/2,z1:-e0.d/2},{x0:-T.bw/2,x1:T.bw/2,z0:e0.d/2,z1:T.bd/2},{x0:-T.bw/2,x1:-e0.w/2,z0:-e0.d/2,z1:e0.d/2},{x0:e0.w/2,x1:T.bw/2,z0:-e0.d/2,z1:e0.d/2}]) box(B.stone,T.cx+r.x0,T.cx+r.x1,T.g0+T.bh-.3,T.g0+T.bh,T.cz+r.z0,T.cz+r.z1);
   block(T.cx-T.bw/2-T.bat,T.cz-T.bd/2-T.bat,T.cx+T.bw/2+T.bat,T.cz+T.bd/2+T.bat,'castle');
@@ -2823,8 +2834,8 @@ function labelSprite(text,sub){ const c=makeCanvas(512,160),g=c.getContext('2d')
 const DOOR_MARKS=[];
 function doorMark(par,era,x,z,nx,nz,name,w,h,o){ o=o||{}; const old=MODE; MODE=era; let wx=x,wz=z; for(let k=0;k<40&&!hitBlock(wx,wz,0);k++){ wx-=nx*.1; wz-=nz*.1; } MODE=old;
   const ry=Math.atan2(nx,nz),y0=o.y||0,g=new THREE.Group(); g.position.set(wx+nx*.06,y0,wz+nz*.06); g.rotation.y=ry; par.add(g);
-  const dk=mesh(new THREE.PlaneGeometry(w,h),M.black,false,false); dk.position.y=h/2; g.add(dk);
-  const glow=new THREE.Mesh(new THREE.PlaneGeometry(w*.8,h*.9),new THREE.MeshBasicMaterial({color:0x6a4a28,transparent:true,opacity:.55})); glow.position.set(0,h*.46,.01); g.add(glow);
+  if(!o.open){ const dk=mesh(new THREE.PlaneGeometry(w,h),M.black,false,false); dk.position.y=h/2; g.add(dk);
+  const glow=new THREE.Mesh(new THREE.PlaneGeometry(w*.8,h*.9),new THREE.MeshBasicMaterial({color:0x6a4a28,transparent:true,opacity:.55})); glow.position.set(0,h*.46,.01); g.add(glow); }
   for(const s of [-1,1]){ const p=mesh(new THREE.BoxGeometry(.24,h+.3,.24),M.darkwood); p.position.set(s*(w/2+.12),(h+.3)/2,.1); g.add(p); }
   const l=mesh(new THREE.BoxGeometry(w+.8,.26,.3),M.darkwood); l.position.set(0,h+.25,.12); g.add(l);
   if(!o.noNoren){ const n=mesh(new THREE.PlaneGeometry(w*.94,.8),o.norenMat||M.noren); n.position.set(0,h-.42,.16); g.add(n); if(n.geometry.attributes&&!o.norenMat){ const c=new Float32Array(n.geometry.attributes.position.count*3); const col=new THREE.Color(o.noren||'#26406a').convertSRGBToLinear(); for(let i=0;i<c.length;i+=3){ c[i]=col.r; c[i+1]=col.g; c[i+2]=col.b; } n.geometry.setAttribute('color',new THREE.BufferAttribute(c,3)); } }
@@ -2833,7 +2844,7 @@ function doorMark(par,era,x,z,nx,nz,name,w,h,o){ o=o||{}; const old=MODE; MODE=e
   DOOR_MARKS.push({sp,base:h+1.9,era,x:wx+nx*1.2,z:wz+nz*1.2}); }
 ROOMS.forEach(R=>{ const dx=R.exitPos[0]-R.door[0],dz=R.exitPos[1]-R.door[1],l=Math.hypot(dx,dz)||1; R.nrm=[dx/l,dz/l];
   const small=R.name.includes('茶室'); doorMark(R.era==='modern'?GM:GE,R.era,R.door[0],R.door[1],dx/l,dz/l,R.name.replace(/（.*?）/g,''),small?.8:1.8,small?.9:2.4,{noren:R.era==='modern'?'#3b3a52':'#26406a',noNoren:small,sub:small?'にじり口 · 近づくと入れます':undefined}); });
-{ const T=TEN.modern; doorMark(GM,'modern',T.door.x+.5,(T.door.z0+T.door.z1)/2,1,0,'天守閣 1階入口',1.9,2.5,{y:10,noNoren:true,sub:'入口 · 石段を上った先'}); 
+{ const T=TEN.modern; doorMark(GM,'modern',T.door.x+.5,(T.door.z0+T.door.z1)/2,1,0,'天守閣 1階入口',2.2,2.9,{y:10,noNoren:true,open:true,sub:'入口 · 石段を上った先'}); 
   const t=labelSprite('天守閣入口','石段を上って天守台の上へ'); t.position.set(13.3,4,-22); GM.add(t); DOOR_MARKS.push({sp:t,base:4,era:'modern',x:13.3,z:-22}); }
 { const T=TEN.toyo,E=T.entry; const t=labelSprite('天守入口（穴蔵）','近づくと入れます'); t.position.set(E.X+.6,T.g0+4.6,E.zc); GE.add(t); DOOR_MARKS.push({sp:t,base:T.g0+4.6,era:'toyo',x:E.X+1,z:E.zc}); }
 function updateDoorMarks(t){ for(const d of DOOR_MARKS){ d.sp.position.y=d.base+Math.sin(t*2+d.x)*.12; const dist=Math.hypot(P.x-d.x,P.z-d.z); d.sp.visible=!P.room&&P.level<0&&dist<140&&dist>7; d.sp.material.opacity=Math.min(1,Math.max(.25,1.3-dist/120)); } }
