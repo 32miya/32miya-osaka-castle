@@ -2568,11 +2568,13 @@ for(const [xa,xb] of [[-590,-460],[-420,-300],[-160,-80],[60,150],[200,300],[420
 for(let x=-580;x<540;x+=40){ B.darkwood.add(boxUVGeo(10,.3,8,2,2),TM(x,-.15,-311)); for(const sx of [-4,4]) B.darkwood.add(new THREE.CylinderGeometry(.2,.2,8,6),TM(x+sx,-3.8,-314)); }
 for(const [x,z] of [[-229,96.5],[-229,117.5],[-40,-225],[-70,-225],[150,215],[160,215]]) lamp(x,z);
 /* 遠くの村 */
-{ const N=420,bg=new THREE.BoxGeometry(1,1,1); bg.translate(0,.5,0); const rg=new THREE.ConeGeometry(.8,1,4); rg.rotateY(Math.PI/4); rg.translate(0,.5,0);
+{ const N=420,bg=new THREE.BoxGeometry(1,1,1); bg.translate(0,.5,0);
+  /* 茅葺きの寄棟屋根（急勾配・棟が横に通る） */ const rg=new THREE.BufferGeometry(); { const v=[-.5,0,-.5, .5,0,-.5, .5,0,.5, -.5,0,.5, -.22,1,0, .22,1,0]; const ix=[0,4,1, 1,4,5, 1,5,2, 2,5,3, 3,5,4, 3,4,0, 0,1,2, 0,2,3];
+    const p=[]; for(const i of ix) p.push(v[i*3],v[i*3+1],v[i*3+2]); rg.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); rg.setAttribute('uv',new THREE.Float32BufferAttribute(p.map((c,i)=>i%3===1?null:c).filter(c=>c!==null).map(c=>c*3+1.5),2)); rg.computeVertexNormals(); }
   const ib=new THREE.InstancedMesh(bg,M.wood,N),ir=new THREE.InstancedMesh(rg,M.thatch,N); ib.frustumCulled=ir.frustumCulled=false; let n=0;
   while(n<N){ const a=rnd()*6.283,r=650+Math.pow(rnd(),.8)*1500,cx=Math.cos(a)*r,cz=Math.sin(a)*r*1.2+500; const k=4+((rnd()*6)|0);
     for(let j=0;j<k&&n<N;j++){ const x=cx+(rnd()-.5)*50,z=cz+(rnd()-.5)*50; if(Math.abs(z-(RIVER.z0+RIVER.z1)/2)<30) continue; if(x>CORE.x0-30&&x<CORE.x1+30&&z<CORE.z1+30) continue; if(yamatoD(x,z)<YAMATO_W/2+20||Math.abs(x)>1380||z<-880||z>2180) continue; const w=7+rnd()*5,d=6+rnd()*3,ry=rnd()*3,y=terrBase(x,z)-.3;
-      ib.setMatrixAt(n,TM(x,y,z,ry,w,2.8,d)); ir.setMatrixAt(n,TM(x,y+2.8,z,ry,w*1.3,3.6,d*1.35)); n++; } }
+      ib.setMatrixAt(n,TM(x,y,z,ry,w,2.6,d)); ir.setMatrixAt(n,TM(x,y+2.5,z,ry,w*1.18,Math.min(w,d)*.62,d*1.22)); n++; } }
   GE.add(ib); GE.add(ir); }
 
 
@@ -3698,9 +3700,19 @@ function tagU(u,text,side){ if(!u) return; const s=tagSprite(text,side); GB.add(
 const uSpr=n=>UNITS.find(u=>u.spr[0]===n);
 function uNear(x,z,side){ let b=null,bd=1e9; for(const u of UNITS){ if(side&&u.side!==side) continue; const d=Math.hypot(u.at[0]-x,u.at[1]-z); if(d<bd){ bd=d; b=u; } } return b; }
 function clearTags(){ for(const t of TAGS){ GB.remove(t.s); t.s.material.map.dispose(); t.s.material.dispose(); } TAGS.length=0; }
-function updateTags(){ const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z; for(const t of TAGS){ let x=t.x,z=t.z;
+const _tv=new THREE.Vector3();
+function updateTags(){ const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z,H=innerHeight,W=innerWidth,f=1/Math.tan(camera.fov*Math.PI/360),L=[];
+  for(const t of TAGS){ let x=t.x,z=t.z;
     if(t.u){ const p=unitPos(t.u,{ox:0,oz:0,mx:.5,ph:0},phT); x=p[0]; z=p[2]; } const y=withScen(()=>groundH(x,z))+t.h+(t.u&&t.u.y!==null?t.u.y:0);
-    const d=Math.hypot(x-cx,y-cy,z-cz),hh=Math.min(40,Math.max(1.2,d*.065)); t.s.position.set(x,y+hh*.6,z); t.s.scale.set(hh*t.s.userData.aspect,hh,1); t.s.visible=d<900&&!P.room&&P.level<0; } }
+    const d=Math.hypot(x-cx,y-cy,z-cz),hh=Math.min(40,Math.max(1.2,d*.065)); t.s.position.set(x,y+hh*.6,z); t.s.scale.set(hh*t.s.userData.aspect,hh,1); t.s.visible=d<900&&!P.room&&P.level<0;
+    if(!t.s.visible) continue; _tv.copy(t.s.position).project(camera); if(_tv.z>1) continue; const ph=hh*f/d*H/2*1.08,pw=ph*t.s.userData.aspect;
+    L.push({t,sx:(_tv.x+1)/2*W,sy:(1-_tv.y)/2*H,pw,ph,d,hh}); }
+  /* 重なった名札は、近いものを下に残し、遠いものを上へずらす（それでも重なれば小さく薄くする） */
+  L.sort((a,b)=>a.d-b.d); const placed=[];
+  for(const q of L){ let sy=q.sy,k=0; const hit=y=>placed.some(o=>Math.abs(o.sx-q.sx)<(o.pw+q.pw)/2&&Math.abs(o.sy-y)<(o.ph+q.ph)/2);
+    while(hit(sy)&&k<5){ sy-=q.ph*1.05; k++; }
+    if(k){ q.t.s.position.y+=q.hh*1.05*k; } if(hit(sy)){ q.t.s.scale.multiplyScalar(.7); q.t.s.material.opacity=.55; } else q.t.s.material.opacity=1;
+    placed.push({sx:q.sx,sy,pw:q.pw,ph:q.ph}); } }
 const TAGF={
  chikujo:[()=>{ tagP(-40,-30,'石垣の普請','n',8); tagP(-6,300,'修羅で巨石を運ぶ','n',6); },()=>tagP(30,-44,'天守の建築','n',52),()=>tagP(-60,254,'二の丸の普請（大名ごとの丁場）','n',6),()=>tagP(-60,884,'惣構の空堀と土塁','n',6),()=>tagP(-60,422,'三の丸の普請','n',6)],
  fuyu:[()=>{ fuyuTags(); tagP(-60,1030,'徳川方の包囲 約20万','k',8); tagP(30,-44,'大坂城 豊臣方 約10万','t',60); },
