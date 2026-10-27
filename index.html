@@ -1971,8 +1971,21 @@ function storyWhite(g,y0,H){ const W=512,s=H/384,Y=v=>y0+v*s,beam=(a,b)=>{ g.fil
   for(let x=0;x<=W;x+=128){ g.fillStyle='#16110d'; g.fillRect(x-5,y0,10,H); }
   for(let c=0;c<4;c++){ const x=c*128+8,y=Y(140),w=112,h=Y(232)-Y(140); if(c%2===0) latticeWin(g,x,y,w,h); else { g.fillStyle='#0c0b0c'; g.fillRect(x,y,w,h); (c===1?crestKiri:crestKiku)(g,x+w/2,y+h/2,Math.min(w,h)*.42); } }
   g.fillStyle='rgba(200,150,50,.9)'; for(let x=0;x<=W;x+=128){ g.fillRect(x-7,Y(124),14,8); g.fillRect(x-7,Y(240),14,8); } }
-const cWallT=makeCanvas(512,384); storyWhite(cWallT.getContext('2d'),0,384);
-const cWallT2=makeCanvas(512,768); { const g=cWallT2.getContext('2d'); storyWhite(g,0,384); storyWhite(g,384,384); }
+/* 金の浮き彫りの板（牡丹唐草） */
+function goldRelief(g,x,y,w,h){ g.fillStyle='#120f0c'; g.fillRect(x,y,w,h); const gr=g.createLinearGradient(x,y,x+w,y+h); gr.addColorStop(0,'#f6dc84'); gr.addColorStop(.5,'#c9962f'); gr.addColorStop(1,'#7e5a12');
+  g.strokeStyle=gr; g.lineWidth=3; g.strokeRect(x+4,y+4,w-8,h-8); g.fillStyle=gr; const cx=x+w/2,cy=y+h/2;
+  for(let k=0;k<6;k++){ const a=k/6*6.283; g.beginPath(); g.ellipse(cx+Math.cos(a)*w*.14,cy+Math.sin(a)*h*.14,w*.1,h*.06,a,0,6.283); g.fill(); } g.beginPath(); g.arc(cx,cy,Math.min(w,h)*.09,0,6.283); g.fill();
+  g.lineWidth=4; for(const sx of [-1,1]){ g.beginPath(); g.moveTo(cx+sx*w*.22,cy); g.bezierCurveTo(cx+sx*w*.32,cy-h*.32,cx+sx*w*.42,cy+h*.1,cx+sx*w*.44,cy-h*.3); g.stroke(); g.beginPath(); g.ellipse(cx+sx*w*.36,cy+h*.22,w*.07,h*.05,sx,0,6.283); g.fill(); g.beginPath(); g.ellipse(cx+sx*w*.3,cy-h*.28,w*.06,h*.045,-sx,0,6.283); g.fill(); } }
+/* 黒漆の重（参考: 豊臣大坂城天守 復元立面図）: 軒下に細い白漆喰の小壁、その下は黒漆の壁に金の浮き彫りの板と金の紋 */
+function storyLacq(g,y0,H,variant){ const W=512,s=H/384,Y=v=>y0+v*s; g.save(); g.translate(0,y0); blackLacquer(g,W,H); g.restore();
+  /* 白い小壁 */ g.fillStyle='#ecebe5'; g.fillRect(0,Y(16),W,Y(74)-Y(16)); speckle(g,W,0,0,0); g.fillStyle='#0b0908'; g.fillRect(0,Y(0),W,Y(16)-Y(0)); g.fillRect(0,Y(74),W,Y(90)-Y(74));
+  for(let x=0;x<=W;x+=64){ g.fillStyle='#0b0908'; g.fillRect(x-4,Y(16),8,Y(74)-Y(16)); }
+  /* 金の長押と柱の飾り金具 */ g.fillStyle='#c99a35'; g.fillRect(0,Y(88),W,5); g.fillRect(0,Y(372),W,6);
+  for(let x=0;x<=W;x+=128){ g.fillStyle='#050505'; g.fillRect(x-7,Y(90),14,Y(372)-Y(90)); g.fillStyle='#d6a640'; g.fillRect(x-9,Y(96),18,12); g.fillRect(x-9,Y(350),18,12); }
+  for(let c=0;c<4;c++){ const x=c*128+12,y=Y(112),w=104,h=Y(342)-Y(112);
+    if(variant===1) goldRelief(g,x,y,w,h); else if(c%2===0){ g.fillStyle='#0e0c0a'; g.fillRect(x,y,w,h); (c===0?crestKiku:crestKiri)(g,x+w/2,y+h/2,Math.min(w,h)*.42); } else goldRelief(g,x,y,w,h); } }
+const cWallT=makeCanvas(512,384); storyLacq(cWallT.getContext('2d'),0,384,1);
+const cWallT2=makeCanvas(512,768); { const g=cWallT2.getContext('2d'); storyLacq(g,0,384,1); storyLacq(g,384,384,0); }
 /* 黒漆の重（金の紋と格子窓） */
 function storyBlack(g,y0,H){ const W=512,s=H/384,Y=v=>y0+v*s; g.save(); g.translate(0,y0); blackLacquer(g,W,H); g.restore();
   g.fillStyle='#c99a35'; g.fillRect(0,y0,W,8*s+2); g.fillRect(0,y0+H-10,W,10);
@@ -1987,8 +2000,8 @@ const cAnaFace=makeCanvas(256,512); { const g=cAnaFace.getContext('2d'),Y=v=>512
   /* 白い帯 */ g.fillStyle='#ecebe5'; g.fillRect(0,Y(6.3),256,Y(5.4)-Y(6.3)); speckle(g,256,40,200,.08); g.fillStyle='#16110d'; g.fillRect(0,Y(5.45),256,6); g.fillRect(0,Y(6.3),256,6);
   /* 黒漆と金の紋 */ g.save(); g.translate(0,Y(10)); blackLacquer(g,256,Y(6.3)-Y(10)); g.restore(); g.fillStyle='#c99a35'; g.fillRect(0,Y(6.35),256,6); g.fillRect(0,Y(10),256,6);
   crestKiri(g,40,Y(8.1),30); latticeWin(g,92,Y(9),72,Y(7.2)-Y(9)); crestKiku(g,216,Y(8.1),30); }
-addMat('wallT',new THREE.MeshPhysicalMaterial({map:toTex(cWallT),roughness:.55,metalness:.02,clearcoat:.4,clearcoatRoughness:.3}));
-addMat('wallT2',new THREE.MeshPhysicalMaterial({map:toTex(cWallT2),roughness:.55,metalness:.02,clearcoat:.4,clearcoatRoughness:.3}));
+addMat('wallT',new THREE.MeshPhysicalMaterial({map:toTex(cWallT),roughness:.35,metalness:.08,clearcoat:.9,clearcoatRoughness:.12}));
+addMat('wallT2',new THREE.MeshPhysicalMaterial({map:toTex(cWallT2),roughness:.35,metalness:.08,clearcoat:.9,clearcoatRoughness:.12}));
 addMat('topCrest',new THREE.MeshPhysicalMaterial({map:toTex(cTopCrest),roughness:.3,metalness:.1,clearcoat:1,clearcoatRoughness:.06}));
 addMat('anaFace',new THREE.MeshPhysicalMaterial({map:toTex(cAnaFace,true,false),roughness:.45,metalness:.05,clearcoat:.6,clearcoatRoughness:.2,side:THREE.DoubleSide}));
 { const c=makeCanvas(128,128),g=c.getContext('2d'); g.fillStyle='#f4efe2'; g.fillRect(0,0,128,128); g.fillStyle='#3a2a1c'; for(let x=0;x<=128;x+=21) g.fillRect(x-2,0,4,128); for(let y=0;y<=128;y+=32) g.fillRect(0,y-2,128,4); g.fillRect(0,0,6,128); g.fillRect(122,0,6,128);
