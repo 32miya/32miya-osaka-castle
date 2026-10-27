@@ -3641,7 +3641,7 @@ function openEra(){ const L=$('eraList'); L.innerHTML=''; const cur=MODE==='mode
     b.onclick=()=>{ $('eraSheet').hidden=true; chooseEra(e.k); }; L.append(b); } $('eraSheet').hidden=false; closeMenu(); }
 function chooseEra(k){ const sc=(k==='modern'||k==='toyo')?null:k; if(MODE!==(k==='modern'?'modern':'toyo')) setMode(k==='modern'?'modern':'toyo'); setScen(sc);
   const E=ERAS.find(e=>e.k===k); $('vEra').textContent=E.b.replace('大坂','').replace('大坂城の','').slice(0,3); $('eyebrow').textContent='大阪城さんぽ · '+E.b; curSpots=spotList(); buildPins();
-  if(sc){ $('scen').classList.add('min'); $('scTg').textContent='ひらく'; scGround=false; tour.on=true; auto=true; $('scAuto').classList.add('on'); goScenCam(); tourStart(); showHint(E.b+'：自動案内で見どころを回ります。パッドを動かすと自由に歩けます'); } }
+  if(document.getElementById('tourEnd')) $('tourEnd').hidden=true; if(sc){ $('scen').classList.add('min'); $('scTg').textContent='ひらく'; scGround=false; tour.on=true; auto=true; $('scAuto').classList.add('on'); goScenCam(); tourStart(); showHint(E.b+'：自動案内で見どころを回ります。パッドを動かすと自由に歩けます'); } }
 $('tEra').onclick=()=>{ if(started) openEra(); }; $('eraX').onclick=()=>{ $('eraSheet').hidden=true; };
 const phaseCam=()=>{ if(tour.on) tourStart(); else goScenCam(); }; $('scPrev').onclick=()=>{ setPhase(PHI-1); phaseCam(); }; $('scNext').onclick=()=>{ setPhase(PHI+1); phaseCam(); }; $('scCam').onclick=()=>{ if(tour.on) tourStart(); else goScenCam(); };
 $('scGnd').onclick=()=>{ tourStop(false); scGround=!(scGround&&P.mode==='walk'); goScenCam(); showHint(scGround?'地上に降りました。パッドで歩いて、兵や陣のそばまで近づけます':'空から見ています'); };
@@ -3767,19 +3767,33 @@ const tour={on:true,i:-1,t:0,dur:0,from:null,to:null,move:0,done:false,snap:null
 function stopCam(s){ const [x,z,lx,lz,dr]=s; const yy=dr?49.6:withScen(()=>groundH(x,z))+1.6,ty=withScen(()=>groundH(lx,lz))+(dr?2:1.4); const d=Math.hypot(lx-x,lz-z)||1;
   return {x,z,y:yy,yaw:Math.atan2(-(lx-x),-(lz-z)),pitch:Math.max(-1.1,Math.min(.4,Math.atan2(ty-yy,d)*(dr?.78:1))),dr}; }
 function tourStops(){ return ((TOURS[SCEN]||[])[PHI])||[]; }
-function tourGo(i){ const S=tourStops(); tour.i=i; if(i>=S.length){ tour.done=true; tour.t=0; return; } const s=S[i]; tour.to=stopCam(s); tour.from={x:P.x,z:P.z,y:P.y,yaw:P.yaw,pitch:P.pitch}; tour.move=0; tour.t=0;
+function tourGo(i){ const S=tourStops(); tour.i=i; tour.spun=false; if(i>=S.length){ tour.done=true; tour.t=0; return; } const s=S[i]; tour.to=stopCam(s); tour.from={x:P.x,z:P.z,y:P.y,yaw:P.yaw,pitch:P.pitch}; tour.move=0; tour.t=0;
   P.room=null; P.level=-1; P.mode=s[4]?'drone':'walk'; $('vView').textContent=s[4]?'空撮':'歩く'; setTicker(s[5],(i+1)+' / '+S.length); tour.dur=Math.max(9,tickerNeed()); }
 function tourStart(){ tour.done=false; tourGo(0); }
 function userMoving(){ return joy.id!==null||looks.size>0||Object.keys(keys).some(k=>keys[k]); }
 function tourStop(msg){ if(!tour.on) return; tour.on=false; auto=false; $('scAuto').classList.remove('on'); if(msg) showHint('自動案内を止めました。「自動案内」でもう一度始まります'); const S=tourStops(); if(PH) setTicker(PH.text,'解説'); }
+const SPIN_T=24;   /* 360°を回る秒数 */
+function tourEnd(){ tour.on=false; auto=false; $('scAuto').classList.remove('on'); setTicker('自動案内はここで終わりです。「自動案内」でもう一度見られます。パッドで自由に歩くこともできます','終了');
+  const E=ERAS.find(e=>e.k===SCEN); $('tourEndT').textContent=(E?E.b:'')+'の自動案内が終わりました'; $('tourEnd').hidden=false; }
 function updateTour(dt){ if(!SCEN||!PH) return; updateTicker(dt); updateTags(); if(!tour.on) return;
   if(userMoving()){ tourStop(true); return; }
-  if(tour.done){ tour.t+=dt; if(auto&&tour.t>4&&PHI<SCENS[SCEN].phases.length-1){ setPhase(PHI+1); tourStart(); } return; }
+  if(tour.done){ tour.t+=dt; if(tour.t>3){ if(PHI<SCENS[SCEN].phases.length-1){ if(auto){ setPhase(PHI+1); tourStart(); } } else tourEnd(); } return; }
   if(tour.i<0) return; const a=tour.from,b=tour.to;
   if(tour.move<1){ tour.move=Math.min(1,tour.move+dt/2.6); const k=tour.move*tour.move*(3-2*tour.move); let dy=b.yaw-a.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy));
     P.x=a.x+(b.x-a.x)*k; P.z=a.z+(b.z-a.z)*k; P.y=a.y+(b.y-a.y)*k; P.yaw=a.yaw+dy*k; P.pitch=a.pitch+(b.pitch-a.pitch)*k; return; }
-  P.x=b.x; P.z=b.z; P.yaw=b.yaw; P.pitch=b.pitch; tour.t+=dt; if(tour.t>tour.dur) tourGo(tour.i+1); }
-
+  P.x=b.x; P.z=b.z; tour.t+=dt;
+  if(tour.t<=tour.dur){ P.yaw=b.yaw; P.pitch=b.pitch; return; }
+  /* 見どころを見たあと、その場で水平にゆっくり1回転して周りの様子を見る */
+  const st=tour.t-tour.dur; if(!tour.spun){ tour.spun=true; tour.ticker0=tick.text; setTicker('周りの様子を見渡しています（ゆっくり1回転）',$('tkLb').textContent); }
+  const k=Math.min(1,st/SPIN_T),e=k-Math.sin(k*Math.PI*2)/(Math.PI*2),pt=b.dr?Math.max(-.32,Math.min(-.12,b.pitch)):.02,w=Math.min(1,st/2,(SPIN_T-st)/2);
+  P.yaw=b.yaw+e*Math.PI*2; P.pitch=b.pitch+(pt-b.pitch)*Math.max(0,w);
+  if(k>=1){ P.yaw=b.yaw; P.pitch=b.pitch; tour.spun=false; tourGo(tour.i+1); } }
+{ const st=document.createElement('style'); st.textContent=`#tourEnd{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:30;width:min(320px,calc(100% - 40px));background:var(--panel);border:1px solid rgba(210,69,44,.7);border-radius:14px;padding:16px;text-align:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#tourEnd b{display:block;font-family:var(--f-disp);font-size:18px;margin-bottom:6px} #tourEnd p{font-size:12.5px;color:var(--mute);margin:0 0 12px;line-height:1.6} #tourEnd .r{display:flex;gap:8px;justify-content:center}
+#tourEnd button{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:transparent;cursor:pointer;font-size:13px} #tourEnd button.p{background:rgba(210,69,44,.35);border-color:rgba(210,69,44,.8)}`; document.head.appendChild(st);
+  const d=document.createElement('section'); d.id='tourEnd'; d.hidden=true; d.innerHTML='<b id="tourEndT">自動案内が終わりました</b><p>おつかれさまでした。ここからは自由に歩いて、陣や部隊のそばまで近づいてみましょう。</p><div class="r"><button id="tourAgain">最初からもう一度</button><button class="p" id="tourFree">自由に歩く</button></div>'; document.body.appendChild(d);
+  $('tourFree').onclick=()=>{ $('tourEnd').hidden=true; };
+  $('tourAgain').onclick=()=>{ $('tourEnd').hidden=true; setPhase(0); tour.on=true; auto=true; $('scAuto').classList.add('on'); tourStart(); }; }
 /* ---------- 戦況図（右上の地図を戦場全体の図に） ---------- */
 const BR={x0:-900,x1:1150,z0:-400,z1:2100};
 function battleOverlay(g,X,Z,sc,dpr){ for(const u of UNITS){ if(!u.side||u.mem.length===0) continue; const col=u.side==='t'?'#e0412f':'#3b78d8',p=unitPos(u,{ox:0,oz:0,mx:.5,ph:0},phT),r=Math.max(2*dpr,Math.min(7*dpr,Math.sqrt(u.mem.length)*sc*1.6));
