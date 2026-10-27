@@ -3373,7 +3373,7 @@ const sled=(()=>{ const g=new THREE.Group(); const st=mesh(new THREE.BoxGeometry
 const K_INF=['k_yari','k_teppo','k_yari','k_yumi','k_captain','k_yari','k_teppo','k_nobori'],K_LINE=['k_teppo','taketaba_a','k_yari','teppo_k','k_tate','taketaba_a','k_zouhei','k_hoju'],T_INF=['t_yari','t_teppo','ashigaru','yari_a','t_yumi','teppo_a','y_hb','t_nobori','y_dark'],
   RED=['r_bushou','r_yumi','t_bushou','t_yari','r_kiba','t_uma'],WORK=['ninpu','mokko','workers','log','p_naked','p_porter','wara','w_straw','ninpu','saku_w'],PULL=['ishibiki','ishibiki','ninpu','ishibiki'],K_FLAG=['nb_white','nb_blue','nb_navyw','nb_yel2','nb_green','nb_green2','nb_white2','nb_navy'],T_FLAG=['nb_red','nb_purple','nb_black','nb_yellow'];
 let UNITS=[],FXS=[],phT=0,PH=null;
-function unit(o){ const u=Object.assign({n:12,w:24,d:6,y:null,fire:0,loss:0,mill:0,spd:1},o); const to=u.to||u.at,dx=to[0]-u.at[0],dz=to[1]-u.at[1],l=Math.hypot(dx,dz);
+function unit(o){ const u=Object.assign({n:12,w:24,d:6,y:null,fire:0,loss:0,mill:0,spd:1},o); u.side=unitSide(u.spr); u.scal=!u.noScale&&u.n>3&&!!u.side; if(u.scal) u.n=Math.max(1,Math.round(u.n*(UMULT[u.side]??1))); const to=u.to||u.at,dx=to[0]-u.at[0],dz=to[1]-u.at[1],l=Math.hypot(dx,dz);
   const fwd=l>.1?[dx/l,dz/l]:(u.face||[0,-1]); u.fwd=fwd; u.right=[-fwd[1],fwd[0]]; const cols=Math.max(1,Math.round(Math.sqrt(u.n*u.w/Math.max(1,u.d)))),rows=Math.ceil(u.n/cols); u.mem=[];
   for(let i=0;i<u.n;i++){ const c=i%cols,r=(i/cols)|0,ox=(cols>1?c/(cols-1)-.5:0)*u.w+(rnd()-.5)*1.4,oz=(rows>1?r/(rows-1)-.5:0)*u.d+(rnd()-.5)*(u.tight?0:1.2),spr=u.spr[i%u.spr.length];
     const m={ox,oz,ph:rnd()*6,dead:rnd()<u.loss,tdie:.35+rnd()*.6,mx:rnd()}; const p=unitPos(u,m,0); m.it=bCrowd.add(spr,p[0],p[1],p[2],{s:u.s,flip:rnd()<.5}); u.mem.push(m); }
@@ -3385,7 +3385,7 @@ function unitPos(u,m,t){ const k=unitProg(u,t),bx=u.at[0]+((u.to||u.at)[0]-u.at[
   const bad=(xx,zz)=>hitBlock(xx,zz,.3)||(waterAt(xx,zz,.3)&&!walkable(xx,zz)); if(u.y===null&&bad(x,z)){ let ok=false; for(let d=1;d<=8&&!ok;d++) for(const sg of [1,-1]){ const xx=x+u.right[0]*d*sg,zz=z+u.right[1]*d*sg; if(!bad(xx,zz)){ x=xx; z=zz; ok=true; break; } } if(!ok) for(let d=1;d<=8&&!ok;d++) for(const sg of [1,-1]){ const xx=x+u.fwd[0]*d*sg,zz=z+u.fwd[1]*d*sg; if(!bad(xx,zz)){ x=xx; z=zz; ok=true; break; } } }
   const y=u.y!==null?u.y:withScen(()=>groundH(x,z)); return [x,y,z,k]; }
 function withScen(f){ return f(); }
-function clearUnits(){ bCrowd.clear(); UNITS=[]; FXS=[]; FX.clear(); }
+function clearUnits(){ bCrowd.clear(); UNITS=[]; FXS=[]; FX.clear(); if(typeof clearTags==='function') clearTags(); }
 function fxsStep(t,dt){
   for(const f of FXS){ if(t<(f.t0||0)||(f.t1&&t>f.t1)) continue;
     if(f.type==='cannon'){ f.acc=(f.acc||rnd()*f.every)+dt; if(f.acc>=f.every){ f.acc=0; const [x,y,z]=f.from; FX.emit(3,x,y+1,z,7,0,0,0,.35); for(let i=0;i<4;i++) FX.emit(0,x+(rnd()-.5)*2,y+1.2,z+(rnd()-.5)*2,4,(rnd()-.5)*1.2,.8,(rnd()-.5)*1.2,6); f.pending=(f.pending||[]); f.pending.push(1.4); }
@@ -3495,7 +3495,7 @@ const SCENS={
      unit({spr:T_INF,n:30,at:[220,980],to:[245,1030],w:26,d:8,dur:12,fire:3,flags:2,fl:T_FLAG}); unit({spr:K_INF,n:36,at:[260,1090],w:30,d:10,fire:3,flags:3}); FXS.push({type:'column',x:-150,y:2,z:1110,r:30,rate:3,t0:12}); }},
   {date:'5月7日 夕刻',title:'落城',gnd:[-14,22,30,-44],time:2,cam:[-30,110,-0.32,-.1,1],
    text:'徳川方が城内になだれ込み、天守や御殿に火が放たれました。大坂城は炎に包まれ、夜空を焦がして燃え落ちたと伝わります。',
-   build(){ natsuBase(false,true); for(let i=0;i<6;i++) unit({spr:K_INF,n:20,at:[NS[i],820],to:[NS[i],470],w:5,d:18,dur:40,t0:i*2,flags:1});
+   build(){ natsuBase(false,true); unit({spr:T_INF,n:20,at:[-14,22],w:34,d:6,face:[0,1],fire:1,flags:2,fl:T_FLAG}); for(let i=0;i<6;i++) unit({spr:K_INF,n:20,at:[NS[i],820],to:[NS[i],470],w:5,d:18,dur:40,t0:i*2,flags:1});
      const T=KEEP; T.ext.forEach((e,k)=>FXS.push({type:'blaze',x:T.cx,y:e.Y,z:T.cz,r:Math.max(e.w,e.d)/2+.6,h:e.h,rate:30-k*4})); FXS.push({type:'blaze',x:26,y:1,z:34,r:20,h:6,rate:18},{type:'blaze',x:-14,y:TS_H,z:-43,r:14,h:5,rate:14},{type:'column',x:30,y:50,z:-44,r:16,rate:5}); }},
   {date:'5月8日',title:'山里丸、豊臣家の滅亡',time:3,cam:[-34,-76,0.6,.05,0],
    text:'燃え残った山里丸の櫓に逃れた豊臣秀頼と母の淀殿は、ここで自害したと伝わります。秀吉の築いた大坂城とともに、豊臣家は滅びました。のちに徳川幕府は、豊臣の城を埋めた上に新しい大坂城を築き直します。今の石垣の下には、豊臣時代の石垣が眠っています。',
@@ -3513,12 +3513,14 @@ function natsuBase(sanada,fire){ siegeDeco([[250,1060]]); riders(1085); DC('senn
 /* ---------- 切り替え ---------- */
 let PHI=0,auto=true;
 function setScen(sc){ clearUnits(); SCEN=sc; const S=sc?SCENS[sc]:null; GB.visible=!!S; GNPC.visible=!S; GH.visible=sc==='fuyu'||sc==='natsu'; GSM.visible=sc==='fuyu'; sled.visible=false;
-  BOUNDS=(sc==='fuyu'||sc==='natsu')?{x0:-616,x1:572,z0:-312,z1:1180}:{x0:-616,x1:572,z0:-312,z1:900};
-  if(!S){ FX.clear(); applyFill({soto:false,m3:false,sg:false}); keepBuild(1); $('scen').hidden=true; return; } setPhase(0); $('scen').hidden=false; }
+  BOUNDS=(sc==='fuyu'||sc==='natsu')?{x0:-616,x1:572,z0:-312,z1:1180}:{x0:-616,x1:572,z0:-312,z1:900}; if(MODE==='toyo') MAPR={x0:-640,x1:600,z0:-330,z1:sc==='fuyu'||sc==='natsu'?1210:900};
+  if(!S){ FX.clear(); applyFill({soto:false,m3:false,sg:false}); keepBuild(1); $('scen').hidden=true; $('ticker').hidden=true; return; } $('ticker').hidden=false; setPhase(0); $('scen').hidden=false; }
 function applyFill(f){ Object.assign(FILL,f); const t=MODE==='toyo'; GD3.visible=!FILL.m3; GDS.visible=!FILL.sg; FILLM.soto.visible=t&&FILL.soto; FILLM.m3.visible=t&&FILL.m3; FILLM.sg.visible=t&&FILL.sg;
   for(const w of waters){ const k=w.userData.fill; if(!k) continue; w.visible=!(t&&FILL[k]); } }
-function setPhase(i){ const S=SCENS[SCEN]; PHI=(i+S.phases.length)%S.phases.length; PH=S.phases[PHI]; clearUnits(); for(let k=TALK.length-1;k>=0;k--) if(TALK[k].scen) TALK.splice(k,1); phT=0; PH.uma=null;
-  applyFill(Object.assign({},S.fill,PH.fill||{})); keepBuild(PH.keep?PH.keep[0]:1); sled.visible=false; PH.sledU=null; PH.sledIt=PH.sled?bCrowd.add('shura',PH.sled[0][0],0,PH.sled[0][1],{s:1.5}):null; PH.build(); applyTime(PH.time); FX.clear(); if(FXS.some(f=>f.type!=='cannon'&&!f.t0)) for(let k=0;k<40;k++){ fxsStep(0,.15); FX.update(.15); }
+function setPhase(i){ const S=SCENS[SCEN]; PHI=(i+S.phases.length)%S.phases.length; PH=S.phases[PHI]; phT=0;
+  applyFill(Object.assign({},S.fill,PH.fill||{})); keepBuild(PH.keep?PH.keep[0]:1); sled.visible=false;
+  scaledBuild(()=>{ clearUnits(); for(let k=TALK.length-1;k>=0;k--) if(TALK[k].scen) TALK.splice(k,1); PH.uma=null; PH.sledU=null; PH.sledIt=PH.sled?bCrowd.add('shura',PH.sled[0][0],0,PH.sled[0][1],{s:1.5}):null; PH.build(); });
+  { const f=(TAGF[SCEN]||[])[PHI]; if(f) f(); } drawForce(); setTicker(PH.text,'解説'); applyTime(PH.time); FX.clear(); if(FXS.some(f=>f.type!=='cannon'&&!f.t0)) for(let k=0;k<40;k++){ fxsStep(0,.15); FX.update(.15); }
   $('scDate').textContent=S.name+' · '+PH.date; $('scTitle').textContent=PH.title; $('scText').textContent=PH.text; $('scNum').textContent=(PHI+1)+' / '+S.phases.length; $('scText').scrollTop=0; nearSpot=null; lastArea=''; }
 let scGround=false;
 function goGround(){ const g=PH&&PH.gnd; if(!g){ goPhaseCam(); return; } P.room=null; P.level=-1; P.mode='walk'; $('vView').textContent='歩く'; let x=g[0],z=g[1];
@@ -3526,8 +3528,8 @@ function goGround(){ const g=PH&&PH.gnd; if(!g){ goPhaseCam(); return; } P.room=
   P.x=x; P.z=z; P.yaw=Math.atan2(-(g[2]-x),-(g[3]-z)); P.pitch=.02; P.y=groundH(x,z)+1.6; }
 function goScenCam(){ if(scGround&&PH&&PH.gnd) goGround(); else goPhaseCam(); $('scGnd').textContent=scGround?'空から見る':'地上に降りる'; }
 function goPhaseCam(){ if(!PH) return; const c=PH.cam; P.room=null; P.level=-1; P.x=c[0]; P.z=c[1]; P.yaw=c[2]; P.pitch=c[3]; P.mode=c[4]?'drone':'walk'; $('vView').textContent=c[4]?'空撮':'歩く'; P.y=c[4]?48:groundH(P.x,P.z)+1.6; }
-let phHold=0; function updateScen(dt){ if(!SCEN) return; updateUnits(dt); if(PH&&PH.uma&&phT>22&&!PH.uma.hidden){ bCrowd.hide(PH.uma); showHint('家康の馬印が倒れた！'); }
-  if(auto&&phT>(PH.dur||55)&&PHI<SCENS[SCEN].phases.length-1){ setPhase(PHI+1); goScenCam(); } }
+let phHold=0; function updateScen(dt){ if(!SCEN) return; updateUnits(dt); updateTour(dt); if(PH&&PH.uma&&phT>22&&!PH.uma.hidden){ bCrowd.hide(PH.uma); showHint('家康の馬印が倒れた！'); }
+  if(!tour.on&&auto&&phT>(PH.dur||55)&&PHI<SCENS[SCEN].phases.length-1){ setPhase(PHI+1); goScenCam(); } }
 function updateChars(dt){ updateNPC(dt); updateScen(dt); FX.update(dt); const T=TIMES[timeIdx],inside=P.room||P.level>=0; sprTint(inside?1:T.night>.5?(SCEN==='natsu'&&PHI>=3?.6:.45):timeIdx===2?.88:timeIdx===0?.95:1); }
 
 /* ---------- 画面: 時代を選ぶ・場面の案内 ---------- */
@@ -3546,7 +3548,7 @@ function updateChars(dt){ updateNPC(dt); updateScen(dt); FX.update(dt); const T=
 #scen .gnd{position:absolute;top:26px;right:8px;height:30px;padding:0 10px;border-radius:9px;border:1px solid rgba(210,69,44,.8);background:rgba(210,69,44,.3);color:inherit;cursor:pointer;font-size:12px;font-weight:700} #scen .row button.on{background:rgba(210,69,44,.25)} #scen .tg{position:absolute;top:6px;right:8px;border:0;background:transparent;color:var(--mute);cursor:pointer;font-size:12px}
 @media (max-width:520px){ #scen{width:calc(100% - 24px);top:calc(env(safe-area-inset-top,0px) + 168px)} }`; document.head.appendChild(st);
   const es=document.createElement('section'); es.id='eraSheet'; es.hidden=true; es.innerHTML='<div class="in"><h2>時代と体験を選ぶ</h2><div id="eraList" style="display:grid;gap:8px"></div><button class="x" id="eraX">閉じる</button></div>'; document.body.appendChild(es);
-  const sp=document.createElement('section'); sp.id='scen'; sp.hidden=true; sp.innerHTML='<button class="tg" id="scTg">たたむ</button><button class="gnd" id="scGnd">地上に降りる</button><div class="d" id="scDate"></div><div class="t" id="scTitle"></div><div id="scText"></div><div class="row"><button id="scPrev">◀ 前</button><button id="scNext">次 ▶</button><button id="scCam">この場面を見る</button><button id="scAuto" class="on">自動で進む</button><span id="scNum" style="font-size:11px;color:var(--mute);align-self:center"></span></div>'; document.body.appendChild(sp); }
+  const sp=document.createElement('section'); sp.id='scen'; sp.hidden=true; sp.innerHTML='<button class="tg" id="scTg">たたむ</button><button class="gnd" id="scGnd">地上に降りる</button><div class="d" id="scDate"></div><div class="t" id="scTitle"></div><div id="scText"></div><div class="row"><button id="scPrev">◀ 前</button><button id="scNext">次 ▶</button><button id="scCam">この場面を最初から</button><button id="scAuto" class="on">自動案内</button><span id="scNum" style="font-size:11px;color:var(--mute);align-self:center"></span></div>'; document.body.appendChild(sp); }
 const ERAS=[{k:'modern',b:'現代',s:'今の大阪城公園',t:'昭和の天守閣、徳川期の石垣、各地の櫓や門を歩いて見学'},{k:'toyo',b:'太閤の時代',s:'1590年代ごろ',t:'黒漆と金の天守、千畳敷、城下町と惣構。人々に話しかけられます'},
   {k:'chikujo',b:'大坂城の築城',s:'1583〜1598年',t:'石垣・天守・二の丸・惣構・三の丸ができていく様子を、場面ごとにたどります'},{k:'fuyu',b:'大坂冬の陣',s:'1614年',t:'徳川の大軍による包囲、真田丸の戦い、大砲の砲撃、和睦と堀の埋め立て'},
   {k:'natsu',b:'大坂夏の陣',s:'1615年',t:'堀を失った「裸城」、真田信繁の突撃、落城まで'}];
@@ -3554,11 +3556,11 @@ function openEra(){ const L=$('eraList'); L.innerHTML=''; const cur=MODE==='mode
     b.onclick=()=>{ $('eraSheet').hidden=true; chooseEra(e.k); }; L.append(b); } $('eraSheet').hidden=false; closeMenu(); }
 function chooseEra(k){ const sc=(k==='modern'||k==='toyo')?null:k; if(MODE!==(k==='modern'?'modern':'toyo')) setMode(k==='modern'?'modern':'toyo'); setScen(sc);
   const E=ERAS.find(e=>e.k===k); $('vEra').textContent=E.b.replace('大坂','').replace('大坂城の','').slice(0,3); $('eyebrow').textContent='大阪城さんぽ · '+E.b; curSpots=spotList(); buildPins();
-  if(sc){ scGround=false; goScenCam(); showHint(E.b+'：上の案内の「次 ▶」で場面が進みます。人物をタップすると話します'); } }
+  if(sc){ scGround=false; tour.on=true; auto=true; $('scAuto').classList.add('on'); goScenCam(); tourStart(); showHint(E.b+'：自動案内で見どころを回ります。パッドを動かすと自由に歩けます'); } }
 $('tEra').onclick=()=>{ if(started) openEra(); }; $('eraX').onclick=()=>{ $('eraSheet').hidden=true; };
-$('scPrev').onclick=()=>{ setPhase(PHI-1); goScenCam(); }; $('scNext').onclick=()=>{ setPhase(PHI+1); goScenCam(); }; $('scCam').onclick=goScenCam;
-$('scGnd').onclick=()=>{ scGround=!(scGround&&P.mode==='walk'); goScenCam(); showHint(scGround?'地上に降りました。パッドで歩いて、兵や陣のそばまで近づけます':'空から見ています'); };
-$('scAuto').onclick=()=>{ auto=!auto; $('scAuto').classList.toggle('on',auto); }; $('scTg').onclick=()=>{ const m=$('scen').classList.toggle('min'); $('scTg').textContent=m?'ひらく':'たたむ'; };
+const phaseCam=()=>{ if(tour.on) tourStart(); else goScenCam(); }; $('scPrev').onclick=()=>{ setPhase(PHI-1); phaseCam(); }; $('scNext').onclick=()=>{ setPhase(PHI+1); phaseCam(); }; $('scCam').onclick=()=>{ if(tour.on) tourStart(); else goScenCam(); };
+$('scGnd').onclick=()=>{ tourStop(false); scGround=!(scGround&&P.mode==='walk'); goScenCam(); showHint(scGround?'地上に降りました。パッドで歩いて、兵や陣のそばまで近づけます':'空から見ています'); };
+$('scAuto').onclick=()=>{ if(tour.on){ tourStop(false); } else { tour.on=true; auto=true; $('scAuto').classList.add('on'); tourStart(); showHint('自動案内を始めます'); } }; $('scTg').onclick=()=>{ const m=$('scen').classList.toggle('min'); $('scTg').textContent=m?'ひらく':'たたむ'; };
 window.__scn={FX,get FXS(){return FXS},get phT(){return phT},get UNITS(){return UNITS}};
 /* 検査用: 建物にめり込んだ人・物、宙に浮いた人・物を数える */
 window.__scn.audit=(C)=>{ C=C||bCrowd; const bad=[]; for(const it of C.items){ if(it.hidden) continue; const g=groundH(it.x,it.z); const blk=hitBlock(it.x,it.z,.25);
@@ -3570,6 +3572,129 @@ window.__scn.npcAudit=()=>window.__scn.audit(__npc.npcCrowd);
   scene.traverse(o=>{ if(!o.isMesh||!o.receiveShadow) return; const m=Array.isArray(o.material)?o.material[0]:o.material; if(YES.has(m)) return;
     o.updateWorldMatrix(true,false); const g=o.geometry; if(!g.boundingBox) g.computeBoundingBox(); bb.copy(g.boundingBox).applyMatrix4(o.matrixWorld); const flat=!o.isInstancedMesh&&(bb.max.y-bb.min.y)<.8;
     if(!flat) o.receiveShadow=false; }); }
+
+/* ================= 合戦・築城の案内: 自動案内・テロップ・部隊の名札・兵力グラフ・戦況図 ================= */
+/* 兵力（通説・諸説あり）と、人形の数の目安（1体＝約500人） */
+const FORCE={fuyu:{t:100000,k:200000},natsu:{t:55000,k:155000}};
+const PER=500;
+const TGT={fuyu:[{t:200,k:400},{t:200,k:400},{t:200,k:400},{t:200,k:400},null],natsu:[{t:110,k:310},{t:110,k:310},{t:110,k:310},{t:20,k:310},{t:0,k:310}]};
+const SIDE_K=/^(k_|taketaba_a|teppo_k|tsukaiban|horo)/,SIDE_T=/^(t_|r_|y_|ashigaru|yari_a|teppo_a|sanada|goto|kimura|teppo_line)/;
+let UMULT={t:1,k:1};
+function unitSide(spr){ let k=0,t=0; for(const s of spr){ if(SIDE_K.test(s)) k++; else if(SIDE_T.test(s)) t++; } return k>t?'k':t>0?'t':null; }
+
+/* 自動案内の立ち寄り先: [x,z, 見る先x,z, 空撮1/地上0, テロップ] */
+const TOURS={
+ chikujo:[
+  [[-60,170,-6,60,1,'秀吉は石山本願寺の跡に、天下一の城を築き始めました（1583年）'],[30,330,-6,250,1,'巨石は「修羅（しゅら）」というそりに載せ、人足が綱を引いて運びます'],[10,130,-6,70,0,'石工がのみで石を割り、奉行や棟梁が指図して石垣を積み上げます']],
+  [[80,40,30,-44,1,'天守台の上に、黒漆と金の天守が組み上がっていきます（1585年ごろ完成）'],[8,-24,30,-44,0,'足場を組み、大工や人足が働きます（足場の様子は想像です）']],
+  [[-60,300,-60,230,1,'本丸を囲む二の丸の堀と石垣を築きます（1586〜88年）'],[-150,252,-230,254,0,'大名ごとに受け持ちの区画「丁場」が割り当てられ、石には大名の印（刻印）が刻まれました']],
+  [[-60,900,-60,850,1,'城下町ごと堀と土塁で囲む「惣構（そうがまえ）」の工事です（1594年）'],[-30,896,-20,880,0,'空堀を掘り、その土を盛り上げて土塁にしていきます']],
+  [[-60,520,-60,440,1,'城と城下の間に三の丸を築き、諸大名の屋敷を集めました（1598年）'],[-60,600,-60,480,1,'この年、秀吉は伏見城で亡くなり、大坂城は子の秀頼に受け継がれました']]],
+ fuyu:[
+  [[-60,1120,-60,900,1,'1614年11月、徳川方 約20万が、豊臣方 約10万の籠もる大坂城を囲みました'],[-230,1085,-230,1010,1,'家康は南の茶臼山に、秀忠は岡山に陣を置きます'],[330,1065,330,950,1,'城の南に突き出した出丸が「真田丸」。真田信繁 約5,000が守ります']],
+  [[470,-170,600,-240,1,'11月26日、城の北東の今福・鴫野で両軍がぶつかりました'],[548,-214,640,-240,0,'豊臣方の木村重成・後藤又兵衛が奮戦しますが、徳川方が砦を奪いました']],
+  [[440,1075,330,960,1,'12月4日、前田・井伊・松平の軍勢が真田丸へ攻め寄せます'],[330,1050,330,990,0,'竹束を押し立てて、空堀と三重の柵に迫る徳川勢'],[316,967,322,1040,0,'二段の塀の上から真田勢が鉄砲を撃ちかけ、徳川勢は大きな損害を出して退きました']],
+  [[40,-210,30,-44,1,'12月16日、家康は城の北の備前島から大筒（大砲）で天守を狙いました'],[0,-325,0,-372,1,'砲弾が天守に届いて侍女に死者が出たと伝わり、淀殿は和睦へ傾きます']],
+  [[-60,920,-60,858,1,'和睦の条件として、惣構の堀が埋められました'],[-60,520,-60,444,1,'徳川方は二の丸・三の丸の堀まで埋め、大坂城は本丸だけの「裸城」になります']]],
+ natsu:[
+  [[-60,700,-60,500,1,'1615年4月、堀を埋められた大坂城はもう籠城できません'],[-60,860,-60,1060,1,'徳川方 約15.5万が再び大坂へ。豊臣方 約5.5万は城を出て野戦で決着をつけます']],
+  [[200,900,320,1060,1,'5月6日、豊臣方は南東へ打って出て、道明寺・八尾・若江で戦いました（実際は城から10km以上先）'],[240,960,120,860,0,'後藤又兵衛・木村重成らが討ち死にし、豊臣方は城へ退きます']],
+  [[-30,990,-150,1100,1,'5月7日、茶臼山の真田信繁 約3,500が、家康の本陣めがけて突撃します'],[-160,1080,-118,1132,0,'家康の旗本は崩れ、馬印が倒れたと伝わります'],[-60,1010,-118,1140,1,'しかし多勢に無勢。信繁は安居神社のあたりで討ち死にしました']],
+  [[-30,110,30,-44,1,'5月7日夕刻、徳川方が城内になだれ込み、天守と御殿に火が放たれました'],[-60,420,-60,250,1,'大坂城は炎に包まれ、夜空を焦がして燃え落ちたと伝わります']],
+  [[-30,-72,-36,-80,0,'燃え残った山里丸で、豊臣秀頼と母の淀殿は自害したと伝わります（5月8日）'],[30,60,30,-44,1,'豊臣家は滅び、徳川幕府は豊臣の城を埋めた上に新しい大坂城を築きました']]]};
+
+/* ---------- 名札（3Dの部隊の上に浮かぶ） ---------- */
+const TAGS=[]; const TAGCOL={t:'#c8352a',k:'#2f5fa8',n:'#6b6458'};
+function tagSprite(text,side){ const f='bold 44px "Hiragino Sans","Noto Sans JP",sans-serif',c=makeCanvas(8,8),g0=c.getContext('2d'); g0.font=f; const w=Math.ceil(g0.measureText(text).width)+60;
+  c.width=w; c.height=72; const g=c.getContext('2d'); g.fillStyle='rgba(14,15,17,.86)'; g.beginPath(); g.roundRect?g.roundRect(2,2,w-4,68,14):g.rect(2,2,w-4,68); g.fill();
+  g.fillStyle=TAGCOL[side]||TAGCOL.n; g.fillRect(2,2,16,68); g.strokeStyle=TAGCOL[side]||TAGCOL.n; g.lineWidth=4; g.strokeRect(4,4,w-8,64);
+  g.font=f; g.fillStyle='#fff'; g.textBaseline='middle'; g.fillText(text,34,38); const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding;
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,depthWrite:false,toneMapped:false,fog:false,transparent:true})); s.renderOrder=9; s.userData.aspect=w/72; return s; }
+function tagP(x,z,text,side,h){ const s=tagSprite(text,side); GB.add(s); TAGS.push({s,x,z,h:h||6,side}); }
+function tagU(u,text,side){ if(!u) return; const s=tagSprite(text,side); GB.add(s); TAGS.push({s,u,h:6,side}); }
+const uSpr=n=>UNITS.find(u=>u.spr[0]===n);
+function uNear(x,z,side){ let b=null,bd=1e9; for(const u of UNITS){ if(side&&u.side!==side) continue; const d=Math.hypot(u.at[0]-x,u.at[1]-z); if(d<bd){ bd=d; b=u; } } return b; }
+function clearTags(){ for(const t of TAGS){ GB.remove(t.s); t.s.material.map.dispose(); t.s.material.dispose(); } TAGS.length=0; }
+function updateTags(){ const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z; for(const t of TAGS){ let x=t.x,z=t.z;
+    if(t.u){ const p=unitPos(t.u,{ox:0,oz:0,mx:.5,ph:0},phT); x=p[0]; z=p[2]; } const y=withScen(()=>groundH(x,z))+t.h+(t.u&&t.u.y!==null?t.u.y:0);
+    const d=Math.hypot(x-cx,y-cy,z-cz),hh=Math.min(40,Math.max(1.2,d*.065)); t.s.position.set(x,y+hh*.6,z); t.s.scale.set(hh*t.s.userData.aspect,hh,1); t.s.visible=d<900&&!P.room&&P.level<0; } }
+const TAGF={
+ chikujo:[()=>{ tagP(-40,-30,'石垣の普請','n',8); tagP(-6,300,'修羅で巨石を運ぶ','n',6); },()=>tagP(30,-44,'天守の建築','n',52),()=>tagP(-60,254,'二の丸の普請（大名ごとの丁場）','n',6),()=>tagP(-60,884,'惣構の空堀と土塁','n',6),()=>tagP(-60,422,'三の丸の普請','n',6)],
+ fuyu:[()=>{ fuyuTags(); tagP(-60,1030,'徳川方の包囲 約20万','k',8); tagP(30,-44,'大坂城 豊臣方 約10万','t',60); },
+  ()=>{ fuyuTags(); tagU(uSpr('kimura')||uNear(520,-230,'t'),'木村重成・後藤又兵衛（豊臣）','t'); tagU(uNear(700,-260,'k'),'上杉景勝・佐竹義宣（徳川）','k'); },
+  ()=>{ fuyuTags(); tagU(uNear(330,1046,'k'),'前田利常 約12,000','k'); tagU(uNear(235,1030,'k'),'松平忠直','k'); tagU(uNear(425,1030,'k'),'井伊直孝','k'); },
+  ()=>{ fuyuTags(); tagP(0,-372,'備前島の大筒（徳川方）','k',6); },
+  ()=>{ tagP(-60,858,'惣構の堀を埋める','n',6); tagP(-60,444,'三の丸の堀も埋められた','n',6); }],
+ natsu:[()=>{ tagP(250,1060,'徳川秀忠（岡山口）','k',12); tagP(-60,560,'豊臣方 約5.5万','t',8); tagP(-60,1110,'徳川方 約15.5万','k',8); },
+  ()=>{ tagP(250,1060,'徳川秀忠','k',12); tagU(uSpr('goto'),'後藤又兵衛 約2,800','t'); tagU(uSpr('kimura'),'木村重成 約4,700','t'); tagP(420,1140,'伊達政宗・井伊直孝ら（徳川方）','k',6); },
+  ()=>{ tagP(250,1060,'徳川秀忠（岡山口）','k',12); tagU(uNear(-230,1004,'t'),'真田信繁 約3,500','t'); tagP(-110,1150,'徳川家康 本陣','k',8); tagP(60,1125,'松平忠直 約15,000','k',6); },
+  ()=>{ tagP(-60,520,'徳川方 城内へ','k',6); tagP(30,-44,'天守炎上','n',58); },
+  ()=>{ tagP(-36,-80,'山里丸','n',8); }]};
+function fuyuTags(){ tagP(-230,1010,'徳川家康 本陣','k',22); tagP(250,1060,'徳川秀忠','k',12); tagP(SANADA.x,SANADA.z,'真田丸 真田信繁 約5,000','t',10); tagP(-300,838,'惣構の守り（豊臣方）','t',8); }
+
+/* ---------- 1体＝約500人にそろえる（いったん並べて数え、倍率をかけて並べ直す） ---------- */
+function countSides(){ const c={t:{u:0,f:0},k:{u:0,f:0}},inU=new Set(); for(const u of UNITS) for(const m of u.mem){ if(!m.it||m.flag) continue; inU.add(m.it); if(u.side&&u.scal) c[u.side].u++; else if(u.side) c[u.side].f++; }
+  for(const it of bCrowd.items){ if(inU.has(it)||it.hidden) continue; if(SIDE_K.test(it.name)&&it.name!=='teppo_k') c.k.f++; else if(SIDE_T.test(it.name)) c.t.f++; } return c; }
+function scaledBuild(build){ UMULT={t:1,k:1}; build(); const tg=(TGT[SCEN]||[])[PHI]; if(!tg) return; const c=countSides(),m={};
+  for(const s of ['t','k']) m[s]=c[s].u>0?Math.max(0,(tg[s]-c[s].f)/c[s].u):1; if(Math.abs(m.t-1)<.06&&Math.abs(m.k-1)<.06) return; UMULT=m; build(); UMULT={t:1,k:1}; }
+function sideCounts(){ const c=countSides(); return {t:c.t.u+c.t.f,k:c.k.u+c.k.f}; }
+
+/* ---------- 画面: テロップ・兵力グラフ ---------- */
+{ const st=document.createElement('style'); st.textContent=`
+#ticker{position:fixed;left:0;right:0;bottom:env(safe-area-inset-bottom,0px);height:38px;z-index:6;pointer-events:none;overflow:hidden;background:linear-gradient(90deg,rgba(12,12,14,.9),rgba(12,12,14,.78));border-top:2px solid rgba(210,69,44,.75)}
+#ticker .lb{position:absolute;left:0;top:0;bottom:0;z-index:2;display:flex;align-items:center;padding:0 10px;background:#b8341f;color:#fff;font-size:12px;font-weight:800;letter-spacing:.08em}
+#ticker .tx{position:absolute;top:0;left:0;white-space:nowrap;line-height:36px;font-size:16px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;will-change:transform}
+#scForce{margin:6px 0 2px;display:grid;gap:3px} #scForce .r{display:grid;grid-template-columns:44px 1fr auto;gap:6px;align-items:center;font-size:11.5px}
+#scForce .b{height:9px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden} #scForce .b i{display:block;height:100%;border-radius:5px}
+#scForce .n{font-size:10.5px;color:var(--mute)} #scForce .u{font-size:10px;color:var(--mute);margin-top:1px}
+#scen #scText{display:none} #scen{box-sizing:border-box;max-width:calc(100% - 24px)} #scen .t{font-size:16px} #mini.battle{width:150px;height:150px}`; document.head.appendChild(st);
+  const tk=document.createElement('div'); tk.id='ticker'; tk.hidden=true; tk.innerHTML='<span class="lb" id="tkLb">案内</span><span class="tx" id="tkTx"></span>'; document.body.appendChild(tk);
+  const f=document.createElement('div'); f.id='scForce'; $('scText').after(f); }
+const tick={x:0,w:0,cw:0,lbw:0,text:'',speed:70};
+function setTicker(text,label){ if(text===tick.text) return; tick.text=text; const tx=$('tkTx'); tx.textContent=text; $('tkLb').textContent=label||'案内';
+  tick.lbw=$('tkLb').offsetWidth; tick.cw=$('ticker').clientWidth; tick.w=tx.scrollWidth; tick.x=tick.lbw+12; tx.style.transform=`translateX(${tick.x}px)`; tick.hold=2.2; }
+function tickerNeed(){ return Math.max(0,tick.w-(tick.cw-tick.lbw-24))/tick.speed+5; }   /* 読み切るのに必要な秒数 */
+function updateTicker(dt){ if($('ticker').hidden) return; const room=tick.cw-tick.lbw-24; if(tick.w<=room) return; if(tick.hold>0){ tick.hold-=dt; return; }
+  tick.x-=tick.speed*dt; if(tick.x<-tick.w+tick.lbw+room*.6){ tick.x=tick.lbw+12; tick.hold=2.2; } $('tkTx').style.transform=`translateX(${tick.x}px)`; }
+function drawForce(){ const F=FORCE[SCEN],el=$('scForce'); if(!F){ el.innerHTML='<div class="u">人足・職人を動員した築城の様子（人数は目安ではありません）</div>'; return; }
+  const c=sideCounts(),mx=Math.max(F.t,F.k),fm=v=>v>=10000?'約'+(v/10000).toFixed(v%10000?1:0)+'万':'約'+v.toLocaleString();
+  el.innerHTML=`<div class="r"><span>豊臣方</span><span class="b"><i style="width:${F.t/mx*100}%;background:#c8352a"></i></span><span>${fm(F.t)}</span></div>`+
+    `<div class="r"><span>徳川方</span><span class="b"><i style="width:${F.k/mx*100}%;background:#2f5fa8"></i></span><span>${fm(F.k)}</span></div>`+
+    ((TGT[SCEN]||[])[PHI]?`<div class="u">人形1体＝約${PER}人（この場面：豊臣 ${c.t}体・徳川 ${c.k}体）／兵力は通説で諸説あり</div>`:'<div class="u">和睦の後の場面のため、兵は並べていません／兵力は通説で諸説あり</div>'); }
+
+/* ---------- 自動案内（カメラが見どころを順に回る） ---------- */
+const tour={on:true,i:-1,t:0,dur:0,from:null,to:null,move:0,done:false,snap:null};
+function stopCam(s){ const [x,z,lx,lz,dr]=s; const yy=dr?49.6:withScen(()=>groundH(x,z))+1.6,ty=withScen(()=>groundH(lx,lz))+(dr?2:1.4); const d=Math.hypot(lx-x,lz-z)||1;
+  return {x,z,y:yy,yaw:Math.atan2(-(lx-x),-(lz-z)),pitch:Math.max(-1.1,Math.min(.4,Math.atan2(ty-yy,d)*(dr?.78:1))),dr}; }
+function tourStops(){ return ((TOURS[SCEN]||[])[PHI])||[]; }
+function tourGo(i){ const S=tourStops(); tour.i=i; if(i>=S.length){ tour.done=true; tour.t=0; return; } const s=S[i]; tour.to=stopCam(s); tour.from={x:P.x,z:P.z,y:P.y,yaw:P.yaw,pitch:P.pitch}; tour.move=0; tour.t=0;
+  P.room=null; P.level=-1; P.mode=s[4]?'drone':'walk'; $('vView').textContent=s[4]?'空撮':'歩く'; setTicker(s[5],(i+1)+' / '+S.length); tour.dur=Math.max(9,tickerNeed()); }
+function tourStart(){ tour.done=false; tourGo(0); }
+function userMoving(){ return joy.id!==null||looks.size>0||Object.keys(keys).some(k=>keys[k]); }
+function tourStop(msg){ if(!tour.on) return; tour.on=false; auto=false; $('scAuto').classList.remove('on'); if(msg) showHint('自動案内を止めました。「自動案内」でもう一度始まります'); const S=tourStops(); if(PH) setTicker(PH.text,'解説'); }
+function updateTour(dt){ if(!SCEN||!PH) return; updateTicker(dt); updateTags(); if(!tour.on) return;
+  if(userMoving()){ tourStop(true); return; }
+  if(tour.done){ tour.t+=dt; if(auto&&tour.t>4&&PHI<SCENS[SCEN].phases.length-1){ setPhase(PHI+1); tourStart(); } return; }
+  if(tour.i<0) return; const a=tour.from,b=tour.to;
+  if(tour.move<1){ tour.move=Math.min(1,tour.move+dt/2.6); const k=tour.move*tour.move*(3-2*tour.move); let dy=b.yaw-a.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy));
+    P.x=a.x+(b.x-a.x)*k; P.z=a.z+(b.z-a.z)*k; P.y=a.y+(b.y-a.y)*k; P.yaw=a.yaw+dy*k; P.pitch=a.pitch+(b.pitch-a.pitch)*k; return; }
+  P.x=b.x; P.z=b.z; P.yaw=b.yaw; P.pitch=b.pitch; tour.t+=dt; if(tour.t>tour.dur) tourGo(tour.i+1); }
+
+/* ---------- 戦況図（右上の地図を戦場全体の図に） ---------- */
+const BR={x0:-660,x1:620,z0:-380,z1:1210};
+function battleOverlay(g,X,Z,sc,dpr){ for(const u of UNITS){ if(!u.side||u.mem.length===0) continue; const col=u.side==='t'?'#e0412f':'#3b78d8',p=unitPos(u,{ox:0,oz:0,mx:.5,ph:0},phT),r=Math.max(2*dpr,Math.min(7*dpr,Math.sqrt(u.mem.length)*sc*1.6));
+    if(u.to){ g.strokeStyle=col; g.globalAlpha=.75; g.lineWidth=1.6*dpr; g.setLineDash([3*dpr,2*dpr]); g.beginPath(); g.moveTo(X(u.at[0]),Z(u.at[1])); g.lineTo(X(u.to[0]),Z(u.to[1])); g.stroke(); g.setLineDash([]);
+      const ang=Math.atan2(Z(u.to[1])-Z(u.at[1]),X(u.to[0])-X(u.at[0])),ex=X(u.to[0]),ez=Z(u.to[1]); g.fillStyle=col; g.beginPath(); g.moveTo(ex+Math.cos(ang)*5*dpr,ez+Math.sin(ang)*5*dpr); g.lineTo(ex+Math.cos(ang+2.4)*5*dpr,ez+Math.sin(ang+2.4)*5*dpr); g.lineTo(ex+Math.cos(ang-2.4)*5*dpr,ez+Math.sin(ang-2.4)*5*dpr); g.fill(); g.globalAlpha=1; }
+    g.fillStyle=col; g.strokeStyle='#fff'; g.lineWidth=.8*dpr; g.beginPath(); g.arc(X(p[0]),Z(p[2]),r,0,6.283); g.fill(); g.stroke(); }
+  for(const t of TAGS){ if(t.u) continue; g.fillStyle=TAGCOL[t.side]||'#888'; g.fillRect(X(t.x)-3*dpr,Z(t.z)-3*dpr,6*dpr,6*dpr); }
+  g.save(); g.translate(X(P.x),Z(P.z)); g.rotate(-P.yaw); g.fillStyle='#fff'; g.strokeStyle='#111'; g.lineWidth=1.2*dpr; g.beginPath(); g.moveTo(0,-7*dpr); g.lineTo(5*dpr,6*dpr); g.lineTo(0,3*dpr); g.lineTo(-5*dpr,6*dpr); g.closePath(); g.fill(); g.stroke(); g.restore(); }
+const _drawMini0=drawMini; drawMini=function(){ const mb=!!SCEN&&MODE==='toyo'&&!P.room&&P.level<0; $('mini').classList.toggle('battle',mb); if(!mb) return _drawMini0();
+  const r=miniC.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1),S=Math.round(r.width*dpr); if(miniC.width!==S){ miniC.width=miniC.height=S; }
+  const W=BR.x1-BR.x0,H=BR.z1-BR.z0,sc=S/Math.max(W,H),ox=(S-W*sc)/2,oz=(S-H*sc)/2; mini2.fillStyle='#4a4842'; mini2.fillRect(0,0,S,S);
+  mini2.drawImage(mapC,(BR.x0-DX0)*GS,(BR.z0-DZ0)*GS,W*GS,H*GS,ox,oz,W*sc,H*sc); battleOverlay(mini2,x=>ox+(x-BR.x0)*sc,z=>oz+(z-BR.z0)*sc,sc,dpr); };
+const _drawMap0=drawMap; drawMap=function(){ _drawMap0(); if(!SCEN) return; const c=$('mapC'),g=c.getContext('2d'),dpr=Math.min(2,devicePixelRatio||1),sx=c.width/(MAPR.x1-MAPR.x0),sz=c.height/(MAPR.z1-MAPR.z0);
+  battleOverlay(g,x=>(x-MAPR.x0)*sx,z=>(z-MAPR.z0)*sz,Math.min(sx,sz),dpr); };
+window.__tour={tour,tourGo,TAGS};
 
 
 /* ---------- loop ---------- */
