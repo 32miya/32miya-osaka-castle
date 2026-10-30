@@ -3875,7 +3875,7 @@ const _tv=new THREE.Vector3();
 function updateTags(){ const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z,H=innerHeight,W=innerWidth,f=1/Math.tan(camera.fov*Math.PI/360),L=[];
   for(const t of TAGS){ let x=t.x,z=t.z;
     if(t.u){ const p=unitPos(t.u,{ox:0,oz:0,mx:.5,ph:0},phT); x=p[0]; z=p[2]; } const y=withScen(()=>groundH(x,z))+t.h+(t.u&&t.u.y!==null?t.u.y:0);
-    const d=Math.hypot(x-cx,y-cy,z-cz),hh=Math.min(60,Math.max(1.2,(H>W?24:21)*2*d/(f*H))); t.s.position.set(x,y+hh*.6,z); t.s.scale.set(hh*t.s.userData.aspect,hh,1); t.s.visible=d<900&&!P.room&&P.level<0;
+    const d=Math.hypot(x-cx,y-cy,z-cz),hh=Math.min(60,Math.max(1.2,(H>W?24:H<500?15:21)*2*d/(f*H))); t.s.position.set(x,y+hh*.6,z); t.s.scale.set(hh*t.s.userData.aspect,hh,1); t.s.visible=d<900&&!P.room&&P.level<0;
     if(!t.s.visible) continue; _tv.copy(t.s.position).project(camera); if(_tv.z>1) continue; const ph=hh*f/d*H/2*1.08,pw=ph*t.s.userData.aspect;
     L.push({t,sx:(_tv.x+1)/2*W,sy:(1-_tv.y)/2*H,pw,ph,d,hh}); }
   /* 重なった名札は、近いものを下に残し、遠いものを上へずらす（それでも重なれば小さく薄くする） */
@@ -3955,7 +3955,8 @@ function updateTour(dt){ if(!SCEN||!PH) return; updateTicker(dt); updateTags(); 
   P.x=b.x; P.z=b.z; tour.t+=dt;
   if(tour.t<=tour.dur){ P.yaw=b.yaw; P.pitch=b.pitch; setFov(b.zoom); return; }
   /* 見どころを見たあと、地上へ降りて見どころに寄って見せる（降りられない所は、その場でズーム） */
-  const st=tour.t-tour.dur; if(!tour.spun){ tour.spun=true; tour.cu=closeCam(tourStops()[tour.i],b); }
+  const st=tour.t-tour.dur; if(!tour.spun){ tour.spun=true; const s0=tourStops()[tour.i]; tour.bt=battleGroups(s0[2],s0[3]); if(tour.bt){ tour.bt.cam=null; if(phT>tour.bt.end-4) phT=Math.max(0,tour.bt.start-1); } tour.cu=tour.bt?null:closeCam(s0,b); }
+  if(tour.bt){ const done=followBattle(tour.bt,b,st,dt); if(done){ tour.spun=false; tourGo(tour.i+1); } return; }
   const c=tour.cu,MV=3.2,HOLD=CLOSE_T; if(st<MV){ const k=sstep(st/MV); let dy=c.yaw-b.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); P.x=b.x+(c.x-b.x)*k; P.z=b.z+(c.z-b.z)*k; P.y=b.y+(c.y-b.y)*k; P.yaw=b.yaw+dy*k; P.pitch=b.pitch+(c.pitch-b.pitch)*k; setFov(b.zoom+(c.zoom-b.zoom)*k); return; }
   if(c.walk&&P.mode!=='walk'){ P.mode='walk'; $('vView').textContent='歩く'; }
   P.x=c.x; P.z=c.z; P.y=c.y; P.yaw=c.yaw; P.pitch=c.pitch; setFov(c.zoom);
@@ -3995,8 +3996,25 @@ const _drawMini0=drawMini; drawMini=function(){ const mb=!!SCEN&&MODE==='toyo'&&
   drawWorld(mini2,x=>ox+(x-BR.x0)*sc,z=>oz+(z-BR.z0)*sc); battleOverlay(mini2,x=>ox+(x-BR.x0)*sc,z=>oz+(z-BR.z0)*sc,sc,dpr); };
 const _drawMap0=drawMap; drawMap=function(){ _drawMap0(); if(!SCEN) return; const c=$('mapC'),g=c.getContext('2d'),dpr=Math.min(2,devicePixelRatio||1),sx=c.width/(MAPR.x1-MAPR.x0),sz=c.height/(MAPR.z1-MAPR.z0); g.fillStyle='#4a4842'; g.fillRect(0,0,c.width,c.height); drawWorld(g,x=>(x-MAPR.x0)*sx,z=>(z-MAPR.z0)*sz);
   battleOverlay(g,x=>(x-MAPR.x0)*sx,z=>(z-MAPR.z0)*sz,Math.min(sx,sz),dpr); };
-window.__tour={tour,tourGo,TAGS,pickAny:(x,y)=>pickAny(x,y)};
+window.__tour={tour,tourGo,TAGS,get phT(){return phT},sc:(s)=>sideCenter(tour.bt,s),pickAny:(x,y)=>pickAny(x,y)};
 
+
+/* ---------- 合戦を追うカメラ: 近くでぶつかる豊臣方・徳川方の両方が画面に入る位置から、動きに合わせて追う ---------- */
+function battleGroups(lx,lz){ if(SCEN!=='fuyu'&&SCEN!=='natsu') return null; let near=UNITS.filter(u=>u.side&&u.n>2&&u.mem.length&&Math.hypot(u.at[0]-lx,u.at[1]-lz)<300&&Math.hypot((u.to||u.at)[0]-lx,(u.to||u.at)[1]-lz)<300);
+  const mv0=near.filter(u=>u.to); if(!mv0.length) return null; let fx=0,fz=0; for(const u of mv0){ fx+=u.to[0]; fz+=u.to[1]; } fx/=mv0.length; fz/=mv0.length;
+  near=near.filter(u=>Math.hypot((u.to||u.at)[0]-fx,(u.to||u.at)[1]-fz)<140||(u.to&&Math.hypot(u.at[0]-fx,u.at[1]-fz)<200)); if(!near.some(u=>u.side==='t')||!near.some(u=>u.side==='k')) return null;
+  let start=1e9,end=0; for(const u of near) if(u.to){ start=Math.min(start,u.t0||0); end=Math.max(end,(u.t0||0)+(u.dur||20)+(u.back?(u.hold||4)+(u.bdur||u.dur||20):0)); } if(end===0){ start=0; end=20; }
+  return {near,start,end:Math.min(end,60),lx,lz}; }
+function sideCenter(G,side){ let x=0,z=0,n=0; for(const u of G.near){ if(u.side!==side) continue; const p=unitPos(u,{ox:0,oz:0,mx:.5,ph:0},phT); x+=p[0]*u.n; z+=p[2]*u.n; n+=u.n; } return n?[x/n,z/n]:null; }
+function followBattle(G,b,st,dt){ const t=sideCenter(G,'t'),k=sideCenter(G,'k'); if(!t||!k) return st>8;
+  const mx=(t[0]+k[0])/2,mz=(t[1]+k[1])/2,sep=Math.max(30,Math.hypot(t[0]-k[0],t[1]-k[1])),dx=(t[0]-k[0])/sep,dz=(t[1]-k[1])/sep;
+  /* 両軍を結ぶ線の横から、両方が画面の左右に入る距離で見る */ if(!G.sgn){ const a=Math.hypot(b.x-(mx-dz*99),b.z-(mz+dx*99)),c=Math.hypot(b.x-(mx+dz*99),b.z-(mz-dx*99)); G.sgn=a<c?1:-1; }
+  const W=innerWidth,H=innerHeight,fovH=2*Math.atan(Math.tan(BASE_FOV*Math.PI/360)*W/H),D=Math.max(40,(sep*.5+16)/Math.tan(fovH/2)*.82),hgt=D*.32+6;
+  const cx=mx-dz*D*G.sgn,cz=mz+dx*D*G.sgn,gy=withScen(()=>groundH(mx,mz)),cy=Math.max(gy,withScen(()=>groundH(cx,cz)))+hgt,yaw=Math.atan2(-(mx-cx),-(mz-cz)),pitch=Math.atan2(gy+2-cy,D);
+  const tgt={x:cx,z:cz,y:cy,yaw,pitch}; if(!G.cam){ G.cam={x:P.x,z:P.z,y:P.y,yaw:P.yaw,pitch:P.pitch}; G.k0=0; }
+  const r=Math.min(1,dt*(st<3?1.2:2.2)),c=G.cam; for(const q of ['x','y','z','pitch']) c[q]+=(tgt[q]-c[q])*r; let dy=tgt.yaw-c.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); c.yaw+=dy*r;
+  if(P.mode!=='drone'){ P.mode='drone'; $('vView').textContent='空撮'; } P.x=c.x; P.z=c.z; P.y=c.y; P.yaw=c.yaw; P.pitch=c.pitch; setFov(1);
+  return st>Math.max(12,Math.min(30,G.end-phT+4)); }
 /* ---------- 誰にでも話しかけられる: 場面・陣営・役目に合ったセリフ ---------- */
 const ROLE=[['ishiku',/^ishiku$/],['boss',/^(bugyo|touryou)$/],['work',/^(ninpu|mokko|workers|p_naked|p_porter|wara|w_straw|saku_w|log|ishibiki)$/],
   ['teppo',/teppo|taitsutsu|^guns$/],['yumi',/yumi/],['yari',/yari|^spears$/],['kiba',/_uma$|kiba|uma_rider|p_horse/],['shou',/bushou|taisho|captain|^p_lord$|^lord_/],
@@ -4050,6 +4068,25 @@ body.touchui #poi{bottom:calc(env(safe-area-inset-bottom,0px) + 186px);max-width
 #hint{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 236px);font-size:12px;background:rgba(18,19,22,.7)}
 body:not(.touchui) #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 70px)}
 @media (orientation:landscape){ body.touchui #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 56px);max-width:calc(100% - 340px)} }`; document.head.appendChild(st); }
+
+/* ---------- スマホ横向き: 上下が狭いので、札・地図・ボタンを小さく端へまとめる ---------- */
+{ const st=document.createElement('style'); st.textContent=`
+@media (orientation:landscape) and (max-height:500px){
+ .place{top:calc(env(safe-area-inset-top,0px) + 6px);max-width:40%} .place .eyebrow,#eyebrow{display:none} .place .area{font-size:15px;margin-top:0}
+ #mini,#mini.battle{top:calc(env(safe-area-inset-top,0px) + 6px);width:92px;height:92px}
+ .topbtns{top:calc(env(safe-area-inset-top,0px) + 6px);right:calc(env(safe-area-inset-right,0px) + 110px);gap:4px} .topbtns button{height:30px;padding:0 10px;font-size:12px}
+ #menu{top:calc(env(safe-area-inset-top,0px) + 42px);right:calc(env(safe-area-inset-right,0px) + 110px);max-height:calc(100% - 56px);overflow:auto}
+ #scen.min{top:calc(env(safe-area-inset-top,0px) + 30px);left:calc(env(safe-area-inset-left,0px) + 10px);width:210px;max-width:210px;padding:4px 7px 5px}
+ #scen.min .t{font-size:11.5px;margin:0 0 2px;line-height:18px;padding-right:82px} #scen.min .gnd{top:4px;right:40px;height:18px;font-size:9.5px;padding:0 5px} #scen.min .tg{top:5px;font-size:10px}
+ #scen.min #scForce .r{grid-template-columns:30px 1fr auto;font-size:9.5px} #scen.min #scForce .b{height:5px} #scen.min #scForce .l{font-size:9px}
+ #scen:not(.min){max-height:calc(100% - 50px);overflow:auto;top:calc(env(safe-area-inset-top,0px) + 30px)}
+ #ticker{height:28px} #ticker .tx{line-height:26px;font-size:13px} #ticker .lb{font-size:10.5px;padding:0 7px}
+ .pbase{width:96px;height:96px;bottom:calc(env(safe-area-inset-bottom,0px) + 34px);opacity:.4} .pbase i{width:40px;height:40px;margin:-20px 0 0 -20px} .pbase span{display:none}
+ .pbtn{bottom:calc(env(safe-area-inset-bottom,0px) + 136px);height:30px;width:50px;font-size:11px;opacity:.85}
+ body.touchui #poi{bottom:calc(env(safe-area-inset-bottom,0px) + 36px);max-width:calc(100% - 300px)}
+ body.touchui #hint,#hint{bottom:calc(env(safe-area-inset-bottom,0px) + 74px);max-width:calc(100% - 300px);font-size:11.5px;padding:6px 10px}
+ #tourEnd{top:50%}
+}`; document.head.appendChild(st); }
 
 /* ================= 出入口から見える景色: 戸口に、反対側（室内／外）の景色を写し込む =================
    入口の外からは部屋の中が、部屋の中の戸口からは外の景色が見える。近づいたときに1回だけ描いて使い回す */
