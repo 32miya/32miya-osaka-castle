@@ -1473,7 +1473,7 @@ const DRY={x0:-105,x1:105,z0:85,z1:115};         // 南の空堀
 const SOTO_O={x0:-265,x1:235,z0:-255,z1:245};    // 外堀（外周）
 const SOTO_I={x0:-232,x1:202,z0:-222,z1:212};    // 二の丸
 const RIVER={x0:-1300,x1:1300,z0:-345,z1:-315};  // 大川
-const TSUME={x0:-45,x1:62,z0:-72,z1:-14}, RAMP={x0:-4,x1:6,z0:-14.6,z1:-2}, TS_H=4; // 豊臣期の詰ノ丸（一段高い）
+const TSUME={x0:-45,x1:62,z0:-72,z1:-14}, RAMP={x0:-4,x1:6,z0:-14.6,z1:5}, TS_H=9, MIDB={x0:-54,x1:70,z0:-81,z1:-14}, MID_H=4.5, MSTW={x0:-52,x1:-47,z0:-14,z1:-4}, MSTE={x0:64,x1:69,z0:-14,z1:-4}; // 豊臣期の詰ノ丸（一段高い）
 const BRIDGES=[
   {id:'sakura',x0:-7,x1:7,z0:84,z1:116,h:()=>0,mode:'both'},
   {id:'gokuraku',x0:-28,x1:-20,z0:-131,z1:-99,h:(x,z)=>MODE==='modern'?.3+1.1*Math.sin(Math.PI*Math.min(1,Math.max(0,(z+130)/30))):.45,mode:'both'},
@@ -1526,7 +1526,7 @@ const inR=(r,x,z,m)=>x>r.x0-m&&x<r.x1+m&&z>r.z0-m&&z<r.z1+m;
 const actB=()=>BRIDGES.filter(b=>b.mode==='both'||b.mode===MODE);
 function waterAt(x,z,m){ if(MODE==='toyo'&&yamatoD(x,z)<YAMATO_W/2+(m||0)) return true; if(MODE==='toyo'&&(inR(SG.W,x,z,m)||inR(SG.E,x,z,m))) return true; if(MODE==='toyo'&&((!FILL.sg&&inR(SG.S,x,z,m))||(!FILL.m3&&inR(SG.M3,x,z,m)))) return true; if(inR(MOAT,x,z,m)&&!inR(ISLAND,x,z,-m)) return true; if(!(MODE==='toyo'&&FILL.soto)&&inR(SOTO_O,x,z,m)&&!inR(SOTO_I,x,z,-m)) return true; if(inR(RIVER,x,z,m)) return true; return false; }
 const MSTAIR={x0:11,x1:15.6,z0:-48,z1:-25},MLAND={x0:8.6,x1:15.6,z0:-52,z1:-48},MACHI=[];
-function liftH(x,z){ if(MODE==='modern'){ if(inR(MLAND,x,z,0)) return 10; if(inR(MSTAIR,x,z,0)) return 10*Math.max(0,Math.min(1,(MSTAIR.z1-z)/(MSTAIR.z1-MSTAIR.z0))); return null; } if(MODE!=='toyo') return null; { const hh=hillH(x,z); if(hh>0) return hh; } if(inR(TSUME,x,z,0)) return TS_H; if(inR(RAMP,x,z,0)) return TS_H*Math.max(0,Math.min(1,(RAMP.z1-z)/(RAMP.z1-RAMP.z0))); { const th=terrH(x,z); if(th!==0) return th; } return null; }
+function liftH(x,z){ if(MODE==='modern'){ if(inR(MLAND,x,z,0)) return 10; if(inR(MSTAIR,x,z,0)) return 10*Math.max(0,Math.min(1,(MSTAIR.z1-z)/(MSTAIR.z1-MSTAIR.z0))); return null; } if(MODE!=='toyo') return null; { const hh=hillH(x,z); if(hh>0) return hh; } if(inR(TSUME,x,z,0)) return TS_H; if(inR(MIDB,x,z,0)) return MID_H; if(inR(RAMP,x,z,0)) return TS_H*Math.max(0,Math.min(1,(RAMP.z1-z)/(RAMP.z1-RAMP.z0))); for(const R of [MSTW,MSTE]) if(inR(R,x,z,0)) return MID_H*Math.max(0,Math.min(1,(R.z1-z)/(R.z1-R.z0))); { const th=terrH(x,z); if(th!==0) return th; } return null; }
 /* 道（木を植えない場所） */
 const ROADS=[{x0:-232,x1:202,z0:100,z1:132},{x0:-12,x1:12,z0:100,z1:135},{x0:-210,x1:-190,z0:-222,z1:104},{x0:-64,x1:-46,z0:-222,z1:-136},{x0:145,x1:165,z0:130,z1:212},
   {x0:-115,x1:115,z0:-140,z1:-130},{x0:-115,x1:115,z0:115,z1:126},{x0:-115,x1:-105,z0:-140,z1:126},{x0:105,x1:115,z0:-140,z1:126},{x0:-217,x1:-183,z0:-222,z1:-192}];
@@ -1796,7 +1796,7 @@ PE.poly([[-113,-138],[113,-138],[113,123],[-113,123],[-113,-138]],9,'#a99a7d');
 PE.R(MOAT.x0,MOAT.z0,MOAT.x1,MOAT.z1,WATERC); PE.R(DRY.x0,DRY.z0,DRY.x1,DRY.z1,'#5e6640');
 PE.R(ISLAND.x0,ISLAND.z0,ISLAND.x1,ISLAND.z1,'#a29175'); PE.mot(ISLAND.x0,ISLAND.z0,ISLAND.x1,ISLAND.z1,['#988870','#ab9b7e','#93836a','#8a8466'],700,4);
 PE.R(-73,-99,73,-74,'#6d7a4a'); PE.mot(-73,-99,73,-74,['#66733f','#77834d','#5d6a3a','#82895a'],600,3); PE.ell(-2,-87,9,5,'#3f5650'); PE.poly([[-24,-99],[-30,-90],[-22,-84],[-8,-82],[10,-80]],1.6,'#b8ab8c');
-PE.R(TSUME.x0,TSUME.z0,TSUME.x1,TSUME.z1,'#b0a58b'); PE.mot(TSUME.x0,TSUME.z0,TSUME.x1,TSUME.z1,['#a89c80','#b9ad92'],400,3); PE.R(RAMP.x0,RAMP.z0,RAMP.x1,RAMP.z1,'#a89c80');
+PE.R(MIDB.x0,MIDB.z0,MIDB.x1,MIDB.z1,'#a99f86'); PE.R(TSUME.x0,TSUME.z0,TSUME.x1,TSUME.z1,'#b0a58b'); PE.mot(TSUME.x0,TSUME.z0,TSUME.x1,TSUME.z1,['#a89c80','#b9ad92'],400,3); PE.R(RAMP.x0,RAMP.z0,RAMP.x1,RAMP.z1,'#a89c80');
 PE.R(-8,-2,72,86,'#ab9f86'); PE.R(-62,56,-8,86,'#ab9f86');
 PE.R(-360,-315,360,-258,'#9a8b70'); PE.R(-360,-312,360,-298,'#8f8068'); PE.R(-360,-287,360,-279,'#a39273');
 PE.R(-284,-258,-265,250,'#a39273'); PE.R(-305,-258,-295,320,'#a39273'); PE.R(235,-258,246,250,'#a39273'); PE.R(258,-258,266,320,'#a39273');
@@ -2321,18 +2321,27 @@ for(const [x,z,w,d,h] of [[330,-250,26,26,150],[372,-210,24,30,128],[330,-170,30
 B=BE=mkB(); curSet=BSETS.toyo; let BT=null; const BD3=mkB(),BDS=mkB(),GD3=new THREE.Group(),GDS=new THREE.Group(),GT=new THREE.Group(); GE.add(GD3); GE.add(GDS); GE.add(GT);
 for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stone');
 const TG={roof:M.roof,gable:M.lacquer,gold:true};
-/* 詰ノ丸（本丸の中で一段高い区画） */
-{ const t=mesh(frustumGeo(TSUME.x1-TSUME.x0,TSUME.z1-TSUME.z0,TS_H,.01,4,true),M.stone); t.position.set((TSUME.x0+TSUME.x1)/2,0,(TSUME.z0+TSUME.z1)/2); GE.add(t);
-  const top=mesh(groundGeo(rectShape(TSUME)),groundMatE,false,true); top.position.y=TS_H+.01; GE.add(top);
-  const v=[],uv=[]; quad(v,uv,[RAMP.x0,.02,RAMP.z1],[RAMP.x1,.02,RAMP.z1],[RAMP.x1,TS_H+.02,RAMP.z0],[RAMP.x0,TS_H+.02,RAMP.z0],3,4); B.stone.add(geoFrom(v,uv),new THREE.Matrix4());
-  for(const sx of [RAMP.x0-.4,RAMP.x1+.4]){ const v2=[],u2=[]; } box(B.stone,RAMP.x0-1,RAMP.x0,0,TS_H+.5,RAMP.z0,RAMP.z1); box(B.stone,RAMP.x1,RAMP.x1+1,0,TS_H+.5,RAMP.z0,RAMP.z1);
-  block(RAMP.x0-1,RAMP.z0,RAMP.x0,RAMP.z1,'castle'); block(RAMP.x1,RAMP.z0,RAMP.x1+1,RAMP.z1,'castle');
-  /* 詰ノ丸の縁（上り口以外は塀でふさぐ） */
-  const e=.5; block(TSUME.x0-e,TSUME.z0-e,TSUME.x1+e,TSUME.z0+e,'castle'); block(TSUME.x0-e,TSUME.z0,TSUME.x0+e,TSUME.z1,'castle'); block(TSUME.x1-e,TSUME.z0,TSUME.x1+e,TSUME.z1,'castle');
-  block(TSUME.x0-e,TSUME.z1-e,RAMP.x0-1,TSUME.z1+e,'castle'); block(RAMP.x1+1,TSUME.z1-e,TSUME.x1+e,TSUME.z1+e,'castle');
-  const H=2.2; dobei(TSUME.x0+.3,TSUME.z0+.3,TSUME.x1-.3,TSUME.z0+.3,H,'castle',TS_H,true); dobei(TSUME.x0+.3,TSUME.z0+.3,TSUME.x0+.3,TSUME.z1-.3,H,'castle',TS_H,true); dobei(TSUME.x1-.3,TSUME.z0+.3,TSUME.x1-.3,TSUME.z1-.3,H,'castle',TS_H,true);
-  dobei(TSUME.x0+.3,TSUME.z1-.3,RAMP.x0-1.2,TSUME.z1-.3,H,'castle',TS_H,true); dobei(RAMP.x1+1.2,TSUME.z1-.3,TSUME.x1-.3,TSUME.z1-.3,H,'castle',TS_H,true);
-  gate(1,-14.6,8,0,{y:TS_H,h:5.2,roof:M.hinoki,gable:M.lacquer,gold:true,kara:true,post:'lacquer',par:GE}); }
+/* 本丸の三段構え: 下段（本丸）→ 中之段の帯曲輪 → 詰ノ丸（いちばん高い段）。どれも高い石垣で区切る */
+{ const stepsZ=(R,h)=>{ const n=Math.max(4,Math.round(h/.3)),run=(R.z1-R.z0)/n; for(let k=0;k<n;k++){ const hk=h*(k+1)/n; box(B.stone,R.x0,R.x1,0,hk,R.z1-run*(k+1),R.z1-run*k); } };
+  /* 中之段（帯曲輪） */
+  { const R=MIDB,t=mesh(frustumGeo(R.x1-R.x0,R.z1-R.z0,MID_H,1.0,4,true),M.stone); t.position.set((R.x0+R.x1)/2,0,(R.z0+R.z1)/2); GE.add(t);
+    const top=mesh(groundGeo(rectShape(R)),groundMatE,false,true); top.position.y=MID_H+.01; GE.add(top);
+    for(const S of [MSTW,MSTE]){ stepsZ(S,MID_H); box(B.stone,S.x0-1,S.x0,0,MID_H+.4,S.z0,S.z1); box(B.stone,S.x1,S.x1+1,0,MID_H+.4,S.z0,S.z1); block(S.x0-1,S.z0,S.x0,S.z1,'castle'); block(S.x1,S.z0,S.x1+1,S.z1,'castle'); }
+    const e=1.1; block(R.x0-e,R.z0-e,R.x1+e,R.z0+e,'castle'); block(R.x0-e,R.z0,R.x0+e,R.z1+1,'castle'); block(R.x1-e,R.z0,R.x1+e,R.z1+1,'castle');
+    block(R.x0,R.z1-.4,MSTW.x0-1,R.z1+1,'castle'); block(MSTW.x1+1,R.z1-.4,TSUME.x0,R.z1+1,'castle'); block(TSUME.x1,R.z1-.4,MSTE.x0-1,R.z1+1,'castle'); block(MSTE.x1+1,R.z1-.4,R.x1,R.z1+1,'castle');
+    const H=2.2,y=MID_H; dobei(R.x0+.3,R.z0+.3,R.x1-.3,R.z0+.3,H,'castle',y,true); dobei(R.x0+.3,R.z0+.3,R.x0+.3,R.z1-.3,H,'castle',y,true); dobei(R.x1-.3,R.z0+.3,R.x1-.3,R.z1-.3,H,'castle',y,true);
+    for(const [x0,x1] of [[R.x0+.3,MSTW.x0],[MSTW.x1,TSUME.x0-.6],[TSUME.x1+.6,MSTE.x0],[MSTE.x1,R.x1-.3]]) dobei(x0,R.z1-.3,x1,R.z1-.3,H,'castle',y,true);
+    for(const S of [MSTW,MSTE]) gate((S.x0+S.x1)/2,S.z0-.2,5.4,0,{y:MID_H,h:4.4,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); }
+  /* 詰ノ丸 */
+  { const t=mesh(frustumGeo(TSUME.x1-TSUME.x0,TSUME.z1-TSUME.z0,TS_H,1.2,4,true),M.stone); t.position.set((TSUME.x0+TSUME.x1)/2,0,(TSUME.z0+TSUME.z1)/2); GE.add(t);
+    const top=mesh(groundGeo(rectShape(TSUME)),groundMatE,false,true); top.position.y=TS_H+.01; GE.add(top);
+    stepsZ(RAMP,TS_H); box(B.stone,RAMP.x0-1,RAMP.x0,0,TS_H+.5,RAMP.z0,RAMP.z1); box(B.stone,RAMP.x1,RAMP.x1+1,0,TS_H+.5,RAMP.z0,RAMP.z1);
+    block(RAMP.x0-1,RAMP.z0,RAMP.x0,RAMP.z1,'castle'); block(RAMP.x1,RAMP.z0,RAMP.x1+1,RAMP.z1,'castle');
+    const e=1.2; block(TSUME.x0-e,TSUME.z0-e,TSUME.x1+e,TSUME.z0+e,'castle'); block(TSUME.x0-e,TSUME.z0,TSUME.x0+e,TSUME.z1+1,'castle'); block(TSUME.x1-e,TSUME.z0,TSUME.x1+e,TSUME.z1+1,'castle');
+    block(TSUME.x0-e,TSUME.z1-.5,RAMP.x0-1,TSUME.z1+1.3,'castle'); block(RAMP.x1+1,TSUME.z1-.5,TSUME.x1+e,TSUME.z1+1.3,'castle');
+    const H=2.2; dobei(TSUME.x0+.3,TSUME.z0+.3,TSUME.x1-.3,TSUME.z0+.3,H,'castle',TS_H,true); dobei(TSUME.x0+.3,TSUME.z0+.3,TSUME.x0+.3,TSUME.z1-.3,H,'castle',TS_H,true); dobei(TSUME.x1-.3,TSUME.z0+.3,TSUME.x1-.3,TSUME.z1-.3,H,'castle',TS_H,true);
+    dobei(TSUME.x0+.3,TSUME.z1-.3,RAMP.x0-1.2,TSUME.z1-.3,H,'castle',TS_H,true); dobei(RAMP.x1+1.2,TSUME.z1-.3,TSUME.x1-.3,TSUME.z1-.3,H,'castle',TS_H,true);
+    gate(1,-14.6,8,0,{y:TS_H,h:5.2,roof:M.hinoki,gable:M.lacquer,gold:true,kara:true,post:'lacquer',par:GE}); } }
 /* 豊臣期の天守: 黒漆の壁、金箔瓦、最上層に金の虎と鶴 */
 { const T=TEN.toyo=planTenshu({par:GE,cx:30,cz:-44,g0:TS_H,bw:30,bd:26,bh:10,bat:3,oh:2.0,entZ:5,
     openDoor:true,ext:[{w:26,d:22,h:9,wall:'wallT2'},{w:22,d:18,h:4.6,wall:'wallT'},{w:19,d:15,h:9,wall:'wallT2',slope:.6},{w:15,d:12,h:4.6,wall:'topCrest'},{w:11,d:9,h:4.6,wall:'topK',open:true,bal:1.4}],
@@ -2404,7 +2413,13 @@ function goten(cx,cz,w,d,h,y,o){ o=o||{}; y=y||0; B.stone.add(boxUVGeo(w+1.6,.9,
 goten(26,34,48,26,5.4,0,{kara:true}); goten(-46,36,26,18,4.6); goten(-14,-43,36,24,4.6,TS_H); goten(-36,-26,14,10,4,TS_H);
 /* 山里丸: 茶室と庭 */
 { const tea=(x,z,w,d)=>{ B.wood.add(boxUVGeo(w,2.4,d,2.6,2.4),TM(x,1.2,z)); B.straw.add(gableRoofGeo(w,d,1.6,.8,.5),TM(x,2.4,z)); B.wood.add(gableEndsGeo(w,d,1.6),TM(x,2.4,z)); B.black.add(new THREE.BoxGeometry(.9,.9,.05),TM(x,.6,z+d/2+.02)); block(x-w/2-.6,z-d/2-.6,x+w/2+.6,z+d/2+.6,'castle'); };
-  tea(-50,-86,4,3.6); tea(26,-88,6,4); for(let i=0;i<14;i++){ const a=i/14*6.283; B.stone.add(new THREE.CylinderGeometry(.35,.4,.12,8),TM(-22+Math.cos(a)*9,.06,-84+Math.sin(a)*4)); } }
+  tea(-50,-86,4,3.6); tea(26,-88,6,4); /* 池と苔の庭、飛び石 */
+  { const P={x:-10,z:-91.5,rx:10,rz:4.6}; const moss=mesh(new THREE.CircleGeometry(1,40),std({color:'#3d5626',roughness:1}),false,true); moss.rotation.x=-Math.PI/2; moss.scale.set(P.rx+9,P.rz+5,1); moss.position.set(P.x,.03,P.z); GE.add(moss);
+    const pond=mesh(new THREE.CircleGeometry(1,40),std({color:'#2f4f52',roughness:.15,metalness:.2}),false,true); pond.rotation.x=-Math.PI/2; pond.scale.set(P.rx,P.rz,1); pond.position.set(P.x,.06,P.z); GE.add(pond);
+    for(let i=0;i<30;i++){ const a=i/30*6.283,r=.45+((i*37)%5)*.08; B.stone.add(new THREE.DodecahedronGeometry(r,0),TM(P.x+Math.cos(a)*(P.rx+.2),.12,P.z+Math.sin(a)*(P.rz+.2),i,1,.6,1)); }
+    block(P.x-P.rx,P.z-P.rz*.75,P.x+P.rx,P.z+P.rz*.75,'castle'); block(P.x-P.rx*.7,P.z-P.rz,P.x+P.rx*.7,P.z+P.rz,'castle');
+    for(let i=0;i<10;i++) B.stone.add(new THREE.CylinderGeometry(.35,.4,.12,8),TM(-46+i*2.2,.06,-84.5-Math.sin(i*.7)*1.2));
+    B.stoneK.add(new THREE.DodecahedronGeometry(1.1,0),TM(P.x+3,.5,P.z,0,1,.8,1)); B.stoneK.add(new THREE.DodecahedronGeometry(.8,0),TM(P.x-4,.4,P.z+1,1,1,.8,1)); } }
 /* 瓦を1本ずつ: 切妻屋根の斜面に丸瓦の列を並べ、軒先は金の軒丸瓦、軒裏には垂木を並べる */
 const _Y=V3(0,1,0),_q=new THREE.Quaternion(),_m=new THREE.Matrix4();
 function tileGable(par,M0,L,D,H,oh,ohx,tileMat,goldEnds){ const hx=L/2+ohx,hz=D/2+oh,yE=-oh*H/(D/2),sl=Math.hypot(H-yE,hz),N=Math.floor((2*hx-.3)/.34)+1;
@@ -2453,9 +2468,12 @@ function tileGable(par,M0,L,D,H,oh,ohx,tileMat,goldEnds){ const hx=L/2+ohx,hz=D/
   const S=SOTO_I; dobei(S.x0+o,S.z0+o,-204,S.z0+o,2.4); dobei(-196,S.z0+o,-62,S.z0+o,2.4); dobei(-48,S.z0+o,S.x1-o,S.z0+o,2.4);
   dobei(S.x0+o,S.z0+o,S.x0+o,100,2.4); dobei(S.x0+o,114,S.x0+o,S.z1-o,2.4); dobei(S.x1-o,S.z0+o,S.x1-o,S.z1-o,2.4); dobei(S.x0+o,S.z1-o,148,S.z1-o,2.4); dobei(162,S.z1-o,S.x1-o,S.z1-o,2.4);
   for(const [x,z] of [[S.x0+6,S.z0+6],[S.x1-6,S.z0+6],[S.x0+6,S.z1-6],[S.x1-6,S.z1-6]]) yagura(x,z,10,9,0,{par:GE,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true});
+  /* 塀の途中にも二重櫓（太閤期の大坂城は櫓が連なって見えた） */
+  for(const [x,z] of [[I.x0+5,-40],[I.x0+5,30],[I.x1-5,30],[S.x0+6,-120],[S.x0+6,20]]) yagura(x,z,8,7,0,{par:GE,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true});
+  for(const [x,z] of [[MIDB.x0+2.4,MIDB.z0+2.4],[MIDB.x1-2.4,MIDB.z0+2.4]]) yagura(x,z,4.5,4.5,0,{par:GE,y:MID_H,h1:3.4,h2:2.8,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true});
   gate(-229.5,107,9,Math.PI/2,{h:6,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); gate(-55,-220,8,0,{h:5.4,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); gate(-200,-220,8,0,{h:5.4,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); gate(155,209,8,0,{h:5.4,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); }
 /* 二の丸の大名屋敷 */
-const TOYO_TREES=[],DAIMYO=[],TERA=[];
+const TOYO_TREES=[[-28,-95,'pine'],[8,-96,'pine'],[-34,-86.5,'pine'],[14,-85.5,'round'],[-62,-92,'pine'],[44,-94,'pine'],[56,-86,'round']],DAIMYO=[],TERA=[];
 function daimyo(x0,z0,x1,z1,face){ const w=x1-x0,d=z1-z0,cx=(x0+x1)/2,cz=(z0+z1)/2,H=2.3,gw=6;
   const sides={n:[x0,z0,x1,z0],s:[x0,z1,x1,z1],w:[x0,z0,x0,z1],e:[x1,z0,x1,z1]};
   for(const k of ['n','s','w','e']){ const q=sides[k]; if(k!==face){ dobei(q[0],q[1],q[2],q[3],H,'buke'); continue; }
@@ -2743,7 +2761,7 @@ function okTree(x,z){ return !hitBlock(x,z,2.5) && !waterAt(x,z,2); }
 const SAKURA=['#f1c6d0','#f4d3db','#eab7c4','#f7dfe4'],UME=['#e98aa6','#f0a7bc','#f6f0f0','#e46f95'];
 function addBlossom(x,z,s,cols){ const h=2.3*s; TS.TR.push([x,h/2,z,s,h,s]); const n=4+((rnd()*3)|0); for(let i=0;i<n;i++){ const a=rnd()*6.28,r=rnd()*1.5*s; TS.BL.push([x+Math.cos(a)*r,h+1*s+rnd()*1*s,z+Math.sin(a)*r,(1.5+rnd()*.7)*s,(1+rnd()*.5)*s,(1.5+rnd()*.7)*s,pick(cols)]); } }
 const onRoad=(x,z)=>ROADS.some(r=>inR(r,x,z,2));
-function okT(x,z){ return okTree(x,z)&&!onRoad(x,z)&&!(MODE==='toyo'&&inR(TSUME,x,z,3)); }
+function okT(x,z){ return okTree(x,z)&&!onRoad(x,z)&&!(MODE==='toyo'&&inR(MIDB,x,z,3)); }
 /* 現代: 公園の木々 */
 for(let i=0;i<620;i++){ const x=SOTO_I.x0+4+rnd()*(SOTO_I.x1-SOTO_I.x0-8),z=SOTO_I.z0+4+rnd()*(SOTO_I.z1-SOTO_I.z0-8); if(inR(MOAT,x,z,10)) continue;
   if(inR({x0:-228,x1:-118,z0:-205,z1:94},x,z,0)){ if(rnd()<.55) continue; if(okT(x,z)) addBlossom(x,z,.9+rnd()*.4,SAKURA); continue; }
@@ -2951,7 +2969,7 @@ const SPOTS=[
 function spotList(){ return SPOTS.filter(s=>MODE==='toyo'?!s.modernOnly:!s.toyoOnly).map(s=>MODE==='toyo'&&s.toyo?Object.assign({},s,s.toyo):s); }
 function areaAt(x,z){ const t=MODE==='toyo'; if(t&&!(x>CORE.x0&&x<CORE.x1&&z<CORE.z1)){ if(yamatoD(x,z)<YAMATO_W) return '旧大和川'; for(const q of HILLS) if(Math.hypot(x-q.x,z-q.z)<q.R) return q.name; if(Math.hypot(x-TENNOJI.x,z-TENNOJI.z)<70) return '四天王寺'; const h=terrBase(x,z); if(h<-1) return x<0?'船場の低地（台地の西）':'猫間川・平野川の低地（台地の東）'; return z>1220?'上町台地（天王寺のあたり）':'上町台地'; } if(t&&SCEN==='fuyu'){ const S=SANADA,R=S.main,K=S.kogu; if(x>R.x0-S.moat-6&&x<R.x1+S.moat+6&&z>R.z0-S.moat-6&&z<R.z1+S.moat+6) return x>R.x0&&x<R.x1&&z>R.z0&&z<R.z1?'真田丸（本郭）':'真田丸の空堀と柵'; if(x>K.x0&&x<K.x1&&z>K.z0&&z<K.z1) return '真田丸（小曲輪）'; if(x>390&&x<476&&z>903&&z<980) return '真田丸（副郭）'; }
   for(const b of actB()) if(inR(b,x,z,.2)) return {sakura:t?'唐門前の土橋':'桜門前の土橋',gokuraku:'極楽橋',ote:t?'大手口の土橋':'大手口の土橋',aoya:t?'北の門':'青屋口',kyobashi:'京橋口',tama:t?'南東の門':'玉造口'}[b.id];
-  if(inR(ISLAND,x,z,0)){ if(z<-74) return '山里丸'; if(t&&inR(TSUME,x,z,1)) return '詰ノ丸'; if(!t&&inR({x0:-26,x1:26,z0:52,z1:85},x,z,0)) return '桜門の枡形'; return t?'本丸（表御殿）':'本丸'; }
+  if(inR(ISLAND,x,z,0)){ if(z<-74) return '山里丸'; if(t&&inR(TSUME,x,z,1)) return '詰ノ丸'; if(t&&inR(MIDB,x,z,1)) return '中之段（帯曲輪）'; if(!t&&inR({x0:-26,x1:26,z0:52,z1:85},x,z,0)) return '桜門の枡形'; return t?'本丸（表御殿）':'本丸'; }
   if(inR(MOAT,x,z,4)) return z>85?'南の空堀':'内堀のほとり';
   if(inR(SOTO_I,x,z,0)){ if(t) return x<-118?'二の丸（大名屋敷）':z<-130?'二の丸の北':'二の丸';
     if(inR({x0:-232,x1:-201,z0:90,z1:134},x,z,0)) return '大手門の枡形'; if(inR({x0:-217,x1:-183,z0:-222,z1:-193},x,z,0)) return '京橋口の枡形'; if(inR({x0:-228,x1:-118,z0:-205,z1:94},x,z,0)) return '西の丸庭園'; if(inR({x0:112,x1:198,z0:-218,z1:-128},x,z,0)) return '梅林';
@@ -3325,7 +3343,7 @@ for(const S of STREETS){ const half=S.w/2; for(const side of [-1,1]){ const fz=S
       else if(r<.94) { if(okW(x,fz-side*1.8,.3)) decoT.add(pick(['cart','cart2']),x,0,fz-side*1.8,{}); }
       else { if(okW(x,fz-side*.4,.3)) decoT.add(pick(['nb_white','nb_red','nb_blue','nb_yellow']),x,0,fz-side*.4,{s:.7}); } } } }
 for(const [x,z] of [[-5.5,80],[5.5,80],[-70,828],[-50,828],[-70,428],[-50,428],[-224,98],[-224,116]]) decoT.add('kagaribi',x,gyT(x,z),z,{s:1});
-for(const [x,z] of [[19,57],[33,57]]) decoT.add('toro4',x,0,z); for(const [x,z] of [[-46,-80],[-54,-80],[22,-82],[30,-82]]) decoT.add('toro2',x,0,z);
+for(const [x,z] of [[19,57],[33,57]]) decoT.add('toro4',x,0,z); for(const [x,z] of [[-46,-91],[-54,-91],[22,-92],[30,-92]]) decoT.add('toro2',x,0,z);
 decoT.add('sennari',37,0,51); decoT.add('maku_p',21,0,49.9,{yaw:0}); decoT.add('maku_w',31,0,49.9,{yaw:0});
 for(const T2 of TERA){ for(const s of [-1,1]) decoT.add('toro2',T2.cx+s*4,0,T2.hz-T2.hd/2-3); }
 for(let x=-300;x<300;x+=30){ const xx=x+rnd()*14; for(const zz of [-307,-304,-301,-298]) if(okW(xx,zz,.5)){ decoT.add(pick(['crates','tawara','kome','barrels','cart']),xx,0,zz); break; } }
@@ -3555,7 +3573,7 @@ const SCENS={
    build(){ PH.sledU=unit({spr:PULL,n:26,at:[-6,300],w:5,d:22,spd:1}); for(const [x,z] of [[-40,-30],[40,10],[-30,40],[50,-60]]) unit({spr:WORK,n:10,at:[x,z],w:10,d:6,mill:1,millR:3,dust:.6}); for(const [x,z] of [[-40,-30],[40,10],[-30,40],[50,-60]]) worksite(x,z,undefined,4); for(const [x,z] of [[-60,30],[60,30]]) { DC(pick(T_FLAG),x,z); DC('crates',x+4,z); } }},
   {date:'天正12〜13年（1584〜85）',title:'天守の建築',gnd:[8,-24,30,-44],time:1,cam:[80,40,0.75,-.15,1],fill:{soto:true,m3:true,sg:true},keep:[0,1],keepDur:45,
    text:'高い天守台の上に、黒漆と金で飾った五重の天守が組み上がっていきます。天守は1585年ごろには完成していたと考えられています。（足場や作業の様子は想像です）',
-   build(){ for(const [x,z] of [[57,-22],[8,-60],[57,-60],[8,-28]]) unit({spr:WORK,n:8,at:[x,z],w:6,d:4,y:TS_H,mill:1,millR:2.5,dust:.4}); unit({spr:['log','workers'],n:6,at:[30,-22],w:10,d:2,y:TS_H,mill:1.2,millR:4}); for(const [x,z] of [[-2,-62],[58,-46]]) worksite(x,z,TS_H,3); }},
+   build(){ for(const [x,z] of [[52,-22],[8,-62],[52,-64],[8,-26]]) unit({spr:WORK,n:8,at:[x,z],w:6,d:4,y:TS_H,mill:1,millR:2.5,dust:.4}); unit({spr:['log','workers'],n:6,at:[30,-22],w:10,d:2,y:TS_H,mill:1.2,millR:4}); for(const [x,z] of [[-30,-22],[20,-21]]) worksite(x,z,TS_H,3); }},
   {date:'天正14〜16年（1586〜88）',title:'二の丸の普請',gnd:[-150,252,-230,254],time:1,cam:[-60,300,0,-.35,1],fill:{soto:false,m3:true,sg:true},keep:[1,1],
    text:'本丸を囲む二の丸の堀と石垣が築かれます。西国の大名も動員され、大名ごとに受け持ちの区画（丁場）が割り当てられました。石垣には今も、担当した大名の印（刻印）が残ります。',
    build(){ for(let i=0;i<8;i++){ const x=-220+i*55,z=254; unit({spr:WORK,n:10,at:[x,z],w:12,d:3,mill:1,millR:2,dust:.5,face:[0,-1],flags:1,fl:[K_FLAG[i%K_FLAG.length]]}); DC(pick(['crates','tawara','kome']),x+8,z+5,{}); DC(pick(['cart','cart2']),x-8,z+6,{}); DC(K_FLAG[i%K_FLAG.length],x+10,z-2,{}); } }},
