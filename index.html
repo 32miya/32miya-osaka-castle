@@ -2913,7 +2913,7 @@ function updatePJ(dt){ const show=TIMES[timeIdx].night>.5&&MODE==='modern'; $('p
   const act=pjActive(); PJU.uPJ.value+=((act?1:0)-PJU.uPJ.value)*Math.min(1,dt*1.5); if(act) pjTime+=dt; PJU.uPT.value=pjTime;
   spots.forEach(s=>s.intensity=show?(1.6*(1-PJU.uPJ.value*.85)):0);
   const T=pjTime%96,ch=Math.floor(T/16),lt=T-ch*16; if(act&&ch!==pjLastCh){ pjLastCh=ch; $('pjTitle').textContent='第'+(ch+1)+'景 '+PJ_TITLES[ch]; }
-  if(!act){ $('pjTitle').textContent='プロジェクションマッピング'; pjLastCh=-1; } $('pjState').textContent=pjOn?'上映中 · タップで停止':'停止中 · タップで上映';
+  if(!act){ $('pjTitle').textContent='プロジェクションマッピング'; pjLastCh=-1; } $('pjState').textContent=pjOn?'上映中 ■':'停止中 ▶';
   const lz=act&&(ch===0||ch===3||ch===5)&&lt>1.5&&lt<14.8; lasers.visible=lz&&PJU.uPJ.value>.5;
   if(lasers.visible) lasers.children.forEach((g,i)=>{ const ph=g.userData.ph; g.rotation.z=Math.sin(pjTime*(.5+.1*i)+ph)*.55; g.rotation.x=-.25-Math.abs(Math.sin(pjTime*.35+ph))*.45; g.children[0].material.opacity=(ch===5?.75:.5)*(.6+.4*Math.sin(pjTime*6+i)); }); }
 function applyTime(i){ timeIdx=i; const T=TIMES[i]; sunDir.set(...T.sun).normalize();
@@ -3490,11 +3490,12 @@ function keepSpot0(T,f,x,z,r){ const L=T.FL.indexOf(f),ok=(xx,zz)=>walkFloor(L,x
 /* タップで話す */
 const _pv=V3();
 function pickTalk(sx,sy){ let best=null,bd=1e9; for(const t of TALK){ if(t.it.hidden) continue; if(t.era!==MODE) continue; if(t.daily&&SCEN) continue; if(t.scen&&t.scen!==SCEN) continue; if(t.room&&P.room!==t.room) continue;
-    const it=t.it; _pv.set(it.x,it.y,it.z); const d=_pv.distanceTo(camera.position); if(d>40) continue; _pv.project(camera); if(_pv.z>1) continue; const bx=(_pv.x*.5+.5)*innerWidth,by=(-_pv.y*.5+.5)*innerHeight;
-    _pv.set(it.x,it.y+it.h,it.z).project(camera); const ty=(-_pv.y*.5+.5)*innerHeight,hp=by-ty,wp=hp*it.w/it.h;
-    if(sx>bx-wp/2-6&&sx<bx+wp/2+6&&sy>ty-6&&sy<by+6&&d<bd){ bd=d; best=t; } } return best; }
+    const d=tapHit(t.it,sx,sy,40); if(d>=0&&d<bd){ bd=d; best=t; } } return best; }
+/* タップした位置に人物が写っていれば、カメラからの距離を返す（外れなら -1） */
+function tapHit(it,sx,sy,maxD){ _pv.set(it.x,it.y,it.z); const d=_pv.distanceTo(camera.position); if(d>maxD) return -1; _pv.project(camera); if(_pv.z>1) return -1; const bx=(_pv.x*.5+.5)*innerWidth,by=(-_pv.y*.5+.5)*innerHeight;
+  _pv.set(it.x,it.y+it.h,it.z).project(camera); const ty=(-_pv.y*.5+.5)*innerHeight,hp=by-ty,wp=hp*it.w/it.h; return (sx>bx-wp/2-6&&sx<bx+wp/2+6&&sy>ty-6&&sy<by+6)?d:-1; }
 { let ts=null; cv.addEventListener('pointerdown',e=>{ ts={x:e.clientX,y:e.clientY,t:performance.now()}; });
-  cv.addEventListener('pointerup',e=>{ if(!ts||!started) return; const mv=Math.hypot(e.clientX-ts.x,e.clientY-ts.y),dt=performance.now()-ts.t; ts=null; if(mv>10||dt>450) return; const t=pickTalk(e.clientX,e.clientY); if(t) showHint(t.name+'「'+t.say+'」'); }); }
+  cv.addEventListener('pointerup',e=>{ if(!ts||!started) return; const mv=Math.hypot(e.clientX-ts.x,e.clientY-ts.y),dt=performance.now()-ts.t; ts=null; if(mv>10||dt>450) return; const t=pickTalk(e.clientX,e.clientY)||(typeof pickAny==='function'?pickAny(e.clientX,e.clientY):null); if(t) showHint(t.name+'「'+t.say+'」'); }); }
 
 /* ---------- 門・唐破風・御殿の彫刻と金具（切り抜き画像を壁に貼る） ---------- */
 { const crowds=new Map(),wp=new THREE.Vector3(),wq=new THREE.Quaternion(),we=new THREE.Euler();
@@ -3943,7 +3944,6 @@ function tourGo(i){ const S=tourStops(); tour.i=i; tour.spun=false; if(i>=S.leng
 function tourStart(){ tour.done=false; tourGo(0); }
 function userMoving(){ return joy.id!==null||looks.size>0||Object.keys(keys).some(k=>keys[k]); }
 function tourStop(msg){ setFov(1); if(!tour.on) return; tour.on=false; auto=false; $('scAuto').classList.remove('on'); if(msg) showHint('自動案内を止めました。「自動案内」でもう一度始まります'); const S=tourStops(); if(PH) setTicker(PH.text,'解説'); }
-const SPIN_T=24;   /* 360°を回る秒数 */
 function tourEnd(){ setFov(1); tour.on=false; auto=false; $('scAuto').classList.remove('on'); setTicker('自動案内はここで終わりです。「自動案内」でもう一度見られます。パッドで自由に歩くこともできます','終了');
   const E=ERAS.find(e=>e.k===SCEN); $('tourEndT').textContent=(E?E.b:'')+'の自動案内が終わりました'; $('tourEnd').hidden=false; }
 function updateTour(dt){ if(!SCEN||!PH) return; updateTicker(dt); updateTags(); if(!tour.on) return;
@@ -3954,11 +3954,19 @@ function updateTour(dt){ if(!SCEN||!PH) return; updateTicker(dt); updateTags(); 
     P.x=a.x+(b.x-a.x)*k; P.z=a.z+(b.z-a.z)*k; P.y=a.y+(b.y-a.y)*k; P.yaw=a.yaw+dy*k; P.pitch=a.pitch+(b.pitch-a.pitch)*k; setFov(tour.move<.5?1+(a.zoom-1)*(1-tour.move*2):1+(b.zoom-1)*sstep((tour.move-.5)*2)); return; }
   P.x=b.x; P.z=b.z; tour.t+=dt;
   if(tour.t<=tour.dur){ P.yaw=b.yaw; P.pitch=b.pitch; setFov(b.zoom); return; }
-  /* 見どころを見たあと、その場で水平にゆっくり1回転して周りの様子を見る */
-  const st=tour.t-tour.dur; if(!tour.spun){ tour.spun=true; tour.ticker0=tick.text; setTicker('周りの様子を見渡しています（ゆっくり1回転）',$('tkLb').textContent); }
-  const k=Math.min(1,st/SPIN_T),e=k-Math.sin(k*Math.PI*2)/(Math.PI*2),pt=b.dr?Math.max(-.32,Math.min(-.12,b.pitch)):.02,w=Math.min(1,st/2,(SPIN_T-st)/2);
-  P.yaw=b.yaw+e*Math.PI*2; P.pitch=b.pitch+(pt-b.pitch)*Math.max(0,w); setFov(1+(b.zoom-1)*(1-Math.min(1,st/2.5)));
-  if(k>=1){ P.yaw=b.yaw; P.pitch=b.pitch; tour.spun=false; b.zoom=1; tourGo(tour.i+1); } }
+  /* 見どころを見たあと、地上へ降りて見どころに寄って見せる（降りられない所は、その場でズーム） */
+  const st=tour.t-tour.dur; if(!tour.spun){ tour.spun=true; tour.cu=closeCam(tourStops()[tour.i],b); }
+  const c=tour.cu,MV=3.2,HOLD=CLOSE_T; if(st<MV){ const k=sstep(st/MV); let dy=c.yaw-b.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); P.x=b.x+(c.x-b.x)*k; P.z=b.z+(c.z-b.z)*k; P.y=b.y+(c.y-b.y)*k; P.yaw=b.yaw+dy*k; P.pitch=b.pitch+(c.pitch-b.pitch)*k; setFov(b.zoom+(c.zoom-b.zoom)*k); return; }
+  if(c.walk&&P.mode!=='walk'){ P.mode='walk'; $('vView').textContent='歩く'; }
+  P.x=c.x; P.z=c.z; P.y=c.y; P.yaw=c.yaw; P.pitch=c.pitch; setFov(c.zoom);
+  if(st>=MV+HOLD){ tour.spun=false; tourGo(tour.i+1); } }
+const CLOSE_T=7;   /* 地上で見どころを見る秒数 */
+/* 見どころ（s の見る先）のそばの地上の立ち位置を探す */
+function closeCam(s,b){ const [x,z,lx,lz,dr]=s,zm=Math.max(1.5,b.zoom||1); if(!dr) return {x:b.x,z:b.z,y:b.y,yaw:b.yaw,pitch:b.pitch,zoom:Math.min(2.6,zm*1.35),walk:true};
+  const L=Math.hypot(x-lx,z-lz)||1,ux=(x-lx)/L,uz=(z-lz)/L,gh=(px,pz)=>withScen(()=>groundH(px,pz)),ok=(px,pz)=>{ if(!withScen(()=>walkable(px,pz)&&!hitBlock(px,pz,1.5)&&!waterAt(px,pz,.5))) return false; const g0=gh(px,pz); for(let a=0;a<6.28;a+=.785) for(const r of [2,4]) { const q=gh(px+Math.cos(a)*r,pz+Math.sin(a)*r); if(q>g0+.8||q<g0-1.5) return false; } const dx=lx-px,dz=lz-pz,dl=Math.hypot(dx,dz); for(let t=2;t<Math.min(14,dl-4);t+=2) if(gh(px+dx/dl*t,pz+dz/dl*t)>g0+1.2) return false; return true; };
+  for(const d of [32,24,42,18,56]) for(const da of [0,.35,-.35,.7,-.7]){ const c=Math.cos(da),sn=Math.sin(da),vx=ux*c-uz*sn,vz=ux*sn+uz*c,px=lx+vx*d,pz=lz+vz*d; if(!ok(px,pz)) continue;
+    const y=withScen(()=>groundH(px,pz))+1.6,ty=withScen(()=>groundH(lx,lz))+3; return {x:px,z:pz,y,yaw:Math.atan2(-(lx-px),-(lz-pz)),pitch:Math.max(-.5,Math.min(.35,Math.atan2(ty-y,d))),zoom:Math.min(2.2,Math.max(1.4,zm)),walk:true}; }
+  return {x:b.x,z:b.z,y:b.y,yaw:b.yaw,pitch:b.pitch,zoom:Math.min(3,zm*1.6),walk:false}; }
 { const st=document.createElement('style'); st.textContent=`#tourEnd{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:30;width:min(320px,calc(100% - 40px));background:var(--panel);border:1px solid rgba(210,69,44,.7);border-radius:14px;padding:16px;text-align:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 #tourEnd b{display:block;font-family:var(--f-disp);font-size:18px;margin-bottom:6px} #tourEnd p{font-size:12.5px;color:var(--mute);margin:0 0 12px;line-height:1.6} #tourEnd .r{display:flex;gap:8px;justify-content:center}
 #tourEnd button{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:transparent;cursor:pointer;font-size:13px} #tourEnd button.p{background:rgba(210,69,44,.35);border-color:rgba(210,69,44,.8)}`; document.head.appendChild(st);
@@ -3987,7 +3995,61 @@ const _drawMini0=drawMini; drawMini=function(){ const mb=!!SCEN&&MODE==='toyo'&&
   drawWorld(mini2,x=>ox+(x-BR.x0)*sc,z=>oz+(z-BR.z0)*sc); battleOverlay(mini2,x=>ox+(x-BR.x0)*sc,z=>oz+(z-BR.z0)*sc,sc,dpr); };
 const _drawMap0=drawMap; drawMap=function(){ _drawMap0(); if(!SCEN) return; const c=$('mapC'),g=c.getContext('2d'),dpr=Math.min(2,devicePixelRatio||1),sx=c.width/(MAPR.x1-MAPR.x0),sz=c.height/(MAPR.z1-MAPR.z0); g.fillStyle='#4a4842'; g.fillRect(0,0,c.width,c.height); drawWorld(g,x=>(x-MAPR.x0)*sx,z=>(z-MAPR.z0)*sz);
   battleOverlay(g,x=>(x-MAPR.x0)*sx,z=>(z-MAPR.z0)*sz,Math.min(sx,sz),dpr); };
-window.__tour={tour,tourGo,TAGS};
+window.__tour={tour,tourGo,TAGS,pickAny:(x,y)=>pickAny(x,y)};
+
+/* ---------- 誰にでも話しかけられる: 場面・陣営・役目に合ったセリフ ---------- */
+const ROLE=[['ishiku',/^ishiku$/],['boss',/^(bugyo|touryou)$/],['work',/^(ninpu|mokko|workers|p_naked|p_porter|wara|w_straw|saku_w|log|ishibiki)$/],
+  ['teppo',/teppo|taitsutsu|^guns$/],['yumi',/yumi/],['yari',/yari|^spears$/],['kiba',/_uma$|kiba|uma_rider|p_horse/],['shou',/bushou|taisho|captain|^p_lord$|^lord_/],
+  ['tsukai',/^(tsukaiban|horo)$/],['take',/^taketaba/],['shinobi',/ninja/],['sou',/monk|tabisou/],['onna',/^(jijo|onna_musha|lady_|w_(?!samurai)|q_(girl|oldw|purple|green|redw)|musume|onna_b)/],
+  ['hei',/^(ashigaru|k_zouhei|y_hb|y_dark|p_kabuto|p_red|samurai_|sam_|w_samurai|q_ronin|p_flag|p_flagboy)/]];
+const NOT_PERSON=/nobori|yuso|_tate$|hoju|kago|jinmaku|maku|flag$|_c$/;
+const RNAME={ishiku:'石工',boss:'普請奉行',work:'普請の人足',teppo:'鉄砲足軽',yumi:'弓足軽',yari:'槍足軽',kiba:'騎馬武者',shou:'侍大将',tsukai:'使番',take:'竹束を持つ足軽',shinobi:'忍び',sou:'僧',onna:'城の女房',hei:'足軽'};
+function roleOf(n){ if(NOT_PERSON.test(n)) return null; for(const [r,re] of ROLE) if(re.test(n)) return r; return null; }
+function sideOf(n){ return SIDE_K.test(n)?'k':(SIDE_T.test(n)||/^(y_|r_)/.test(n))?'t':null; }
+/* LINES[場面][番号][役目または陣営] */
+const LINES={
+ chikujo:[
+  {work:['この石は生駒や六甲の山から切り出して、船で運んできたんだと。','えいさー、えいさー！ 修羅を引くのは息を合わせるのが肝心よ。','本丸の石垣が先だとよ。町ができるのはまだまだ先の話だ。'],ishiku:['石は割り方ひとつで積み具合が変わる。目をよう見るんじゃ。','大きな石を下に、すき間には小さな石を詰めて締めるのよ。'],boss:['日暮れまでにこの丁場の石を積み終えよ！','殿下は天下一の城をお望みじゃ。手を抜くでないぞ。'],all:['まわりはまだ葦の茂る湿地ばかりですなあ。']},
+  {work:['天守の柱は檜の大木だ。担ぐのもひと苦労よ。','瓦には金箔を押すんだと。さすが太閤殿下のお城だ。'],ishiku:['天守台の石垣は、とりわけ念を入れて積んだわい。'],boss:['御殿の普請も同時に急げとのお達しじゃ。'],all:['黒漆の壁に金の飾り……こんな天守は見たことがない。']},
+  {work:['うちの殿の丁場だ。ほかの大名には負けられねえ。','石に家の印を刻んでおけば、どこが積んだかひと目でわかるのさ。'],boss:['丁場の境を間違えるな。隣は別の大名の受け持ちじゃ。'],all:['二の丸の堀は、本丸よりさらに広いのう。']},
+  {work:['堀を掘った土を盛り上げて、土塁にするんだ。','町ごと堀で囲むなんて、聞いたこともねえや。'],boss:['惣構ができれば、城下町そのものが城になるのじゃ。'],all:['平野や堺から、商人が大勢移ってきておりますよ。']},
+  {work:['三の丸の普請が済めば、ひと息つけるかのう。'],boss:['諸大名の屋敷を三の丸に集めよとのご命令じゃ。'],all:['殿下のお加減がよくないと聞くが……','大坂も、すっかり天下一の町になりましたなあ。']}],
+ fuyu:[
+  {t:['浪人の身だが、この城で一花咲かせてみせる。','惣構の堀は深い。そう簡単には破られぬ。','秀頼さまのために、ここで踏みとどまるのじゃ。'],k:['見ろ、あの惣構の長さを。これを攻めるのか……','冬の陣は寒さがこたえる。早く決着がつけばよいが。','大御所さまは茶臼山の本陣におられる。'],teppo:['火縄を湿らせるな。冬の夜露は手ごわいぞ。']},
+  {t:['木村さまの初陣、見事なお働きじゃ！','川を渡らせるな、押し返せ！'],k:['佐竹さまの隊が押されておる、加勢いたせ！','鉄砲を前へ！ 砦を奪い取れ！']},
+  {t:['引きつけて撃て！ 真田の鉄砲は外さぬぞ。','堀に落ちた敵を狙え！ 柵は越えさせるな。','この出丸は、城の弱い南を守るために真田さまが築かれたのじゃ。'],k:['堀が深すぎる！ 柵が越えられぬ！','退け、退け！ これでは犬死にじゃ……','竹束を前へ！ 鉄砲玉を防げ！'],take:['竹束を押し立てて進め！ 鉄砲玉はこれで防げるはずじゃ。']},
+  {t:['大筒の音で夜も眠れぬ……','天守に弾が届いたそうじゃ。奥のお方さまはご無事か。'],k:['狙いは天守じゃ、撃て！','夜ごとに鬨の声を上げよとのお達しじゃ。城内を休ませるな。']},
+  {work:['堀を埋めろとのお達しじゃ、急げ急げ！','二の丸の堀まで埋めてよいのか？ 話が違うと聞いたが……'],t:['和睦とは名ばかり。これでは裸城ではないか。'],k:['埋め立ては早いほどよい。大御所さまのご命令じゃ。'],all:['堀がなくなれば、もう籠城はできぬのう。']}],
+ natsu:[
+  {t:['堀がなければ城にこもれぬ。野で戦うしかあるまい。','浪人衆の中には、城を去る者も出ておる。'],k:['今度こそ大坂を落とす。','大坂へは河内路と大和路の二手から攻め上るぞ。']},
+  {t:['後藤さまに続け！ 道明寺へ急げ！','若江で井伊の赤備えとぶつかるぞ。','霧で味方の到着が遅れておる……'],k:['大和路から攻め上るぞ。伊達さまの鉄砲隊が前じゃ。']},
+  {t:['狙うは家康の首ただひとつ！','真田の赤備え、ここにあり！','毛利さまの隊が本多勢を打ち破ったぞ！'],k:['本陣を守れ！ 退くな、踏みとどまれ！','馬印が倒れたぞ！ 旗本が崩れる！','数ではこちらが上じゃ、押し包め！']},
+  {t:['城に火が……もはやこれまでか。','秀頼さまをお守りせよ！'],k:['城内へなだれ込め！','天守が燃えておる……あれが太閤の城か。'],onna:['お方さま、早うこちらへ！']},
+  {t:['秀頼さま、お方さま……'],k:['山里丸を囲め。誰ひとり逃がすな。'],onna:['燃え残ったのは、この山里丸の櫓だけでございます……']}]};
+/* 自由散策（太閤の時代）: 場所ごとのセリフ */
+const AREA_LINES=[[/詰ノ丸|中之段/,['ここは本丸のいちばん高い段。殿下のお住まいの近くじゃ。','中之段の帯曲輪からは、城下がよう見渡せる。']],[/本丸/,['表御殿の千畳敷は、それはそれは広いそうな。','金の飾りがまぶしゅうて、目がくらみそうじゃ。']],
+  [/山里/,['山里丸の茶室で、殿下は利休さまと茶を楽しまれたとか。','この庭は、町中にいながら山里の趣を味わうためのものじゃ。']],[/二の丸/,['二の丸には、大名衆の屋敷が並んでおる。']],[/三の丸/,['三の丸の大名屋敷には、奥方さまがたもお住まいじゃ。']],
+  [/寺町/,['寺の広い境内と塀は、いざという時の守りにもなるのじゃ。']],[/空堀|惣構/,['この空堀と土塁が、町ごと城を守っておる。']],[/城下町|上町/,['大坂の町はほんに賑やか。堺や京から商人が集まってきておる。','今日は市が立つ日じゃ。']],
+  [/大和川|低地|茶臼山|四天王寺|上町台地/,['城の外は田んぼや畑が広がっておる。','四天王寺へお参りに行くところでございます。']]];
+const GEN_LINES={all:['よいお日和でございますな。','太閤さまのお城は、どこから見ても見事なものです。']};
+function pickAny(sx,sy){ let best=null,bd=1e9; const C=SCEN?bCrowd:(MODE==='toyo'&&typeof npcCrowd!=='undefined'?npcCrowd:null); if(!C) return null;
+  for(const it of C.items){ if(it.hidden||!it.h||!roleOf(it.name)) continue; const d=tapHit(it,sx,sy,60); if(d>=0&&d<bd){ bd=d; best=it; } } if(!best) return null;
+  const r=roleOf(best.name),sd=SCEN?sideOf(best.name):null; let pool=null;
+  if(SCEN){ const L=((LINES[SCEN]||[])[PHI])||{}; pool=L[r]||(sd&&L[sd])||((r==='work'||r==='ishiku'||r==='boss')&&L.work)||L.all||(sd&&L[sd==='t'?'t':'k']); if(!pool) pool=L.t||L.k||GEN_LINES.all; }
+  else { const a=areaAt(best.x,best.z)||''; const hit=AREA_LINES.find(([re])=>re.test(a)); pool=hit?hit[1]:GEN_LINES.all; }
+  best._k=(best._k===undefined?(best.i||0):best._k+1); const say=pool[best._k%pool.length];
+  const side=sd==='t'?'豊臣方の':sd==='k'?'徳川方の':''; let nm=RNAME[r]||'町の人'; if(!SCEN&&!/本丸|山里|詰ノ丸|中之段/.test(areaAt(best.x,best.z)||'')) nm={onna:'町の女',hei:'侍',shou:'武士',work:'人足'}[r]||nm; return {name:side+nm,say}; }
+/* ---------- 画面の札を小さく・端へ寄せて、3Dの景色をふさがない ---------- */
+{ const st=document.createElement('style'); st.textContent=`
+#poi{padding:6px 10px 6px 8px;gap:7px;border-radius:10px;font-size:12px;background:rgba(18,19,22,.62);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#poi .nm{font-size:13.5px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0} #poi .go{font-size:11px!important} #poi .dia{width:8px!important;height:8px!important}
+body.touchui #poi{bottom:calc(env(safe-area-inset-bottom,0px) + 186px);max-width:calc(100% - 252px);min-width:0}
+@media (orientation:landscape){ body.touchui #poi{bottom:calc(env(safe-area-inset-bottom,0px) + 14px);max-width:calc(100% - 340px)} }
+#pjChip{left:calc(env(safe-area-inset-left,0px) + 12px);transform:none;top:calc(env(safe-area-inset-top,0px) + 118px);padding:4px 9px 4px 8px;font-size:11px;gap:6px;background:rgba(18,19,22,.55)}
+#pjChip #pjTitle{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} #pjChip small{font-size:10px}
+#hint{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 236px);font-size:12px;background:rgba(18,19,22,.7)}
+body:not(.touchui) #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 70px)}
+@media (orientation:landscape){ body.touchui #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 56px);max-width:calc(100% - 340px)} }`; document.head.appendChild(st); }
 
 /* ================= 出入口から見える景色: 戸口に、反対側（室内／外）の景色を写し込む =================
    入口の外からは部屋の中が、部屋の中の戸口からは外の景色が見える。近づいたときに1回だけ描いて使い回す */
