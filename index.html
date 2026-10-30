@@ -2428,7 +2428,7 @@ goten(26,34,48,26,5.4,0,{kara:true}); goten(-46,36,26,18,4.6); goten(-14,-43,36,
 /* 山里丸: 茶室と庭 */
 { const tea=(x,z,w,d)=>{ B.wood.add(boxUVGeo(w,2.4,d,2.6,2.4),TM(x,1.2,z)); B.straw.add(gableRoofGeo(w,d,1.6,.8,.5),TM(x,2.4,z)); B.wood.add(gableEndsGeo(w,d,1.6),TM(x,2.4,z)); B.black.add(new THREE.BoxGeometry(.9,.9,.05),TM(x,.6,z+d/2+.02)); block(x-w/2-.6,z-d/2-.6,x+w/2+.6,z+d/2+.6,'castle'); };
   tea(-50,-86,4,3.6); tea(26,-88,6,4); /* 池と苔の庭、飛び石 */
-  { const P={x:-10,z:-91.5,rx:10,rz:4.6}; const moss=mesh(new THREE.CircleGeometry(1,40),std({color:'#3d5626',roughness:1}),false,true); moss.rotation.x=-Math.PI/2; moss.scale.set(P.rx+9,P.rz+5,1); moss.position.set(P.x,.03,P.z); GE.add(moss);
+  { const P={x:-10,z:-91.5,rx:10,rz:4.6}; const moss=mesh(new THREE.CircleGeometry(1,40),(()=>{ const m=std({color:'#3d5626',roughness:1}); m.color.convertSRGBToLinear(); return m; })(),false,true); moss.rotation.x=-Math.PI/2; moss.scale.set(P.rx+9,P.rz+5,1); moss.position.set(P.x,.03,P.z); GE.add(moss);
     const pond=mesh(new THREE.CircleGeometry(1,40),std({color:'#2f4f52',roughness:.15,metalness:.2}),false,true); pond.rotation.x=-Math.PI/2; pond.scale.set(P.rx,P.rz,1); pond.position.set(P.x,.06,P.z); GE.add(pond);
     for(let i=0;i<30;i++){ const a=i/30*6.283,r=.45+((i*37)%5)*.08; B.stone.add(new THREE.DodecahedronGeometry(r,0),TM(P.x+Math.cos(a)*(P.rx+.2),.12,P.z+Math.sin(a)*(P.rz+.2),i,1,.6,1)); }
     block(P.x-P.rx,P.z-P.rz*.75,P.x+P.rx,P.z+P.rz*.75,'castle'); block(P.x-P.rx*.7,P.z-P.rz,P.x+P.rx*.7,P.z+P.rz,'castle');
@@ -2544,12 +2544,21 @@ B=BD3; curSet=BSETS.def3;
     gate(gx,M3.z0-1.2,8,0,{h:5.4,roof:M.roof,gable:M.lacquer,gold:true,par:GD3}); B.stone.add(boxUVGeo(10,.4,2,2,2),TM(gx,.2,M3.z0-1.2));
     yagura(x0+3,z0+3,7,6,0,{par:GD3,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true,single:true,y:4}); } }
 B=BE; curSet=BSETS.toyo;
+/* 惣構の中の地形と土地利用: 東（猫間川より）は田畑、南北に木の茂る谷筋がうねる */
+const VAL=z=>205+34*Math.sin((z-460)/58),VAL_W=19,VALR=[],FIELDS=[];
+function fieldBlock(x0,x1,z0,z1){ FIELDS.push([x0+1,x1-1,z0+1,z1-1]); const n=Math.floor((x1-x0)/70); for(let k=0;k<n;k++){ const x=x0+20+k*70+rnd()*20,z=z0+8+rnd()*(z1-z0-16),w=7,d=5.5;
+  B.wood.add(boxUVGeo(w,2.6,d,2.6,2.6),TM(x,1.3,z)); B.straw.add(gableRoofGeo(w,d,2,.8,.5),TM(x,2.6,z)); B.wood.add(gableEndsGeo(w,d,2),TM(x,2.6,z)); block(x-w/2-.4,z-d/2-.4,x+w/2+.4,z+d/2+.4,'machi'); TOYO_TREES.push([x+6,z-3,'round']); } }
 /* 城下町の通り: 大通り沿いと南北の目抜きは細かな町家、ほかは軽い町家 */
 { const xr=[[-596,-364],[-356,-164],[-156,-64],[-56,136],[144,296],[304,456],[464,556]];
   for(let i=0;i<EW.length;i++){ const zs=EW[i],zn=EW[i+1]||800; const top=zs+4,bot=zn-4; kido(-67,zs-4); kido(-53,zs-4); if(i===EW.length-1) continue;
-    for(const [a,b] of xr){ const near=(a===-156||a===-56),aa=a===-56?a+12:a,bb=b===-64?b-12:b;
+    const vc=VAL((top+bot)/2),v0=vc-VAL_W,v1=vc+VAL_W; VALR.push({x0:v0,x1:v1,z0:top-4,z1:bot+4});
+    for(const [a,b] of xr){ const near=(a===-156||a===-56),aa0=a===-56?a+12:a,bb0=b===-64?b-12:b;
+      const segs=(bb0<=v0||aa0>=v1)?[[aa0,bb0]]:[[aa0,v0],[v1,bb0]].filter(([p,q])=>q-p>8);
+      for(const [aa,bb] of segs){
+      if(i>=2&&a>=304){ fieldBlock(aa,bb,top,bot); continue; }
+      if(i>=2&&i<=6&&a===-56){ lots(aa,bb,top,bot,'n',30); continue; }
       if(i<=1){ machiRow(aa,bb,top,'x',-1,true); if(i===0) machiRow(aa,bb,bot,'x',1,false); else simpleRow(aa,bb,bot,1); }
-      else { simpleRow(aa,bb,top,-1); simpleRow(aa,bb,bot,1); } }
+      else { simpleRow(aa,bb,top,-1); simpleRow(aa,bb,bot,1); } } }
     machiRow(top+.5,bot-.5,-64,'z',1,false); machiRow(top+.5,bot-.5,-56,'z',-1,i%2===0);
     if(i%2===0) for(const x of [-364,-156,136,296]) kido(x,zs-4); }
   kidoNS(-64,462); for(let z=262;z<400;z+=70) kidoNS(-64,z); }
@@ -2557,6 +2566,12 @@ B=BE; curSet=BSETS.toyo;
   const iw=new THREE.InstancedMesh(bg,M.machiya,N),ir=new THREE.InstancedMesh(rg,M.shingle,N),ie=new THREE.InstancedMesh(eg,M.plaster,N);
   SIMPLE.forEach(([x,z,w,d,h,dir],i)=>{ const ry=dir>0?0:Math.PI; iw.setMatrixAt(i,TM(x,0,z,ry,w,h,d)); ir.setMatrixAt(i,TM(x,h,z,ry,w,1.5,d)); ie.setMatrixAt(i,TM(x,h,z,ry,w,1.5,d)); });
   for(const m of [iw,ir,ie]){ m.castShadow=true; m.receiveShadow=true; m.frustumCulled=false; GE.add(m); } }
+{ const cv=makeCanvas(128,128),g=cv.getContext('2d'); g.fillStyle='#6f8a3c'; g.fillRect(0,0,128,128); for(let i=0;i<300;i++){ g.fillStyle=`rgba(${90+rnd()*40|0},${120+rnd()*40|0},50,.5)`; g.fillRect(rnd()*128,rnd()*128,2,6); }
+  g.fillStyle='#a69a6c'; g.fillRect(0,0,128,4); g.fillRect(0,0,4,128); const mat=std({map:toTex(cv),roughness:1});
+  const pg=new THREE.PlaneGeometry(1,1); pg.rotateX(-Math.PI/2); const L=[]; for(const [x0,x1,z0,z1] of FIELDS){ for(let x=x0;x<x1-1;x+=22) for(let z=z0;z<z1-1;z+=15){ const w=Math.min(22,x1-x),d=Math.min(15,z1-z); L.push(TM(x+w/2,.05,z+d/2,0,w,1,d)); } }
+  const im=new THREE.InstancedMesh(pg,mat,L.length); L.forEach((m,i)=>im.setMatrixAt(i,m)); im.receiveShadow=true; im.frustumCulled=false; GE.add(im);
+  const vm=std({color:'#3f5a2a',roughness:1}); vm.color.convertSRGBToLinear(); const _v=0,vl=VALR.map(r=>TM((r.x0+r.x1)/2,.04,(r.z0+r.z1)/2,0,r.x1-r.x0,1,r.z1-r.z0-8)); const iv=new THREE.InstancedMesh(pg,vm,vl.length); vl.forEach((m,i)=>iv.setMatrixAt(i,m)); iv.receiveShadow=true; GE.add(iv);
+  for(let z=472;z<826;z+=6.5){ if(EW.some(e=>Math.abs(z-e)<7)) continue; for(let k=0;k<2;k++){ const x=VAL(z)+(rnd()-.5)*VAL_W*1.6; TOYO_TREES.push([x,z+(rnd()-.5)*3,rnd()<.45?'pine':'round']); } } }
 /* 寺町: 惣構の内側の縁に寺を集め、広い境内と塀を守りの拠点にした */
 function tera(x0,x1,z0,z1){ const cx=(x0+x1)/2,w=x1-x0,d=z1-z0; dobei(x0,z1,x1,z1,2.4,'buke'); dobei(x0,z0,x0,z1,2.4,'buke'); dobei(x1,z0,x1,z1,2.4,'buke'); dobei(x0,z0,cx-3.5,z0,2.4,'buke'); dobei(cx+3.5,z0,x1,z0,2.4,'buke');
   gate(cx,z0,6,0,{h:5,roof:M.roof,gable:M.plaster,par:GE});
@@ -2571,7 +2586,7 @@ B=BDS; curSet=BSETS.defS;
 { const D=SG.DOTE,zc=(D.z0+D.z1)/2,H=5.5,bat=4.5,td=D.z1-D.z0-2*bat;
   for(const [a,b] of [[D.x0,SG.GATE.x0-1],[SG.GATE.x1+1,D.x1]]){ const L=b-a; const m=mesh(frustumGeo(L-2*bat,td,H,bat,4,true),M.dote,false,true); m.position.set((a+b)/2,0,zc); GDS.add(m);
     dobei(a+bat+.5,zc,b-bat-.5,zc,2.4,'castle',H,true); block(a,D.z0,b,D.z1,'castle'); }
-  for(const x of [-460,-260,140,340]) yagura(x,zc,7,6,0,{par:GDS,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true,y:H,single:true});
+  for(const x of [-560,-460,-360,-260,-160,40,140,240,340,450]) yagura(x,zc,7,6,0,{par:GDS,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true,y:H,single:true});
   for(const sx of [SG.GATE.x0-1,SG.GATE.x1+1]) box(B.stone,sx-1.5,sx+1.5,0,H,D.z0+1,D.z1-1);
   gate((SG.GATE.x0+SG.GATE.x1)/2,D.z0+3,8,0,{h:H,roof:M.roof,gable:M.lacquer,par:GDS});
   tamon(B,SG.GATE.x0-2.5,SG.GATE.x1+2.5,D.z0+1,D.z1-1,3.6,H,{wall:'wallK',roof:'roof',gable:'lacquer',gold:true}); B.darkwood.add(new THREE.BoxGeometry(SG.GATE.x1-SG.GATE.x0+1,.5,D.z1-D.z0-2),TM((SG.GATE.x0+SG.GATE.x1)/2,H-.25,zc));
@@ -2579,7 +2594,9 @@ B=BDS; curSet=BSETS.defS;
   for(const [a,b,c,d] of [[x0,x0+4,z0,z1],[x0,x1,z0,z0+4],[x1-4,x1,z0+12,z1]]){ box(B.stone,a,b,0,3.6,c,d); block(a,c,b,d,'castle'); }
   dobei(x0+2,z0+2,x1-2,z0+2,2.2,'castle',3.6,true); dobei(x0+2,z0+2,x0+2,z1,2.2,'castle',3.6,true); dobei(x1-2,z0+12,x1-2,z1,2.2,'castle',3.6,true); }
 /* 南の空堀（底に逆茂木） */
-{ const S=SG.S,x0=SG.W.x1,x1=SG.E.x0,L=x1-x0,dep=8; const fl=mesh(scaleUV(new THREE.PlaneGeometry(L,S.z1-S.z0),L/6,4),M.dote,false,true); fl.rotation.x=-Math.PI/2; fl.position.set((x0+x1)/2,-dep,(S.z0+S.z1)/2); GDS.add(fl);
+{ const S=SG.S,x0=SG.W.x1,x1=SG.E.x0,L=x1-x0,dep=8; const fl=mesh(scaleUV(new THREE.PlaneGeometry(L,S.z1-S.z0),L/6,4),M.dote,false,true); fl.rotation.x=-Math.PI/2; fl.position.set((x0+x1)/2,-dep,(S.z0+S.z1)/2); GDS.add(fl); /* 堀障子: 空堀の底を土の仕切りで格子に区切り、落ちた敵が堀の中を動けないようにした */
+  { const L2=[],zc=(S.z0+S.z1)/2,bg=new THREE.BoxGeometry(1,1,1); L2.push(TM((x0+x1)/2,-dep+1.4,zc,0,L,2.8,1.6)); for(let x=x0+7;x<x1-3;x+=14) L2.push(TM(x,-dep+1.4,zc,0,1.6,2.8,S.z1-S.z0-2));
+    const im=new THREE.InstancedMesh(bg,M.dote,L2.length); L2.forEach((m,i)=>im.setMatrixAt(i,m)); im.receiveShadow=true; im.frustumCulled=false; GDS.add(im); }
   const v=[],uv=[]; quad(v,uv,[x0,0,S.z0],[x1,0,S.z0],[x1,-dep,S.z0+4],[x0,-dep,S.z0+4],L/5,2); quad(v,uv,[x1,0,S.z1],[x0,0,S.z1],[x0,-dep,S.z1-4],[x1,-dep,S.z1-4],L/5,2);
   GDS.add(mesh(geoFrom(v,uv),doteBack,false,true)); GDS.add(mesh(geoFrom(v,uv),M.dote,false,true));
   for(let x=x0+6;x<x1-6;x+=7){ if(Math.abs(x+60)<6) continue; B.darkwood.add(new THREE.CylinderGeometry(.08,.1,2.4,5),TM(x,-dep+.9,(S.z0+S.z1)/2,0,1,1,1,.6)); B.darkwood.add(new THREE.CylinderGeometry(.08,.1,2.4,5),TM(x+1,-dep+.9,(S.z0+S.z1)/2,0,1,1,1,-.6)); } }
@@ -3176,7 +3193,7 @@ function nearestSpot(){ return curSpots.reduce((a,b)=>Math.hypot(b.pos[0]-P.x,b.
 $('tView').onclick=()=>{ if(!started) return; if(P.mode==='walk'){ if(P.room) exitRoom(); if(P.level>=0){ const E=TEN[MODE].entry,TD=TEN[MODE].door; P.level=-1; if(TD){ P.x=20; P.z=-28; } else { P.x=E.X+6; P.z=E.zc; } } P.mode='drone'; $('vView').textContent='空撮'; P.pitch=Math.min(P.pitch,-.25); }
   else { P.mode='walk'; $('vView').textContent='歩く'; if(!walkable(P.x,P.z)){ if(SCEN&&PH&&PH.gnd){ goGround(); return; } const s=nearestSpot(); P.x=s.pos[0]; P.z=s.pos[1]; } P.pitch=Math.max(P.pitch,-.2); } };
 $('tTime').onclick=()=>applyTime((timeIdx+1)%TIMES.length);
-function setMode(m){ const wasIn=P.level>=0||!!P.room; P.room=null; MODE=m; MAPR=m==='toyo'?{x0:-640,x1:600,z0:-330,z1:900}:{x0:-300,x1:280,z0:-330,z1:310}; GM.visible=m==='modern'; GE.visible=m==='toyo'; M.stone.map=m==='toyo'?tStoneT:tStone; M.stone.color.set(m==='toyo'?0xd8d8d4:0xe2ded6); M.stoneK.map=m==='toyo'?tStoneKT:tStoneK; FL=TEN[m].FL; ST=TEN[m].ST; setEraWalls(); mapC=m==='toyo'?mapCE:mapCM; curSpots=spotList(); buildPins(); lastArea=''; nearSpot=null;
+function setMode(m){ const wasIn=P.level>=0||!!P.room; P.room=null; MODE=m; MAPR=m==='toyo'?{x0:-640,x1:600,z0:-330,z1:900}:{x0:-300,x1:280,z0:-330,z1:310}; GM.visible=m==='modern'; GE.visible=m==='toyo'; M.stone.map=m==='toyo'?tStoneT:tStone; M.stone.color.set(m==='toyo'?0xd8d8d4:0xe2ded6); M.stoneK.map=m==='toyo'?tStoneKT:tStoneK; if(typeof applyFill==='function') applyFill(FILL); FL=TEN[m].FL; ST=TEN[m].ST; setEraWalls(); mapC=m==='toyo'?mapCE:mapCM; curSpots=spotList(); buildPins(); lastArea=''; nearSpot=null;
   $('vEra').textContent=m==='toyo'?'太閤':'現代'; $('eyebrow').textContent='大阪城さんぽ · '+(m==='toyo'?'太閤の時代':'現代'); applyTime(timeIdx);
   if(started&&(wasIn||P.mode==='walk'&&!walkable(P.x,P.z))){ teleport(wasIn?curSpots.find(s=>s.id==='iriguchi'):nearestSpot()); }
   if(started) showHint(m==='toyo'?'太閤・豊臣秀吉の時代（1590年代ごろ）の大坂城を、想像を交えて再現しています':'現代の大阪城に戻りました'); }
@@ -3706,7 +3723,7 @@ const SCAF=new THREE.Group(); SCAF.visible=false; GE.add(SCAF);
   run(-44,-7,-14+1.2*.15,1,true,8.4); run(9,61,-14+1.2*.15,1,true,8.4); run(-79,-16,MIDB.x0-1,-1,false,4.2); run(-79,-16,MIDB.x1+1,1,false,4.2);
   /* 積む前の石の山 */ for(const [x,z] of [[-30,-4],[30,-5],[-62,-60],[-63,-35],[75,-50]]) for(let i=0;i<9;i++) S.push(TM(x+(i%3-1)*1.6+(i*.37%1),.6+(i>5?1:0),z+((i/3|0)-1)*1.4,i,1.1+(i%2)*.3,.8,1));
   const mk=(g,m,L)=>{ const im=new THREE.InstancedMesh(g,m,L.length); L.forEach((q,i)=>im.setMatrixAt(i,q)); im.castShadow=true; im.frustumCulled=false; SCAF.add(im); };
-  const bam=std({color:'#b5a066',roughness:.8}); mk(pole,bam,P); mk(bar,bam,Hh); mk(pk,M.wood,K); mk(new THREE.DodecahedronGeometry(.7,0),M.stone,S);
+  const bam=std({color:'#b5a066',roughness:.8}); bam.color.convertSRGBToLinear(); mk(pole,bam,P); mk(bar,bam,Hh); mk(pk,M.wood,K); mk(new THREE.DodecahedronGeometry(.7,0),M.stone,S);
   for(const [x0,x1] of [[-44,-7],[9,61]]) block(x0,-13.2,x1,-11.4,'castle'); }
 function setPhase(i){ const S=SCENS[SCEN]; PHI=(i+S.phases.length)%S.phases.length; PH=S.phases[PHI]; phT=0;
   applyFill(Object.assign({},S.fill,PH.fill||{})); SCAF.visible=!!PH.scaf; keepBuild(PH.keep?PH.keep[0]:1); sled.visible=false;
