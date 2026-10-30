@@ -1536,7 +1536,10 @@ const GC=20, BSETS={shared:{list:[],grid:new Map()},modern:{list:[],grid:new Map
 function block(x0,z0,x1,z1,kind){ const b={x0:Math.min(x0,x1),z0:Math.min(z0,z1),x1:Math.max(x0,x1),z1:Math.max(z0,z1),kind:kind||'house'},grid=curSet.grid; curSet.list.push(b);
   for(let cx=Math.floor(b.x0/GC);cx<=Math.floor(b.x1/GC);cx++) for(let cz=Math.floor(b.z0/GC);cz<=Math.floor(b.z1/GC);cz++){ const k=cx+','+cz; if(!grid.has(k)) grid.set(k,[]); grid.get(k).push(b); } }
 function hitIn(set,x,z,m){ const l=set.grid.get(Math.floor(x/GC)+','+Math.floor(z/GC)); if(!l) return false; for(const b of l) if(inR(b,x,z,m)) return true; return false; }
-function hitBlock(x,z,m){ return hitIn(BSETS.shared,x,z,m)||hitIn(BSETS[MODE],x,z,m)||(MODE==='toyo'&&!FILL.m3&&hitIn(BSETS.def3,x,z,m))||(MODE==='toyo'&&!FILL.sg&&hitIn(BSETS.defS,x,z,m))||(MODE==='toyo'&&SCEN==='fuyu'&&hitIn(BSETS.battle,x,z,m)); }
+/* 築城の段階ごとに分けた建物（本丸の建物・二の丸・城下町・三の丸）。見えていない段階の建物には当たらない */
+const STG={}; let STCUR=null;
+function stHit(x,z,m){ for(const k in STG){ const s=STG[k]; if(s.G.visible&&hitIn(s.set,x,z,m)) return true; } return false; }
+function hitBlock(x,z,m){ return hitIn(BSETS.shared,x,z,m)||(MODE==='toyo'&&stHit(x,z,m))||hitIn(BSETS[MODE],x,z,m)||(MODE==='toyo'&&!FILL.m3&&hitIn(BSETS.def3,x,z,m))||(MODE==='toyo'&&!FILL.sg&&hitIn(BSETS.defS,x,z,m))||(MODE==='toyo'&&SCEN==='fuyu'&&hitIn(BSETS.battle,x,z,m)); }
 
 /* ---------- materials ---------- */
 const std=o=>new THREE.MeshStandardMaterial(o);
@@ -2329,6 +2332,9 @@ for(const [x,z,w,d,h] of [[330,-250,26,26,150],[372,-210,24,30,128],[330,-170,30
 B=BE=mkB(); curSet=BSETS.toyo; let BT=null; const BD3=mkB(),BDS=mkB(),GD3=new THREE.Group(),GDS=new THREE.Group(),GT=new THREE.Group(); GE.add(GD3); GE.add(GDS); GE.add(GT);
 for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stone');
 const TG={roof:M.roof,gable:M.lacquer,gold:true};
+/* 段階ごとの建物をまとめる: stBegin〜stEnd の間に作ったバッチ・メッシュ・当たり判定を、その段階のグループに入れる */
+function stBegin(name){ let s=STG[name]; if(!s){ s=STG[name]={B:mkB(),G:new THREE.Group(),set:{list:[],grid:new Map()},rise:1}; GE.add(s.G); } s.pB=B; s.pSet=curSet; s.n0=GE.children.length; B=s.B; curSet=s.set; STCUR=s; }
+function stEnd(){ const s=STCUR,stG=Object.values(STG).map(q=>q.G),nw=GE.children.slice(s.n0).filter(o=>!stG.includes(o)); for(const o of nw) s.G.add(o); B=s.pB; curSet=s.pSet; STCUR=null; }
 /* 本丸の三段構え: 下段（本丸）→ 中之段の帯曲輪 → 詰ノ丸（いちばん高い段）。どれも高い石垣で区切る */
 { const stepsZ=(R,h)=>{ const n=Math.max(4,Math.round(h/.3)),run=(R.z1-R.z0)/n; for(let k=0;k<n;k++){ const hk=h*(k+1)/n; box(B.stone,R.x0,R.x1,0,hk,R.z1-run*(k+1),R.z1-run*k); } };
   /* 中之段（帯曲輪） */
@@ -2337,9 +2343,9 @@ const TG={roof:M.roof,gable:M.lacquer,gold:true};
     for(const S of [MSTW,MSTE]){ stepsZ(S,MID_H); box(B.stone,S.x0-1,S.x0,0,MID_H+.4,S.z0,S.z1); box(B.stone,S.x1,S.x1+1,0,MID_H+.4,S.z0,S.z1); block(S.x0-1,S.z0,S.x0,S.z1,'castle'); block(S.x1,S.z0,S.x1+1,S.z1,'castle'); }
     const e=1.1; block(R.x0-e,R.z0-e,R.x1+e,R.z0+e,'castle'); block(R.x0-e,R.z0,R.x0+e,R.z1+1,'castle'); block(R.x1-e,R.z0,R.x1+e,R.z1+1,'castle');
     block(R.x0,R.z1-.4,MSTW.x0-1,R.z1+1,'castle'); block(MSTW.x1+1,R.z1-.4,TSUME.x0,R.z1+1,'castle'); block(TSUME.x1,R.z1-.4,MSTE.x0-1,R.z1+1,'castle'); block(MSTE.x1+1,R.z1-.4,R.x1,R.z1+1,'castle');
-    const H=2.2,y=MID_H; dobei(R.x0+.3,R.z0+.3,R.x1-.3,R.z0+.3,H,'castle',y,true); dobei(R.x0+.3,R.z0+.3,R.x0+.3,R.z1-.3,H,'castle',y,true); dobei(R.x1-.3,R.z0+.3,R.x1-.3,R.z1-.3,H,'castle',y,true);
+    stBegin('hon'); const H=2.2,y=MID_H; dobei(R.x0+.3,R.z0+.3,R.x1-.3,R.z0+.3,H,'castle',y,true); dobei(R.x0+.3,R.z0+.3,R.x0+.3,R.z1-.3,H,'castle',y,true); dobei(R.x1-.3,R.z0+.3,R.x1-.3,R.z1-.3,H,'castle',y,true);
     for(const [x0,x1] of [[R.x0+.3,MSTW.x0],[MSTW.x1,TSUME.x0-.6],[TSUME.x1+.6,MSTE.x0],[MSTE.x1,R.x1-.3]]) dobei(x0,R.z1-.3,x1,R.z1-.3,H,'castle',y,true);
-    for(const S of [MSTW,MSTE]) gate((S.x0+S.x1)/2,S.z0-.2,5.4,0,{y:MID_H,h:4.4,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); }
+    for(const S of [MSTW,MSTE]) gate((S.x0+S.x1)/2,S.z0-.2,5.4,0,{y:MID_H,h:4.4,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); stEnd(); }
   /* 詰ノ丸 */
   { const t=mesh(frustumGeo(TSUME.x1-TSUME.x0,TSUME.z1-TSUME.z0,TS_H,1.2,4,true),M.stone); t.position.set((TSUME.x0+TSUME.x1)/2,0,(TSUME.z0+TSUME.z1)/2); GE.add(t);
     const top=mesh(groundGeo(rectShape(TSUME)),groundMatE,false,true); top.position.y=TS_H+.01; GE.add(top);
@@ -2347,9 +2353,9 @@ const TG={roof:M.roof,gable:M.lacquer,gold:true};
     block(RAMP.x0-1,RAMP.z0,RAMP.x0,RAMP.z1,'castle'); block(RAMP.x1,RAMP.z0,RAMP.x1+1,RAMP.z1,'castle');
     const e=1.2; block(TSUME.x0-e,TSUME.z0-e,TSUME.x1+e,TSUME.z0+e,'castle'); block(TSUME.x0-e,TSUME.z0,TSUME.x0+e,TSUME.z1+1,'castle'); block(TSUME.x1-e,TSUME.z0,TSUME.x1+e,TSUME.z1+1,'castle');
     block(TSUME.x0-e,TSUME.z1-.5,RAMP.x0-1,TSUME.z1+1.3,'castle'); block(RAMP.x1+1,TSUME.z1-.5,TSUME.x1+e,TSUME.z1+1.3,'castle');
-    const H=2.2; dobei(TSUME.x0+.3,TSUME.z0+.3,TSUME.x1-.3,TSUME.z0+.3,H,'castle',TS_H,true); dobei(TSUME.x0+.3,TSUME.z0+.3,TSUME.x0+.3,TSUME.z1-.3,H,'castle',TS_H,true); dobei(TSUME.x1-.3,TSUME.z0+.3,TSUME.x1-.3,TSUME.z1-.3,H,'castle',TS_H,true);
+    stBegin('hon'); const H=2.2; dobei(TSUME.x0+.3,TSUME.z0+.3,TSUME.x1-.3,TSUME.z0+.3,H,'castle',TS_H,true); dobei(TSUME.x0+.3,TSUME.z0+.3,TSUME.x0+.3,TSUME.z1-.3,H,'castle',TS_H,true); dobei(TSUME.x1-.3,TSUME.z0+.3,TSUME.x1-.3,TSUME.z1-.3,H,'castle',TS_H,true);
     dobei(TSUME.x0+.3,TSUME.z1-.3,RAMP.x0-1.2,TSUME.z1-.3,H,'castle',TS_H,true); dobei(RAMP.x1+1.2,TSUME.z1-.3,TSUME.x1-.3,TSUME.z1-.3,H,'castle',TS_H,true);
-    gate(1,-14.6,8,0,{y:TS_H,h:5.2,roof:M.hinoki,gable:M.lacquer,gold:true,kara:true,post:'lacquer',par:GE}); } }
+    gate(1,-14.6,8,0,{y:TS_H,h:5.2,roof:M.hinoki,gable:M.lacquer,gold:true,kara:true,post:'lacquer',par:GE}); stEnd(); } }
 /* 豊臣期の天守: 黒漆の壁、金箔瓦、最上層に金の虎と鶴 */
 { const T=TEN.toyo=planTenshu({par:GE,cx:30,cz:-44,g0:TS_H,bw:30,bd:26,bh:10,bat:3,oh:2.0,entZ:5,
     openDoor:true,ext:[{w:26,d:22,h:9,wall:'wallT2'},{w:22,d:18,h:4.6,wall:'wallT'},{w:19,d:15,h:9,wall:'wallT2',slope:.6},{w:15,d:12,h:4.6,wall:'topCrest'},{w:11,d:9,h:4.6,wall:'topK',open:true,bal:1.4}],
@@ -2410,6 +2416,7 @@ const TG={roof:M.roof,gable:M.lacquer,gold:true};
     /* 開いた門扉: 黒漆に金の菊紋と八双金具 */ for(const [za,zb] of [[Z0+.5,dz0-.02],[dz1+.02,Z1-.5]]){ const zc=(za+zb)/2; box(B.lacqK,X0+.02,X0+.1,g0,g0+2.7,za,zb); orn(null,'mon_kiku',X0+.14,g0+1.95,zc,Math.PI/2,.5); orn(null,'kg_pair2',X0+.14,g0+.35,zc,Math.PI/2,.8); orn(null,'kg_t',X0+.14,g0+1.25,zc,Math.PI/2,.55); }
     for(const z of [dz0,dz1]) box(B.lacqK,X0-.6,X0+.06,g0,g0+dh,z-.12,z+.12); box(B.lacqK,X0-.6,X0+.06,g0+dh,g0+dh+.25,dz0-.12,dz1+.12); }
   B=BE; }
+stBegin('hon');
 /* 本丸御殿（表御殿の千畳敷・奥御殿） */
 function goten(cx,cz,w,d,h,y,o){ o=o||{}; y=y||0; B.stone.add(boxUVGeo(w+1.6,.9,d+1.6,3,3),TM(cx,y+.45,cz)); B.wood.add(boxUVGeo(w,h,d,2.6,h),TM(cx,y+.9+h/2,cz));
   for(let x=-w/2+1;x<w/2;x+=2.2) for(const s of [-1,1]){ B.lacquer.add(new THREE.BoxGeometry(.3,h,.3),TM(cx+x,y+.9+h/2,cz+s*(d/2+.15))); }
@@ -2434,6 +2441,7 @@ goten(26,34,48,26,5.4,0,{kara:true}); goten(-46,36,26,18,4.6); goten(-14,-43,36,
     block(P.x-P.rx,P.z-P.rz*.75,P.x+P.rx,P.z+P.rz*.75,'castle'); block(P.x-P.rx*.7,P.z-P.rz,P.x+P.rx*.7,P.z+P.rz,'castle');
     for(let i=0;i<10;i++) B.stone.add(new THREE.CylinderGeometry(.35,.4,.12,8),TM(-46+i*2.2,.06,-84.5-Math.sin(i*.7)*1.2));
     B.stoneK.add(new THREE.DodecahedronGeometry(1.1,0),TM(P.x+3,.5,P.z,0,1,.8,1)); B.stoneK.add(new THREE.DodecahedronGeometry(.8,0),TM(P.x-4,.4,P.z+1,1,1,.8,1)); } }
+stEnd();
 /* 瓦を1本ずつ: 切妻屋根の斜面に丸瓦の列を並べ、軒先は金の軒丸瓦、軒裏には垂木を並べる */
 const _Y=V3(0,1,0),_q=new THREE.Quaternion(),_m=new THREE.Matrix4();
 function tileGable(par,M0,L,D,H,oh,ohx,tileMat,goldEnds){ const hx=L/2+ohx,hz=D/2+oh,yE=-oh*H/(D/2),sl=Math.hypot(H-yE,hz),N=Math.floor((2*hx-.3)/.34)+1;
@@ -2473,20 +2481,23 @@ function tileGable(par,M0,L,D,H,oh,ohx,tileMat,goldEnds){ const hx=L/2+ohx,hz=D/
     const w2=mesh(wallBoxGeo(5.4,2.4,4.4),M.topK); w2.position.y=2.7+1.2; g.add(w2); for(const s of [-1,1]){ const p=mesh(new THREE.BoxGeometry(5.2,.9,.05),s>0?M.tiger:M.tiger2); p.position.set(0,3.3,s*2.23); g.add(p); }
     const r=hipRoof(5.4,4.4,1.4,mats); r.position.y=2.7+2.4-.1; g.add(r); }
   for(const t of [.3,.7]) for(const sx of [x0+1,x1-1]) B.lacquer.add(new THREE.CylinderGeometry(.3,.3,15,8),TM(sx,y-7.5,z0+L*t)); }
+stBegin('hon');
 /* 桜門の場所: 唐門 */
 { gate(0,84.5,8,0,{h:5.6,roof:M.hinoki,gable:M.lacquer,gold:true,kara:true,post:'lacquer',par:GE});
   for(const sx of [-1,1]) dobei(sx*5,84.6,sx*74,84.6,2.4,'castle',0,false); }
 /* 本丸の周りの塀と隅櫓 */
 { const I=ISLAND,o=.8; dobei(I.x0+o,I.z0+o,-29,I.z0+o,2.4); dobei(-19,I.z0+o,I.x1-o,I.z0+o,2.4); dobei(I.x0+o,I.z0+o,I.x0+o,I.z1-o,2.4); dobei(I.x1-o,I.z0+o,I.x1-o,I.z1-o,2.4);
   for(const [x,z] of [[I.x0+5,I.z0+5],[I.x1-5,I.z0+5],[I.x0+5,I.z1-5],[I.x1-5,I.z1-5]]) yagura(x,z,9,8,0,{par:GE,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true});
-  const S=SOTO_I; dobei(S.x0+o,S.z0+o,-204,S.z0+o,2.4); dobei(-196,S.z0+o,-62,S.z0+o,2.4); dobei(-48,S.z0+o,S.x1-o,S.z0+o,2.4);
+  stEnd(); stBegin('ni'); const S=SOTO_I; dobei(S.x0+o,S.z0+o,-204,S.z0+o,2.4); dobei(-196,S.z0+o,-62,S.z0+o,2.4); dobei(-48,S.z0+o,S.x1-o,S.z0+o,2.4);
   dobei(S.x0+o,S.z0+o,S.x0+o,100,2.4); dobei(S.x0+o,114,S.x0+o,S.z1-o,2.4); dobei(S.x1-o,S.z0+o,S.x1-o,S.z1-o,2.4); dobei(S.x0+o,S.z1-o,148,S.z1-o,2.4); dobei(162,S.z1-o,S.x1-o,S.z1-o,2.4);
   for(const [x,z] of [[S.x0+6,S.z0+6],[S.x1-6,S.z0+6],[S.x0+6,S.z1-6],[S.x1-6,S.z1-6]]) yagura(x,z,10,9,0,{par:GE,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true});
   /* 塀の途中にも二重櫓（太閤期の大坂城は櫓が連なって見えた） */
   for(const [x,z] of [[I.x0+5,-40],[I.x0+5,30],[I.x1-5,30],[S.x0+6,-120],[S.x0+6,20]]) yagura(x,z,8,7,0,{par:GE,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true});
   for(const [x,z] of [[MIDB.x0+2.4,MIDB.z0+2.4],[MIDB.x1-2.4,MIDB.z0+2.4]]) yagura(x,z,4.5,4.5,0,{par:GE,y:MID_H,h1:3.4,h2:2.8,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true});
   gate(-229.5,107,9,Math.PI/2,{h:6,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); gate(-55,-220,8,0,{h:5.4,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); gate(-200,-220,8,0,{h:5.4,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); gate(155,209,8,0,{h:5.4,roof:M.roof,gable:M.lacquer,gold:true,par:GE}); }
+stEnd();
 /* 二の丸の大名屋敷 */
+stBegin('ni');
 const TOYO_TREES=[[-28,-95,'pine'],[8,-96,'pine'],[-34,-86.5,'pine'],[14,-85.5,'round'],[-62,-92,'pine'],[44,-94,'pine'],[56,-86,'round']],DAIMYO=[],TERA=[];
 function daimyo(x0,z0,x1,z1,face){ const w=x1-x0,d=z1-z0,cx=(x0+x1)/2,cz=(z0+z1)/2,H=2.3,gw=6;
   const sides={n:[x0,z0,x1,z0],s:[x0,z1,x1,z1],w:[x0,z0,x0,z1],e:[x1,z0,x1,z1]};
@@ -2502,6 +2513,7 @@ function daimyo(x0,z0,x1,z1,face){ const w=x1-x0,d=z1-z0,cx=(x0+x1)/2,cz=(z0+z1)
 { let z=-212; while(z<92){ const d=Math.min(26+rnd()*8,92-z); if(d<16) break; daimyo(120,z,164,z+d,'w'); daimyo(172,z,198,z+d,'w'); z+=d+2; } }
 { let x=-126; while(x<114){ const w=Math.min(28+rnd()*10,114-x); if(w<16) break; if(!(x<-40&&x+w>-70)) daimyo(x,-214,x+w,-160,'s'); x+=w+2; } }
 { for(const [xa,xb] of [[-226,-60],[20,140]]){ let x=xa; while(xb-x>16){ const w=Math.min(26+rnd()*10,xb-x); daimyo(x,140,x+w,204,'n'); x+=w+2; } } }
+stEnd();
 /* ================= 太閤の時代の都市: 三の丸・城下町・惣構 ================= */
 /* 木戸: 通りの辻ごとに門を設け、夜は閉めて町を区切った（kido=東西の通りをふさぐ向き、kidoNS=南北の通り） */
 function kido(x,zs){ const z0=zs+.35,z1=zs+7.65; for(const z of [z0,z1]){ B.darkwood.add(new THREE.BoxGeometry(.34,3.6,.34),TM(x,1.8,z)); block(x-.3,z-.3,x+.3,z+.3,'machi'); }
@@ -2527,9 +2539,10 @@ function daimyoLite(x0,z0,x1,z1,face){ const w=x1-x0,d=z1-z0,cx=(x0+x1)/2,cz=(z0
   block(cx-hw/2-.5,cz-hd/2-.5,cx+hw/2+.5,cz+hd/2+.5,'buke'); TOYO_TREES.push([x0+4,z0+4,'pine'],[x1-4,z1-4,'round']); }
 function lots(x0,x1,z0,z1,face,lw){ let x=x0; while(x1-x>18){ const w=Math.min(lw+rnd()*10,x1-x); daimyoLite(x,z0,x+w,z1,face); x+=w+2; } }
 /* 三の丸: 南の帯（城下町との間）、西と東の帯 */
+stBegin('san');
 for(const [a,b] of [[-594,-448],[-432,-68],[-52,112],[128,392],[408,554]]){ lots(a,b,264,330,'s',34); lots(a,b,334,398,'n',34); }
 for(const [a,b] of [[-594,-442],[-428,-284],[254,398],[412,554]]) for(const [c,d] of [[-256,-122],[-108,58],[72,243]]){ const deep=d-c; if(deep<40){ lots(a,b,c,d,a<0?'e':'w',34); continue; } lots(a,b,c,c+deep/2-1,'n',36); lots(a,b,c+deep/2+1,d,'s',36); }
-B=BD3; curSet=BSETS.def3;
+stEnd(); B=BD3; curSet=BSETS.def3;
 /* 三の丸の堀: 石垣の護岸、横矢の張り出し、橋の内側の枡形 */
 { const M3=SG.M3,yB=WATER_Y-3,L=M3.x1-M3.x0;
   for(const z of [M3.z0,M3.z1]){ const g=scaleUV(new THREE.PlaneGeometry(L,-yB),L/5.5,-yB/5.5); g.translate((M3.x0+M3.x1)/2,yB/2,z); B.stone.add(g,new THREE.Matrix4()); }
@@ -2544,6 +2557,7 @@ B=BD3; curSet=BSETS.def3;
     gate(gx,M3.z0-1.2,8,0,{h:5.4,roof:M.roof,gable:M.lacquer,gold:true,par:GD3}); B.stone.add(boxUVGeo(10,.4,2,2,2),TM(gx,.2,M3.z0-1.2));
     yagura(x0+3,z0+3,7,6,0,{par:GD3,wall:'wallK',roof:M.roof,gable:M.lacquer,gold:true,single:true,y:4}); } }
 B=BE; curSet=BSETS.toyo;
+stBegin('town');
 /* 惣構の中の地形と土地利用: 東（猫間川より）は田畑、南北に木の茂る谷筋がうねる */
 const VAL=z=>205+34*Math.sin((z-460)/58),VAL_W=19,VALR=[],FIELDS=[];
 function fieldBlock(x0,x1,z0,z1){ FIELDS.push([x0+1,x1-1,z0+1,z1-1]); const n=Math.floor((x1-x0)/70); for(let k=0;k<n;k++){ const x=x0+20+k*70+rnd()*20,z=z0+8+rnd()*(z1-z0-16),w=7,d=5.5;
@@ -2581,7 +2595,7 @@ function tera(x0,x1,z0,z1){ const cx=(x0+x1)/2,w=x1-x0,d=z1-z0; dobei(x0,z1,x1,z
   const bxp=x0+4,bzp=z0+4.5; B.darkwood.add(boxUVGeo(3,3.2,3,1.2,3),TM(bxp,1.6,bzp)); B.roof.add(gableRoofGeo(3.6,3.6,1.4,.6,.4),TM(bxp,3.2,bzp)); B.bronze.add(new THREE.CylinderGeometry(.55,.7,1.3,12),TM(bxp,2.6,bzp));
   block(cx-hw/2-1,hz-hd/2-1,cx+hw/2+1,hz+hd/2+1,'buke'); block(bxp-1.8,bzp-1.8,bxp+1.8,bzp+1.8,'buke'); TERA.push({cx,hz,hw,hd}); TOYO_TREES.push([x1-4,z0+4,'pine'],[cx+hw/2+3,z1-4,'round']); }
 for(const [xa,xb] of [[-594,-366],[-354,-166],[-154,-86],[-30,136],[144,296],[304,456],[464,554]]){ let x=xa; while(xb-x>26){ const w=Math.min(34+rnd()*12,xb-x); tera(x,x+w,801,828); x+=w+2; } }
-B=BDS; curSet=BSETS.defS;
+stEnd(); B=BDS; curSet=BSETS.defS;
 /* 土塁と塀、惣構の門と内側の枡形 */
 { const D=SG.DOTE,zc=(D.z0+D.z1)/2,H=5.5,bat=4.5,td=D.z1-D.z0-2*bat;
   for(const [a,b] of [[D.x0,SG.GATE.x0-1],[SG.GATE.x1+1,D.x1]]){ const L=b-a; const m=mesh(frustumGeo(L-2*bat,td,H,bat,4,true),M.dote,false,true); m.position.set((a+b)/2,0,zc); GDS.add(m);
@@ -2763,7 +2777,7 @@ function contactShadows(g,list,kinds,a){ const k=4,sc=makeCanvas(GN/k,GN/k),x=sc
   g.save(); g.globalAlpha=a; g.filter='blur(5px)'; g.drawImage(sc,0,0,GN,GN); g.restore(); }
 try{ contactShadows(gg,BSETS.modern.list,['town','house','castle'],.4); tGround.needsUpdate=true; contactShadows(ge,BSETS.toyo.list,['machi','buke','castle'],.4); tGroundE.needsUpdate=true; }catch(e){}
 const NOCAST=['lantern','lampIn','inWall','inDark','floor','kin','museum','tatami','kinpaku','hall','showcase'];
-for(const [set,par] of [[BS,scene],[BM,GM],[BE,GE],[BT,GT],[BD3,GD3],[BDS,GDS]]) for(const k in set) set[k].build(M[k],!NOCAST.includes(k),par);
+for(const [set,par] of [[BS,scene],[BM,GM],[BE,GE],[BT,GT],[BD3,GD3],[BDS,GDS],...Object.values(STG).map(s=>[s.B,s.G])]) for(const k in set) set[k].build(M[k],!NOCAST.includes(k),par);
 curSet=BSETS.shared;
 let FL=TEN.modern.FL, ST=TEN.modern.ST;
 
@@ -3129,7 +3143,7 @@ function attract(dt){ orbit+=dt*(reduceMotion?.02:.05); const c=MODE==='toyo'?TE
 let started=false,ready=false,nearSpot=null,lastArea='';
 const MCOL={castle:'#1a1b1e',town:'#5b554d',house:'#8c877e',buke:'#4f4638',machi:'#5a4c3e'};
 function mkMap(src,set){ const c=makeCanvas(GN,GN),x=c.getContext('2d'); x.drawImage(src,0,0); for(const b of BSETS.shared.list.concat(set.list)){ x.fillStyle=MCOL[b.kind]; x.fillRect((b.x0-DX0)*GS,(b.z0-DZ0)*GS,(b.x1-b.x0)*GS,(b.z1-b.z0)*GS); } return c; }
-const mapCM=mkMap(gc,BSETS.modern),mapCE=mkMap(gcE,BSETS.toyo); let mapC=mapCM;
+const mapCM=mkMap(gc,BSETS.modern),mapCE=mkMap(gcE,{list:BSETS.toyo.list.concat(...Object.values(STG).map(s=>s.set.list))}); let mapC=mapCM;
 for(const [c,T] of [[mapCM,TEN.modern],[mapCE,TEN.toyo]]){ const x=c.getContext('2d'); x.fillStyle='#d2452c'; const w=T.ext[0].w,d=T.ext[0].d; x.fillRect((T.cx-w/2-DX0)*GS,(T.cz-d/2-DZ0)*GS,w*GS,d*GS);
   x.fillStyle='#8f8a80'; const g=BRIDGES.find(b=>b.id==='gokuraku'); x.fillRect((g.x0-DX0)*GS,(g.z0-DZ0)*GS,(g.x1-g.x0)*GS,(g.z1-g.z0)*GS); }
 const miniC=$('miniC'),mini2=miniC.getContext('2d');
@@ -3646,16 +3660,16 @@ const SCENS={
    build(){ PH.sledU=unit({spr:PULL,n:26,at:[-6,300],w:5,d:22,spd:1}); for(const [x,z] of [[40,10],[-30,40]]) unit({spr:WORK,n:10,at:[x,z],w:10,d:6,mill:1,millR:3,dust:.6}); for(const [x,z] of [[40,10],[-30,40]]) worksite(x,z,undefined,4);
      for(const [x,y] of [[-26,1.9],[-24,5.5],[34,1.9],[36,5.5],[20,8.6-1.8]]) unit({spr:['ishiku','ninpu','mokko','p_naked'],n:7,at:[x,-12.5],w:x<0?26:34,d:.1,y,mill:.6,millR:.4,face:[0,-1],noScale:true,tight:true,air:true}); for(const [x,z] of [[MIDB.x0-2.3,-50],[MIDB.x1+2.3,-45]]) unit({spr:['ishiku','ninpu','mokko'],n:6,at:[x,z],w:40,d:.1,tight:true,air:true,y:1.9,mill:.6,millR:.4,face:[x<0?1:-1,0],noScale:true}); for(const [x,z] of [[-60,30],[60,30]]) { DC(pick(T_FLAG),x,z); DC('crates',x+4,z); } }},
   {date:'天正12〜13年（1584〜85）',title:'天守の建築',gnd:[8,-24,30,-44],time:1,cam:[80,40,0.75,-.15,1],fill:{soto:true,m3:true,sg:true},keep:[0,1],keepDur:45,
-   text:'高い天守台の上に、黒漆と金で飾った五重の天守が組み上がっていきます。天守は1585年ごろには完成していたと考えられています。（足場や作業の様子は想像です）',
+   text:'石垣ができた本丸に、黒漆と金で飾った五重の天守と、表御殿・奥御殿、塀や門が建ち上がっていきます。天守は1585年ごろには完成していたと考えられています。このころ城のまわりは、まだ湿地や空き地が広がっていました。（足場や作業の様子は想像です）',
    build(){ for(const [x,z] of [[52,-22],[8,-62],[52,-64],[8,-26]]) unit({spr:WORK,n:8,at:[x,z],w:6,d:4,y:TS_H,mill:1,millR:2.5,dust:.4}); unit({spr:['log','workers'],n:6,at:[30,-22],w:10,d:2,y:TS_H,mill:1.2,millR:4}); for(const [x,z] of [[-30,-22],[20,-21]]) worksite(x,z,TS_H,3); }},
   {date:'天正14〜16年（1586〜88）',title:'二の丸の普請',gnd:[-150,252,-230,254],time:1,cam:[-60,300,0,-.35,1],fill:{soto:false,m3:true,sg:true},keep:[1,1],
-   text:'本丸を囲む二の丸の堀と石垣が築かれます。西国の大名も動員され、大名ごとに受け持ちの区画（丁場）が割り当てられました。石垣には今も、担当した大名の印（刻印）が残ります。',
+   text:'本丸を囲む二の丸の堀と石垣が築かれます。西国の大名も動員され、大名ごとに受け持ちの区画（丁場）が割り当てられました。石垣には今も、担当した大名の印（刻印）が残ります。二の丸には櫓や塀、大名の屋敷が建ち並びはじめます。',
    build(){ for(let i=0;i<8;i++){ const x=-220+i*55,z=254; unit({spr:WORK,n:10,at:[x,z],w:12,d:3,mill:1,millR:2,dust:.5,face:[0,-1],flags:1,fl:[K_FLAG[i%K_FLAG.length]]}); DC(pick(['crates','tawara','kome']),x+8,z+5,{}); DC(pick(['cart','cart2']),x-8,z+6,{}); DC(K_FLAG[i%K_FLAG.length],x+10,z-2,{}); } }},
   {date:'文禄3年（1594）',title:'惣構の普請',gnd:[-30,896,-20,880],time:2,cam:[-60,900,0,-.3,1],fill:{soto:false,m3:true,sg:false},keep:[1,1],
-   text:'城下町全体を、堀と土塁で囲む「惣構（そうがまえ）」の工事が始まります。範囲はおよそ2km四方とされ、町そのものが城の守りに組み込まれました。',
+   text:'城下町全体を、堀と土塁で囲む「惣構（そうがまえ）」の工事が始まります。範囲はおよそ2km四方とされ、町そのものが城の守りに組み込まれました。平野郷や堺、京都から商人・職人や寺が呼び寄せられ、城の南に町家の並ぶ城下町と寺町ができあがっていきます。',
    build(){ for(let i=0;i<10;i++){ const x=-560+i*110,z=884; unit({spr:WORK,n:10,at:[x,z],w:14,d:3,mill:1,millR:3,dust:.8,y:0}); worksite(x+40,892,undefined,3); } for(let i=0;i<5;i++) DC('cart',-500+i*230,884); }},
   {date:'慶長3年（1598）',title:'三の丸の普請と完成',gnd:[-60,440,0,422],time:1,cam:[-60,520,0,-.3,1],fill:{soto:false,m3:false,sg:false},keep:[1,1],
-   text:'晩年の秀吉は、城と城下町の間にさらに三の丸を築かせ、大名屋敷を集めました。1598年8月、秀吉は伏見城で亡くなります。こうして完成した大坂城は、子の秀頼に受け継がれました。',
+   text:'晩年の秀吉は、城と城下町の間にさらに三の丸を築かせ、大名屋敷を集めました。1598年8月、秀吉は伏見城で亡くなります。城の外でも、東横堀川の西に船場の町が開かれました。着工からおよそ15年、こうして完成した大坂城と城下町は、子の秀頼に受け継がれました。',
    build(){ for(let i=0;i<9;i++){ unit({spr:WORK,n:8,at:[-540+i*120,422],w:12,d:3,mill:1,millR:2.5,dust:.5}); DC(pick(['crates','tawara','barrels','cart']),-532+i*120,464,{}); } }}]},
  fuyu:{name:'大坂冬の陣',sub:'1614年',fill:{soto:false,m3:false,sg:false},phases:[
   {date:'慶長19年（1614）11月',title:'城の包囲',gnd:[-60,836,-60,1000],time:0,cam:[-60,1120,0,-.18,1],
@@ -3706,7 +3720,7 @@ function natsuBase(sanada,fire){ siegeDeco([[420,1380]],1560); riders(1580); DC(
 
 /* ---------- 切り替え ---------- */
 let PHI=0,auto=true;
-function setScen(sc){ clearUnits(); SCEN=sc; const S=sc?SCENS[sc]:null; GB.visible=!!S; GNPC.visible=!S; GOUT.visible=!S; if(!S) SCAF.visible=false; GH.visible=sc==='fuyu'||sc==='natsu'; GSM.visible=sc==='fuyu'; sled.visible=false;
+function setScen(sc){ clearUnits(); SCEN=sc; const S=sc?SCENS[sc]:null; GB.visible=!!S; GNPC.visible=!S; if(!S){ SCAF.visible=false; applyStages(); } GH.visible=sc==='fuyu'||sc==='natsu'; GSM.visible=sc==='fuyu'; sled.visible=false;
   BOUNDS=(sc==='fuyu'||sc==='natsu')?{x0:-1200,x1:1300,z0:-312,z1:2050}:{x0:-616,x1:572,z0:-312,z1:900}; if(MODE==='toyo') MAPR=(sc==='fuyu'||sc==='natsu')?{x0:-900,x1:1150,z0:-400,z1:2100}:{x0:-640,x1:600,z0:-330,z1:900};
   if(!S){ FX.clear(); applyFill({soto:false,m3:false,sg:false}); keepBuild(1); $('scen').hidden=true; $('ticker').hidden=true; if(typeof setFov==='function') setFov(1); return; } $('ticker').hidden=false; setPhase(0); $('scen').hidden=false; }
 function applyFill(f){ Object.assign(FILL,f); const t=MODE==='toyo'; GD3.visible=!FILL.m3; GDS.visible=!FILL.sg; FILLM.soto.visible=t&&FILL.soto; FILLM.m3.visible=t&&FILL.m3; FILLM.sg.visible=t&&FILL.sg;
@@ -3725,8 +3739,13 @@ const SCAF=new THREE.Group(); SCAF.visible=false; GE.add(SCAF);
   const mk=(g,m,L)=>{ const im=new THREE.InstancedMesh(g,m,L.length); L.forEach((q,i)=>im.setMatrixAt(i,q)); im.castShadow=true; im.frustumCulled=false; SCAF.add(im); };
   const bam=std({color:'#b5a066',roughness:.8}); bam.color.convertSRGBToLinear(); mk(pole,bam,P); mk(bar,bam,Hh); mk(pk,M.wood,K); mk(new THREE.DodecahedronGeometry(.7,0),M.stone,S);
   for(const [x0,x1] of [[-44,-7],[9,61]]) block(x0,-13.2,x1,-11.4,'castle'); }
+/* 築城の時系列: 本丸の石垣 → 天守と本丸の建物 → 二の丸 → 城下町（惣構） → 三の丸と船場。場面が進むと、その時期の建物が地面から立ち上がる */
+STG.out={G:GOUT,set:{list:[],grid:new Map()},rise:1};
+const ST_PH={hon:1,ni:2,town:3,san:4,out:4};
+function applyStages(){ const ch=SCEN==='chikujo'; for(const k in STG){ const s=STG[k],v=ch?PHI>=ST_PH[k]:(k==='out'?!SCEN:true); if(ch&&v&&!s.G.visible){ s.rise=0; s.t0=performance.now(); s.G.scale.y=.001; } if(!ch){ s.rise=1; s.G.scale.y=1; } s.G.visible=v; } }
+function stageAnim(dt){ for(const k in STG){ const s=STG[k]; if(s.rise>=1) continue; s.rise=Math.min(1,(performance.now()-s.t0)/7000); s.G.scale.y=Math.max(.001,1-Math.pow(1-s.rise,3)); } }
 function setPhase(i){ const S=SCENS[SCEN]; PHI=(i+S.phases.length)%S.phases.length; PH=S.phases[PHI]; phT=0;
-  applyFill(Object.assign({},S.fill,PH.fill||{})); SCAF.visible=!!PH.scaf; keepBuild(PH.keep?PH.keep[0]:1); sled.visible=false;
+  applyFill(Object.assign({},S.fill,PH.fill||{})); SCAF.visible=!!PH.scaf; applyStages(); keepBuild(PH.keep?PH.keep[0]:1); sled.visible=false;
   scaledBuild(()=>{ clearUnits(); for(let k=TALK.length-1;k>=0;k--) if(TALK[k].scen) TALK.splice(k,1); PH.uma=null; PH.sledU=null; PH.sledIt=PH.sled?bCrowd.add('shura',PH.sled[0][0],0,PH.sled[0][1],{s:1.5}):null; PH.build(); });
   { const f=(TAGF[SCEN]||[])[PHI]; if(f) f(); } drawForce(); setTicker(PH.text,'解説'); applyTime(PH.time); FX.clear(); if(FXS.some(f=>f.type!=='cannon'&&!f.t0)) for(let k=0;k<40;k++){ fxsStep(0,.15); FX.update(.15); }
   $('scDate').textContent=S.name+' · '+PH.date; $('scTitle').textContent=PH.title; $('scText').textContent=PH.text; $('scNum').textContent=(PHI+1)+' / '+S.phases.length; $('scText').scrollTop=0; nearSpot=null; lastArea=''; }
@@ -3736,7 +3755,7 @@ function goGround(){ const g=PH&&PH.gnd; if(!g){ goPhaseCam(); return; } P.room=
   P.x=x; P.z=z; P.yaw=Math.atan2(-(g[2]-x),-(g[3]-z)); P.pitch=.02; P.y=groundH(x,z)+1.6; }
 function goScenCam(){ if(scGround&&PH&&PH.gnd) goGround(); else goPhaseCam(); $('scGnd').textContent=scGround?'空から':'地上へ'; }
 function goPhaseCam(){ if(!PH) return; const c=PH.cam; P.room=null; P.level=-1; P.x=c[0]; P.z=c[1]; P.yaw=c[2]; P.pitch=c[3]; P.mode=c[4]?'drone':'walk'; $('vView').textContent=c[4]?'空撮':'歩く'; P.y=c[4]?48:groundH(P.x,P.z)+1.6; }
-let phHold=0; function updateScen(dt){ if(!SCEN) return; updateUnits(dt); updateTour(dt); if(PH&&PH.uma&&phT>22&&!PH.uma.hidden){ bCrowd.hide(PH.uma); showHint('家康の馬印が倒れた！'); }
+let phHold=0; function updateScen(dt){ stageAnim(dt); if(!SCEN) return; updateUnits(dt); updateTour(dt); if(PH&&PH.uma&&phT>22&&!PH.uma.hidden){ bCrowd.hide(PH.uma); showHint('家康の馬印が倒れた！'); }
   if(!tour.on&&auto&&phT>(PH.dur||55)&&PHI<SCENS[SCEN].phases.length-1){ setPhase(PHI+1); goScenCam(); } }
 function updateChars(dt){ updateNPC(dt); updateScen(dt); FX.update(dt); const T=TIMES[timeIdx],inside=P.room||P.level>=0; sprTint(inside?1:T.night>.5?(SCEN==='natsu'&&PHI>=3?.6:.45):timeIdx===2?.88:timeIdx===0?.95:1); }
 
@@ -3785,6 +3804,8 @@ window.__scn.npcAudit=()=>window.__scn.audit(__npc.npcCrowd);
 /* 兵力（通説・諸説あり）と、人形の数の目安（1体＝約500人） */
 const FORCE={fuyu:{t:100000,k:200000},natsu:{t:55000,k:155000}};
 const PER=500;
+/* 場面ごとの損害と結果（通説・諸説あり） */
+const LOSS={fuyu:[null,'損害：佐竹勢に数百人の死傷者／砦は徳川方へ','損害：徳川方 数百〜1,000人近く（前田勢）／豊臣方 ごくわずか','直接の死傷は少ないが、城内の士気が下がる','結果：外堀を失い、城の守りが激減'],natsu:[null,'後藤又兵衛・木村重成ら討ち死に／藤堂勢も大損害','真田信繁・本多忠朝ら討ち死に／豊臣方 総崩れ','大坂城 落城','豊臣家 滅亡']};
 const TGT={fuyu:[{t:200,k:400},{t:200,k:400},{t:200,k:400},{t:200,k:400},null],natsu:[{t:110,k:310},{t:110,k:310},{t:110,k:310},{t:20,k:310},{t:0,k:310}]};
 const SIDE_K=/^(k_|taketaba_a|teppo_k|tsukaiban|horo)/,SIDE_T=/^(t_|r_|y_|ashigaru|yari_a|teppo_a|sanada|goto|kimura|teppo_line)/;
 let UMULT={t:1,k:1};
@@ -3793,28 +3814,48 @@ function unitSide(spr){ let k=0,t=0; for(const s of spr){ if(SIDE_K.test(s)) k++
 /* 自動案内の立ち寄り先: [x,z, 見る先x,z, 空撮1/地上0, テロップ] */
 const TOURS={
  chikujo:[
-  [[-60,170,-6,60,1,'秀吉は石山本願寺の跡に、天下一の城を築き始めました（1583年）'],[30,330,-6,250,1,'巨石は「修羅（しゅら）」というそりに載せ、人足が綱を引いて運びます'],[10,130,-6,70,0,'石工がのみで石を割り、奉行や棟梁が指図して石垣を積み上げます']],
-  [[80,40,30,-44,1,'天守台の上に、黒漆と金の天守が組み上がっていきます（1585年ごろ完成）'],[8,-24,30,-44,0,'足場を組み、大工や人足が働きます（足場の様子は想像です）']],
-  [[-60,300,-60,230,1,'本丸を囲む二の丸の堀と石垣を築きます（1586〜88年）'],[-150,252,-230,254,0,'大名ごとに受け持ちの区画「丁場」が割り当てられ、石には大名の印（刻印）が刻まれました']],
-  [[-60,900,-60,850,1,'城下町ごと堀と土塁で囲む「惣構（そうがまえ）」の工事です（1594年）'],[-30,896,-20,880,0,'空堀を掘り、その土を盛り上げて土塁にしていきます']],
-  [[-60,520,-60,440,1,'城と城下の間に三の丸を築き、諸大名の屋敷を集めました（1598年）'],[-60,600,-60,480,1,'この年、秀吉は伏見城で亡くなり、大坂城は子の秀頼に受け継がれました']]],
+  [[-60,170,-6,60,1,'秀吉は石山本願寺の跡に、天下一の城を築き始めました（1583年）。最初はまだ本丸の石垣だけ。まわりは湿地や空き地です'],[30,330,-6,250,1,'巨石は「修羅（しゅら）」というそりに載せ、人足が綱を引いて運びます'],[10,130,-6,70,0,'石工がのみで石を割り、奉行や棟梁が指図して、竹の足場の上で石垣を積み上げます']],
+  [[80,40,30,-44,1,'石垣ができた本丸に、黒漆と金の天守が組み上がっていきます（1585年ごろ完成）'],[-20,60,-10,-10,1,'表御殿・奥御殿や塀、門、櫓も次々に建ち上がります。城のまわりはまだ何もありません'],[8,-24,30,-44,0,'足場を組み、大工や人足が働きます（足場の様子は想像です）']],
+  [[-60,300,-60,230,1,'天下普請で本丸を囲む二の丸の堀と石垣を築きます（1586〜88年）'],[-150,252,-230,254,0,'大名ごとに受け持ちの区画「丁場」が割り当てられ、石には大名の印（刻印）が刻まれました'],[60,330,0,0,1,'二の丸に櫓や塀、大名の屋敷が建ち並びはじめます']],
+  [[-60,900,-60,850,1,'城下町ごと堀と土塁で囲む「惣構（そうがまえ）」の工事です（1594年）'],[-150,780,-60,600,1,'平野郷や堺、京都から商人・職人や寺が呼び寄せられ、町家の並ぶ城下町が形づくられていきます'],[-30,896,-20,880,0,'空堀を掘り、その土を盛り上げて土塁にしていきます']],
+  [[-60,520,-60,440,1,'城と城下の間に三の丸を築き、諸大名の屋敷を集めました（1598年）'],[-480,350,-800,300,1,'東横堀川の西には船場の町が開かれ、大坂は全国の政治の中心となる巨大な町になりました'],[-60,600,-60,480,1,'着工からおよそ15年。この年、秀吉は伏見城で亡くなり、大坂城は子の秀頼に受け継がれました']]],
  fuyu:[
-  [[-60,1120,-60,900,1,'1614年11月、徳川方 約20万が、豊臣方 約10万の籠もる大坂城を囲みました'],[-150,1560,-400,1760,1,'家康は台地の南の茶臼山（四天王寺の西）に、秀忠は東の低地の岡山に陣を置きます'],[900,500,600,300,1,'城の東は猫間川・旧大和川の流れる低地。大坂城は上町台地の北の端に築かれています'],[330,1065,330,950,1,'城の南に突き出した出丸が「真田丸」。真田信繁 約5,000が守ります']],
-  [[560,-60,700,-230,1,'11月26日、城の北東、旧大和川をはさんだ今福・鴫野で両軍がぶつかりました'],[640,-230,780,-200,0,'川の西岸で木村重成・後藤又兵衛が奮戦しますが、徳川方が砦を奪いました']],
-  [[440,1075,330,960,1,'12月4日、前田・井伊・松平の軍勢が真田丸へ攻め寄せます'],[330,1050,330,990,0,'竹束を押し立てて、空堀と三重の柵に迫る徳川勢'],[316,967,322,1040,0,'二段の塀の上から真田勢が鉄砲を撃ちかけ、徳川勢は大きな損害を出して退きました']],
-  [[40,-210,30,-44,1,'12月16日、家康は城の北の備前島から大筒（大砲）で天守を狙いました'],[0,-325,0,-372,1,'砲弾が天守に届いて侍女に死者が出たと伝わり、淀殿は和睦へ傾きます']],
-  [[-60,920,-60,858,1,'和睦の条件として、惣構の堀が埋められました'],[-60,520,-60,444,1,'徳川方は二の丸・三の丸の堀まで埋め、大坂城は本丸だけの「裸城」になります']]],
+  [[-60,1120,-60,900,1,'1614年11月、徳川方 約20万（一説に30万）が、豊臣方 約10万の籠もる大坂城を囲みました'],[-150,1560,-400,1760,1,'家康は台地の南の茶臼山（四天王寺の西）に、秀忠は東の低地の岡山に本陣を置きます'],
+   [-60,700,-60,450,1,'豊臣方の総大将は豊臣秀頼と母の淀殿。兵の多くは各地から集まった浪人衆（約7〜8万）で、作戦は城に立てこもる籠城です'],
+   [330,1065,330,950,1,'城の南に突き出した出丸が「真田丸」。守りの弱い南側を、真田信繁 約5,000（一説に3,000）が守ります'],
+   [100,1010,0,846,1,'惣構の南面には長宗我部盛親 約3,000、明石全登 約2,000、毛利勝永 約3,000〜5,000、後藤又兵衛 約2,000らが守りにつきます（配置は簡略）'],
+   [330,1160,330,1030,1,'向かい合う徳川方は、前田利常（約1万2千〜2万）、松平忠直（約1万〜1万5千）、井伊直孝らの大軍です'],
+   [900,500,600,300,1,'城の東は猫間川・旧大和川の流れる低地。大坂城は上町台地の北の端に築かれています']],
+  [[560,-60,700,-230,1,'11月26日、城の北東、旧大和川をはさんだ今福・鴫野で両軍がぶつかりました'],[640,-230,780,-200,0,'豊臣方：木村重成 約2,000〜3,000と後藤又兵衛が駆けつけて奮戦します'],
+   [700,-120,800,-170,1,'徳川方：上杉景勝・佐竹義宣ら。鉄砲隊を生かして砦を奪いますが、佐竹勢は豊臣方の反撃で数百人の死傷者を出し、一時押し込まれました'],
+   [600,-150,300,-200,1,'城の北東の砦を失った豊臣方は、守りを惣構の内側へ固めて持久戦の構えをとります']],
+  [[440,1075,330,960,1,'12月4日、前田・井伊・松平の軍勢が真田丸へ攻め寄せます'],[330,1050,330,990,0,'竹束を押し立てて、空堀と三重の柵に迫る徳川勢'],[316,967,322,1040,0,'二段の塀の上から真田勢が鉄砲と弓を集中して撃ちかけ、徳川勢は堀の中で身動きがとれなくなります'],
+   [330,1110,330,1000,1,'損害：徳川方は前田勢だけで数百〜1,000人近い死傷者（諸説あり）。豊臣方の損害はごくわずかでした'],
+   [-330,1690,-400,1760,1,'正面からの力攻めでは落ちないと見た家康は、大砲による砲撃と、和睦の交渉へ作戦を切りかえます'],
+   [-60,700,-60,846,1,'豊臣方は勝利で士気が上がりましたが、城を出て家康の本陣を攻めるほどの力はなく、籠城を続けます']],
+  [[40,-210,30,-44,1,'12月16日、家康は城の北の備前島などから大筒（大砲）で天守を狙いました'],[0,-325,0,-372,1,'徳川方は夜ごとに鬨の声を上げ、大砲を撃ちかけて、城内の人々の心を追いつめます'],[-30,110,30,-44,1,'砲弾が天守に届いて侍女に死者が出たと伝わり、淀殿は和睦へ傾きます']],
+  [[-60,920,-60,858,1,'12月、和睦が結ばれます。条件として惣構の堀が埋められることになりました'],[-60,520,-60,444,1,'徳川方は大勢の人手で二の丸・三の丸の堀まで埋め、大坂城は本丸だけの「裸城」になります'],
+   [-60,1120,-60,900,1,'戦いの勝ち負けでは押し返した豊臣方ですが、頼みの堀を失い、城の守りの力は大きく下がりました'],
+   [-60,300,30,-44,1,'この「裸城」が、翌年の夏の陣で豊臣方が城を出て野戦で戦うしかなくなる原因になります']]],
  natsu:[
-  [[-60,700,-60,500,1,'1615年4月、堀を埋められた大坂城はもう籠城できません'],[-60,1150,-60,1700,1,'徳川方 約15.5万が再び大坂へ。豊臣方 約5.5万は城を出て野戦で決着をつけます']],
-  [[60,1150,500,1650,1,'5月6日、豊臣方は台地を下りて東・南東へ出陣。八尾・若江は約8〜10km、道明寺は約20km先です'],[200,1300,400,1600,0,'後藤又兵衛（道明寺）、木村重成（若江）らが討ち死にし、豊臣方は城へ退きます']],
-  [[-180,1650,-350,1800,1,'5月7日、四天王寺の西の茶臼山から、真田信繁 約3,500が家康の本陣めがけて突撃します'],[-330,1830,-220,1930,0,'家康の旗本は崩れ、馬印が倒れたと伝わります'],[200,1250,420,1400,1,'東の岡山口でも、秀忠の軍勢と豊臣方が激しく戦いました'],[-380,1640,-400,1760,0,'しかし多勢に無勢。信繁は茶臼山の北、安居神社のあたりで討ち死にしました']],
-  [[-30,110,30,-44,1,'5月7日夕刻、徳川方が城内になだれ込み、天守と御殿に火が放たれました'],[-60,420,-60,250,1,'大坂城は炎に包まれ、夜空を焦がして燃え落ちたと伝わります']],
-  [[-30,-72,-36,-80,0,'燃え残った山里丸で、豊臣秀頼と母の淀殿は自害したと伝わります（5月8日）'],[30,60,30,-44,1,'豊臣家は滅び、徳川幕府は豊臣の城を埋めた上に新しい大坂城を築きました']]]};
+  [[-60,700,-60,500,1,'1615年4月、堀を埋められた大坂城はもう籠城できません'],[-60,1150,-60,1700,1,'徳川方 約15.5万が再び大坂へ。豊臣方 約5.5万は城を出て野戦で決着をつけます'],
+   [-60,1000,-60,840,1,'豊臣方の主な将：真田信繁、毛利勝永、後藤又兵衛、木村重成、長宗我部盛親、明石全登、大野治房ら'],
+   [420,1380,700,1600,1,'徳川方は河内路（東）と大和路（南東）の二手に分かれて大坂へ迫ります']],
+  [[60,1150,500,1650,1,'5月6日、豊臣方は台地を下りて東・南東へ出陣。八尾・若江は約8〜10km、道明寺は約20km先です'],
+   [500,1500,800,1900,1,'道明寺：後藤又兵衛 約2,800は、伊達・水野ら大和路の徳川勢 数万と先に出会い、奮戦の末に討ち死に。遅れて着いた真田・毛利勢が伊達勢を押しとどめました'],
+   [700,600,900,700,1,'八尾：長宗我部盛親 約5,300が藤堂高虎勢に大きな損害を与えます。若江：木村重成 約4,700は井伊直孝勢に敗れ、討ち死にしました'],
+   [200,1300,400,1600,0,'主な将を失った豊臣方は城へ退き、翌日の決戦にすべてを賭けます']],
+  [[-180,1650,-350,1800,1,'5月7日、豊臣方は天王寺口と岡山口に布陣。茶臼山には真田信繁 約3,500が陣取ります'],
+   [-120,1700,-60,1800,1,'天王寺口では毛利勝永 約4,000（一説に6,500）が本多忠朝らを討ち取り、徳川の先陣を突き崩しました'],
+   [-330,1830,-220,1930,0,'真田勢は松平忠直勢をかわして家康の本陣へ突撃。旗本は崩れ、家康の馬印が倒れたと伝わります'],[200,1250,420,1400,1,'東の岡山口では、大野治房らが秀忠の前田勢・旗本と激しく戦いました'],
+   [-380,1640,-400,1760,0,'しかし多勢に無勢。信繁は茶臼山の北、安居神社のあたりで討ち死にしました'],[0,1500,-60,1100,1,'真田・毛利の奮戦もおよばず、豊臣方は総崩れとなって城へ逃げ込みます']],
+  [[-30,110,30,-44,1,'5月7日夕刻、徳川方が城内になだれ込み、天守と御殿に火が放たれました'],[-60,420,-60,250,1,'堀のない城は、もう敵を防げません。大坂城は炎に包まれ、夜空を焦がして燃え落ちたと伝わります']],
+  [[-30,-72,-36,-80,0,'燃え残った山里丸で、豊臣秀頼と母の淀殿は自害したと伝わります（5月8日）'],[30,60,30,-44,1,'豊臣家は滅び、徳川幕府は豊臣の城を埋めた上に新しい大坂城を築きました。冬の陣の堀の埋め立てが、この結末へつながったのです']]]};
 
 /* 寄って見せる見どころ（望遠のズーム倍率）: ZOOM[場面][番号][見どころの番号] */
-const ZOOM={chikujo:[[0,2.6,1.5],[1.8,1.4],[0,1.6],[0,1.6],[0,0]],
-  fuyu:[[0,2.8,0],[1.6,1.7],[1.4,2.0,1.8],[1.6,2.2],[1.4,0]],
-  natsu:[[0,1.4],[1.3,1.6],[1.8,2.0,1.6,1.5],[2.2,1.3],[2.0,1.6]]};
+const ZOOM={chikujo:[[0,2.6,1.5],[1.8,0,1.4],[0,1.6,0],[0,0,1.6],[0,0,0]],
+  fuyu:[[0,2.8,0,1.6,1.4,1.4,0],[1.6,1.7,1.4,0],[1.4,2.0,1.8,1.4,1.8,0],[1.6,2.2,1.6],[1.4,0,0,0]],
+  natsu:[[0,1.4,1.2,1.2],[1.3,0,0,1.6],[1.8,1.6,2.0,1.6,1.5,0],[2.2,1.3],[2.0,1.6]]};
 const BASE_FOV=camera.fov; let fovNow=BASE_FOV;
 function setFov(z){ const f=BASE_FOV/Math.max(1,z); if(Math.abs(f-camera.fov)>.01){ camera.fov=f; camera.updateProjectionMatrix(); } fovNow=f; }
 /* ---------- 名札（3Dの部隊の上に浮かぶ） ---------- */
@@ -3844,14 +3885,14 @@ function updateTags(){ const cx=camera.position.x,cy=camera.position.y,cz=camera
     placed.push({sx:q.sx,sy,pw:q.pw,ph:q.ph}); } }
 const TAGF={
  chikujo:[()=>{ tagP(-40,-30,'石垣の普請','n',8); tagP(-6,300,'修羅で巨石を運ぶ','n',6); },()=>tagP(30,-44,'天守の建築','n',52),()=>tagP(-60,254,'二の丸の普請（大名ごとの丁場）','n',6),()=>tagP(-60,884,'惣構の空堀と土塁','n',6),()=>tagP(-60,422,'三の丸の普請','n',6)],
- fuyu:[()=>{ fuyuTags(); tagP(-60,1030,'徳川方の包囲 約20万','k',8); tagP(30,-44,'大坂城 豊臣方 約10万','t',60); },
+ fuyu:[()=>{ fuyuTags(); tagP(-60,1030,'徳川方の包囲 約20万','k',8); tagP(30,-44,'大坂城 豊臣方 約10万','t',60); tagP(150,838,'長宗我部盛親 約3,000','t',8); tagP(-150,838,'明石全登 約2,000','t',8); tagP(-420,838,'毛利勝永','t',8); tagP(330,1110,'前田利常','k',8); },
   ()=>{ fuyuTags(); tagU(uSpr('kimura')||uNear(520,-230,'t'),'木村重成・後藤又兵衛（豊臣）','t'); tagU(uNear(860,-190,'k'),'上杉景勝・佐竹義宣（徳川）','k'); tagP(700,-120,'旧大和川','n',4); },
   ()=>{ fuyuTags(); tagU(uNear(330,1046,'k'),'前田利常 約12,000','k'); tagU(uNear(235,1030,'k'),'松平忠直','k'); tagU(uNear(425,1030,'k'),'井伊直孝','k'); },
   ()=>{ fuyuTags(); tagP(0,-372,'備前島の大筒（徳川方）','k',6); },
   ()=>{ tagP(-60,858,'惣構の堀を埋める','n',6); tagP(-60,444,'三の丸の堀も埋められた','n',6); }],
  natsu:[()=>{ tagP(420,1380,'徳川秀忠（岡山口）','k',12); tagP(TENNOJI.x,TENNOJI.z,'四天王寺','n',30); tagP(-60,560,'豊臣方 約5.5万','t',8); tagP(-60,1110,'徳川方 約15.5万','k',8); },
-  ()=>{ tagP(420,1380,'徳川秀忠','k',12); tagU(uSpr('goto'),'後藤又兵衛 約2,800 → 道明寺','t'); tagU(uSpr('kimura'),'木村重成 約4,700 → 若江','t'); tagP(800,1960,'→ 八尾・若江（東 約8〜10km）／道明寺（南東 約20km）','n',8); },
-  ()=>{ tagP(420,1380,'徳川秀忠（岡山口）','k',12); tagU(uNear(-390,1790,'t'),'真田信繁 約3,500（茶臼山から）','t'); tagP(-200,1960,'徳川家康 本陣','k',8); tagP(-60,1900,'松平忠直 約15,000','k',6); tagP(TENNOJI.x,TENNOJI.z,'四天王寺','n',30); },
+  ()=>{ tagP(420,1380,'徳川秀忠','k',12); tagU(uSpr('goto'),'後藤又兵衛 約2,800 → 道明寺','t'); tagU(uSpr('kimura'),'木村重成 約4,700 → 若江','t'); tagP(800,1960,'→ 八尾・若江（東 約8〜10km）／道明寺（南東 約20km）','n',8); tagP(900,700,'→ 八尾：長宗我部盛親 vs 藤堂高虎','n',8); },
+  ()=>{ tagP(420,1380,'徳川秀忠（岡山口）','k',12); tagU(uNear(-390,1790,'t'),'真田信繁 約3,500（茶臼山から）','t'); tagP(-200,1960,'徳川家康 本陣','k',8); tagP(-60,1900,'松平忠直 約15,000','k',6); tagP(-60,1780,'毛利勝永（天王寺口）','t',6); tagP(TENNOJI.x,TENNOJI.z,'四天王寺','n',30); },
   ()=>{ tagP(-60,520,'徳川方 城内へ','k',6); tagP(30,-44,'天守炎上','n',58); },
   ()=>{ tagP(-36,-80,'山里丸','n',8); }]};
 function fuyuTags(){ tagP(-400,1760,'徳川家康 本陣（茶臼山）','k',30); tagP(420,1380,'徳川秀忠（岡山）','k',12); tagP(TENNOJI.x,TENNOJI.z,'四天王寺','n',30); tagP(SANADA.x,SANADA.z,'真田丸 真田信繁 約5,000','t',10); tagP(-300,838,'惣構の守り（豊臣方）','t',8); }
@@ -3870,7 +3911,7 @@ function sideCounts(){ const c=countSides(); return {t:c.t.u+c.t.f,k:c.k.u+c.k.f
 #ticker .tx{position:absolute;top:0;left:0;white-space:nowrap;line-height:36px;font-size:16px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;will-change:transform}
 #scForce{margin:6px 0 2px;display:grid;gap:3px} #scForce .r{display:grid;grid-template-columns:44px 1fr auto;gap:6px;align-items:center;font-size:11.5px}
 #scForce .b{height:9px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden} #scForce .b i{display:block;height:100%;border-radius:5px}
-#scForce .n{font-size:10.5px;color:var(--mute)} #scForce .u{font-size:10px;color:var(--mute);margin-top:1px}
+#scForce .n{font-size:10.5px;color:var(--mute)} #scForce .l{font-size:10.5px;color:#f1c27a;line-height:1.35} #scForce .u{font-size:10px;color:var(--mute);margin-top:1px}
 #scen #scText{display:none} #scen{box-sizing:border-box;max-width:calc(100% - 24px)} #scen .t{font-size:16px} #mini.battle{width:150px;height:150px}
 #scen.min{top:calc(env(safe-area-inset-top,0px) + 68px);width:calc(100% - 196px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));max-width:340px;padding:6px 8px 7px;border-radius:10px}
 #scen.min .d,#scen.min #scForce .u{display:none} #scen.min .t{font-size:13px;margin:0 0 4px;padding-right:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:22px}
@@ -3889,6 +3930,7 @@ function drawForce(){ const F=FORCE[SCEN],el=$('scForce'); if(!F){ el.innerHTML=
   const c=sideCounts(),mx=Math.max(F.t,F.k),fm=v=>v>=10000?'約'+(v/10000).toFixed(v%10000?1:0)+'万':'約'+v.toLocaleString();
   el.innerHTML=`<div class="r"><span>豊臣方</span><span class="b"><i style="width:${F.t/mx*100}%;background:#c8352a"></i></span><span>${fm(F.t)}</span></div>`+
     `<div class="r"><span>徳川方</span><span class="b"><i style="width:${F.k/mx*100}%;background:#2f5fa8"></i></span><span>${fm(F.k)}</span></div>`+
+    (((LOSS[SCEN]||[])[PHI])?`<div class="l">${LOSS[SCEN][PHI]}</div>`:'')+
     ((TGT[SCEN]||[])[PHI]?`<div class="u">人形1体＝約${PER}人（この場面：豊臣 ${c.t}体・徳川 ${c.k}体）／兵力は通説で諸説あり</div>`:'<div class="u">和睦の後の場面のため、兵は並べていません／兵力は通説で諸説あり</div>'); }
 
 /* ---------- 自動案内（カメラが見どころを順に回る） ---------- */
