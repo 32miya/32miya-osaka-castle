@@ -1314,7 +1314,7 @@ const cWallW=makeCanvas(256,512);{ const g=cWallW.getContext('2d'); g.fillStyle=
   g.fillStyle='rgba(0,0,0,.07)'; g.fillRect(0,96,256,5); g.fillRect(0,300,256,4);
   g.fillStyle='#2b2b2c'; g.fillRect(70,142,116,124); g.fillStyle='#08080a'; g.fillRect(78,150,100,108);
   for(let bx=82;bx<176;bx+=12){ g.fillStyle='#d9d7d0'; g.fillRect(bx,150,5,108); } g.fillStyle='#d3d1c9'; g.fillRect(64,266,128,8); }
-{ const g=cWallW.getContext('2d'),gr=g.createLinearGradient(0,0,0,110); gr.addColorStop(0,'rgba(20,18,15,.55)'); gr.addColorStop(1,'rgba(20,18,15,0)'); g.fillStyle=gr; g.fillRect(0,0,256,110); const g2=g.createLinearGradient(0,470,0,512); g2.addColorStop(0,'rgba(0,0,0,0)'); g2.addColorStop(1,'rgba(30,26,20,.35)'); g.fillStyle=g2; g.fillRect(0,470,256,42); }
+/* 軒下の影の描き込みは不要（削除） */
 const tWallW=toTex(cWallW);
 
 /* 黒漆塗りの下見板に金の飾り金具（豊臣期） */
@@ -1325,7 +1325,7 @@ const cWallK=makeCanvas(256,512);{ const g=cWallK.getContext('2d'); g.fillStyle=
   g.fillStyle='#c99a35'; g.fillRect(0,62,256,7);
   g.fillStyle='#c99a35'; g.fillRect(68,140,120,134); g.fillStyle='#050506'; g.fillRect(74,146,108,122);
   for(let bx=80;bx<182;bx+=12){ g.fillStyle='#3d3829'; g.fillRect(bx,146,4,122); } }
-{ const g=cWallK.getContext('2d'),gr=g.createLinearGradient(0,0,0,90); gr.addColorStop(0,'rgba(0,0,0,.6)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,256,90); }
+/* 軒下の影の描き込みは不要（削除） */
 const tWallK=toTex(cWallK);
 
 /* ---------- 最上層の意匠: 黒漆の壁に金の伏虎（ふくこ）と鶴 ---------- */
@@ -2600,6 +2600,7 @@ function shell(R,w,d,h,o){ const t=.2; R.w=w; R.d=d; rb(R,o.floor,-w/2,w/2,-.2,0
   const dw=o.door||1.8,dh=o.doorH||2.4,dx=o.doorX||0; rb(R,o.front||o.wall,-w/2-t,dx-dw/2,0,h,d/2,d/2+t); rb(R,o.front||o.wall,dx+dw/2,w/2+t,0,h,d/2,d/2+t); rb(R,o.front||o.wall,dx-dw/2,dx+dw/2,dh,h,d/2,d/2+t);
   rb(R,o.doorMat||'shoji',dx-dw/2,dx+dw/2,0,dh,d/2+t*.6,d/2+t*.7);
   R.rects=[{x0:R.ox-w/2+.45,x1:R.ox+w/2-.45,z0:R.oz-d/2+.45,z1:R.oz+d/2-.35}];
+  R.dw=dw; R.dh=dh; R.dx=dx;
   R.exitZone={x0:R.ox+dx-dw/2+.1,x1:R.ox+dx+dw/2-.1,z0:R.oz+d/2-.6,z1:R.oz+d/2+1}; R.spawn=[R.ox+dx,R.oz+d/2-1.5,0];
   for(let i=0;i<(o.lamps||4);i++) rg(R,'lampIn',new THREE.BoxGeometry(.3,.4,.3),-w/2+.5+(i%2)*(w-1),1.9,-d/4+((i>>1)%2)*d/2); }
 function coffer(R,w,d,h,cell,cells){ const nx=Math.max(2,Math.round(w/cell)),nz=Math.max(2,Math.round(d/cell)),cw=w/nx,cd=d/nz;
@@ -2971,8 +2972,8 @@ function labelSprite(text,sub){ const c=makeCanvas(512,160),g=c.getContext('2d')
 const DOOR_MARKS=[];
 function doorMark(par,era,x,z,nx,nz,name,w,h,o){ o=o||{}; const old=MODE; MODE=era; let wx=x,wz=z; for(let k=0;k<40&&!hitBlock(wx,wz,0);k++){ wx-=nx*.1; wz-=nz*.1; } MODE=old;
   const ry=Math.atan2(nx,nz),y0=o.y||0,g=new THREE.Group(); g.position.set(wx+nx*.06,y0,wz+nz*.06); g.rotation.y=ry; par.add(g);
-  if(!o.open){ const dk=mesh(new THREE.PlaneGeometry(w,h),M.black,false,false); dk.position.y=h/2; g.add(dk);
-  const glow=new THREE.Mesh(new THREE.PlaneGeometry(w*.8,h*.9),new THREE.MeshBasicMaterial({color:0x6a4a28,transparent:true,opacity:.55})); glow.position.set(0,h*.46,.01); g.add(glow); }
+  if(!o.open){ const dk=mesh(new THREE.PlaneGeometry(w,h),M.black,false,false); dk.position.y=h/2; g.add(dk); if(o.room) o.room.dk=dk;
+  const glow=new THREE.Mesh(new THREE.PlaneGeometry(w*.8,h*.9),new THREE.MeshBasicMaterial({color:0x6a4a28,transparent:true,opacity:.55})); glow.position.set(0,h*.46,.01); g.add(glow); if(o.room) o.room.glow=glow; }
   for(const s of [-1,1]){ const p=mesh(new THREE.BoxGeometry(.24,h+.3,.24),M.darkwood); p.position.set(s*(w/2+.12),(h+.3)/2,.1); g.add(p); }
   const l=mesh(new THREE.BoxGeometry(w+.8,.26,.3),M.darkwood); l.position.set(0,h+.25,.12); g.add(l);
   if(!o.noNoren){ const n=mesh(new THREE.PlaneGeometry(w*.94,.8),o.norenMat||M.noren); n.position.set(0,h-.42,.16); g.add(n); if(n.geometry.attributes&&!o.norenMat){ const c=new Float32Array(n.geometry.attributes.position.count*3); const col=new THREE.Color(o.noren||'#26406a').convertSRGBToLinear(); for(let i=0;i<c.length;i+=3){ c[i]=col.r; c[i+1]=col.g; c[i+2]=col.b; } n.geometry.setAttribute('color',new THREE.BufferAttribute(c,3)); } }
@@ -2980,7 +2981,7 @@ function doorMark(par,era,x,z,nx,nz,name,w,h,o){ o=o||{}; const old=MODE; MODE=e
   const sp=labelSprite(name,o.sub||'入口 · 近づくと入れます'); sp.position.set(0,h+1.9,.4); g.add(sp);
   DOOR_MARKS.push({sp,base:h+1.9,era,x:wx+nx*1.2,z:wz+nz*1.2}); }
 ROOMS.forEach(R=>{ const dx=R.exitPos[0]-R.door[0],dz=R.exitPos[1]-R.door[1],l=Math.hypot(dx,dz)||1; R.nrm=[dx/l,dz/l];
-  const small=R.name.includes('茶室'); doorMark(R.era==='modern'?GM:GE,R.era,R.door[0],R.door[1],dx/l,dz/l,R.name.replace(/（.*?）/g,''),small?.8:1.8,small?.9:2.4,{noren:R.era==='modern'?'#3b3a52':'#26406a',noNoren:small,sub:small?'にじり口 · 近づくと入れます':undefined}); });
+  const small=R.name.includes('茶室'); doorMark(R.era==='modern'?GM:GE,R.era,R.door[0],R.door[1],dx/l,dz/l,R.name.replace(/（.*?）/g,''),small?.8:1.8,small?.9:2.4,{noren:R.era==='modern'?'#3b3a52':'#26406a',noNoren:small,sub:small?'にじり口 · 近づくと入れます':undefined,room:R}); });
 { const T=TEN.modern; doorMark(GM,'modern',T.door.x+.5,(T.door.z0+T.door.z1)/2,1,0,'天守閣 1階入口',2.2,2.9,{y:10,noNoren:true,open:true,sub:'入口 · 石段を上った先'}); 
   const t=labelSprite('天守閣入口','石段を上って天守台の上へ'); t.position.set(13.3,4,-22); GM.add(t); DOOR_MARKS.push({sp:t,base:4,era:'modern',x:13.3,z:-22}); }
 { const T=TEN.toyo,E=T.entry; const t=labelSprite('天守入口（穴蔵）','近づくと入れます'); t.position.set(E.X+.6,T.g0+4.6,E.zc); GE.add(t); DOOR_MARKS.push({sp:t,base:T.g0+4.6,era:'toyo',x:E.X+1,z:E.zc}); }
@@ -3839,6 +3840,25 @@ const _drawMini0=drawMini; drawMini=function(){ const mb=!!SCEN&&MODE==='toyo'&&
 const _drawMap0=drawMap; drawMap=function(){ _drawMap0(); if(!SCEN) return; const c=$('mapC'),g=c.getContext('2d'),dpr=Math.min(2,devicePixelRatio||1),sx=c.width/(MAPR.x1-MAPR.x0),sz=c.height/(MAPR.z1-MAPR.z0); g.fillStyle='#4a4842'; g.fillRect(0,0,c.width,c.height); drawWorld(g,x=>(x-MAPR.x0)*sx,z=>(z-MAPR.z0)*sz);
   battleOverlay(g,x=>(x-MAPR.x0)*sx,z=>(z-MAPR.z0)*sz,Math.min(sx,sz),dpr); };
 window.__tour={tour,tourGo,TAGS};
+
+/* ================= 出入口から見える景色: 戸口に、反対側（室内／外）の景色を写し込む =================
+   入口の外からは部屋の中が、部屋の中の戸口からは外の景色が見える。近づいたときに1回だけ描いて使い回す */
+{ const opaq=m=>{ m.onBeforeCompile=sh=>{ sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n diffuseColor.a=1.0;'); }; return m; };
+  const SZ=256,pcam=new THREE.PerspectiveCamera(70,1,.1,9000),Q=[];
+  function snap(R,inside){ const rt=new THREE.WebGLRenderTarget(SZ,Math.round(SZ*R.dh/R.dw),{encoding:THREE.sRGBEncoding,generateMipmaps:false,minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter}); pcam.aspect=R.dw/R.dh; pcam.updateProjectionMatrix();
+    if(inside){ /* 外の景色: 戸口の外に立って外を向く */ const x=R.exitPos[0],z=R.exitPos[1],yaw=R.exitPos[2]; pcam.position.set(x,groundH(x,z)+1.5,z); pcam.rotation.set(0,yaw,0,'YXZ'); }
+    else { /* 部屋の中: 戸口のすぐ内側から奥を向く */ pcam.position.set(R.ox+R.dx,R.y+1.45,R.oz+R.d/2-.4); pcam.rotation.set(-.04,0,0,'YXZ'); }
+    const fog=scene.fog; if(!inside) scene.fog=null;
+    const sp=sky.position.clone(); sky.position.copy(pcam.position); renderer.setRenderTarget(rt); renderer.clear(); renderer.render(scene,pcam); sky.position.copy(sp); renderer.setRenderTarget(null); scene.fog=fog; return rt.texture; }
+  for(const R of ROOMS){ if(!R.dw||!R.dk) continue;
+    /* 室内側: 戸口の位置に外の景色の板 */ const m=new THREE.Mesh(new THREE.PlaneGeometry(R.dw-.06,R.dh-.04),opaq(new THREE.MeshBasicMaterial({color:0x2a2622,toneMapped:false})));
+    m.position.set(R.ox+R.dx,R.y+R.dh/2,R.oz+R.d/2+.03); m.rotation.y=Math.PI; (R.era==='modern'?GM:GE).add(m); R.pIn=m; R.dk.material=opaq(new THREE.MeshBasicMaterial({color:0x2a2622,toneMapped:false})); Q.push(R); }
+  let tick=0,lastT=-1;
+  function updatePortals(){ if(++tick%3) return; if(lastT!==timeIdx){ lastT=timeIdx; for(const R of Q){ R.snapOut=R.snapIn=null; } }
+    for(const R of Q){ if(R.era!==MODE) continue;
+      if(P.room===R){ if(!R.snapIn){ R.snapIn=1; const t=snap(R,true); R.pIn.material.map=t; R.pIn.material.color.set(0xffffff); R.pIn.material.needsUpdate=true; } return; }
+      if(!P.room&&P.level<0&&!R.snapOut&&Math.hypot(P.x-R.door[0],P.z-R.door[1])<45){ R.snapOut=1; const t=snap(R,false); R.dk.material.map=t; R.dk.material.color.set(0xffffff); R.dk.material.needsUpdate=true; if(R.glow) R.glow.visible=false; return; } } }
+  const _uc=updateChars; updateChars=function(dt){ _uc(dt); updatePortals(); }; }
 
 
 /* ---------- loop ---------- */
