@@ -1621,6 +1621,14 @@ function paintEnv(T,sd){ const top='#'+new THREE.Color(T.top).getHexString(),hor
       for(let i=0;i<10;i++){ g.fillStyle='rgba(40,38,34,.5)'; const x=rnd()*64,w=4+rnd()*10,h=2+rnd()*8; g.fillRect(x,32-h,w,h); } }
     const d=dirs[f],dot=d[0]*sd.x+d[1]*sd.y+d[2]*sd.z; if(dot>.35){ const gr=g.createRadialGradient(32,f===2?32:Math.max(6,32-sd.y*30),0,32,32,40); gr.addColorStop(0,'rgba(255,245,220,'+(.9*dot).toFixed(2)+')'); gr.addColorStop(1,'rgba(255,245,220,0)'); g.fillStyle=gr; g.fillRect(0,0,64,64); } });
   envCube.needsUpdate=true; }
+/* 太閤の時代の石垣: 灰色の野面積みに、石のすき間や下の方へ苔がつく（現代の石垣は明るい花崗岩のまま） */
+const mossify=src=>{ const W=src.width,H=src.height,c=makeCanvas(W,H),g=c.getContext('2d'); g.drawImage(src,0,0); const d=g.getImageData(0,0,W,H),p=d.data;
+  const N=24,nz=[]; let sd=7; const r=()=>{ sd=(sd*16807)%2147483647; return sd/2147483647; }; for(let i=0;i<N*N;i++) nz.push(r());
+  const nAt=(x,y)=>{ const fx=x/W*N,fy=y/H*N,i0=Math.floor(fx)%N,j0=Math.floor(fy)%N,i1=(i0+1)%N,j1=(j0+1)%N,tx=fx-Math.floor(fx),ty=fy-Math.floor(fy),a=nz[j0*N+i0]*(1-tx)+nz[j0*N+i1]*tx,b=nz[j1*N+i0]*(1-tx)+nz[j1*N+i1]*tx; return a*(1-ty)+b*ty; };
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const k=(y*W+x)*4,l=.3*p[k]+.59*p[k+1]+.11*p[k+2],n=nAt(x,y),n2=nAt(x*3.1+57,y*3.1+23);
+    let R=l*.9+10,G=l*.92+11,Bq=l*.96+13; const gap=l<85?1:0,m=Math.max(0,Math.min(1,(n-.48)*3.2))*(gap?1:.42)*(.6+.4*n2);
+    R=R*(1-m)+(52+n2*30)*m; G=G*(1-m)+(74+n2*34)*m; Bq=Bq*(1-m)+(36+n2*14)*m; p[k]=R; p[k+1]=G; p[k+2]=Bq; }
+  g.putImageData(d,0,0); return toTex(c); }, tStoneT=mossify(cStone), tStoneKT=mossify(cStoneK);
 const ENV_I={gold:1.3,tiger:1,tiger2:1,crane:1,kiri:1,kinpaku:.9,lacquer:1,wallK:.9,topK:1,bronze:.9,tower:1.1,roofG:.7,roof:.55,hinoki:.3,shrineRoof:.7,ridge:.6,showcase:.6,glass:1.2,concrete:.3,stoneK:.25,stone:.25,sangi:.25,plaster:.3,wallW:.35,wood:.25,darkwood:.3,floor:.5,tatami:.25,kura:.3,machiya:.25,shingle:.3,dobei:.3,mira:.35,facade:.35,hroof:.5,black:.5,felt:.15};
 for(const k in ENV_I){ const m=M[k]; if(!m) continue; m.envMap=envCube; m.envMapIntensity=ENV_I[k]; m.needsUpdate=true; }
 /* 金と漆の値（金属はツヤ、漆は黒い鏡のような反射） */
@@ -2410,6 +2418,12 @@ function goten(cx,cz,w,d,h,y,o){ o=o||{}; y=y||0; B.stone.add(boxUVGeo(w+1.6,.9,
   const r=hipRoof(Math.max(w,d),Math.min(w,d),2.2,{roof:M.hinoki,gable:M.lacquer,gold:true},true); r.position.set(cx,y+.9+h-.1,cz); if(d>w) r.rotation.y=Math.PI/2; GE.add(r);
   if(o.kara){ const g=new THREE.Group(); g.position.set(cx,y+.9,cz+d/2); GE.add(g); karahafu(g,0,h-.9,.6,0,7,{roof:M.hinoki,gable:M.lacquer,gold:true}); B.carve.add(new THREE.BoxGeometry(5,.8,.1),TM(cx,y+.9+h-.7,cz+d/2+2.15)); orn(null,'ranma2',cx,y+.9+h-1.08,cz+d/2+2.22,0,{w:5,hmax:.78}); for(const s2 of [-1,1]) orn(null,'kg_t',cx+s2*2.8,y+1.6,cz+d/2+2.19,0,.9); for(const s of [-1,1]) B.lacquer.add(new THREE.BoxGeometry(.35,h-.2,.35),TM(cx+s*2.8,y+.9+(h-.2)/2,cz+d/2+2)); }
   block(cx-w/2-.8,cz-d/2-.8,cx+w/2+.8,cz+d/2+(o.kara?2.4:.8),'castle'); }
+/* 渡り廊下: 御殿どうしを屋根付きの廊下でつなぐ（柱と屋根だけ。下は歩いて通れる） */
+function roka(x0,z0,x1,z1,y){ y=y||0; const vert=Math.abs(z1-z0)>Math.abs(x1-x0),L=vert?Math.abs(z1-z0):Math.abs(x1-x0),cx=(x0+x1)/2,cz=(z0+z1)/2,W=3.2,H=3.2,ry=vert?Math.PI/2:0;
+  const ax=vert?0:1,az=vert?1:0,px=vert?1:0,pz=vert?0:1; for(let t=-L/2;t<=L/2+.01;t+=3) for(const s of [-1,1]){ const x=cx+ax*t+px*s*W/2,z=cz+az*t+pz*s*W/2; B.lacquer.add(new THREE.BoxGeometry(.24,H,.24),TM(x,y+H/2,z)); block(x-.15,z-.15,x+.15,z+.15,'castle'); }
+  B.lacquer.add(new THREE.BoxGeometry(L,.22,.3),TM(cx+px*W/2,y+H,cz+pz*W/2,ry)); B.lacquer.add(new THREE.BoxGeometry(L,.22,.3),TM(cx-px*W/2,y+H,cz-pz*W/2,ry));
+  B.hinoki.add(gableRoofGeo(L,W+1.2,.9,.5,.3),TM(cx,y+H,cz,ry)); B.stone.add(boxUVGeo(L,.06,W-.4,3,3),TM(cx,y+.03,cz,ry)); }
+roka(-33,36,2,36); roka(9,21,9,6);
 goten(26,34,48,26,5.4,0,{kara:true}); goten(-46,36,26,18,4.6); goten(-14,-43,36,24,4.6,TS_H); goten(-36,-26,14,10,4,TS_H);
 /* 山里丸: 茶室と庭 */
 { const tea=(x,z,w,d)=>{ B.wood.add(boxUVGeo(w,2.4,d,2.6,2.4),TM(x,1.2,z)); B.straw.add(gableRoofGeo(w,d,1.6,.8,.5),TM(x,2.4,z)); B.wood.add(gableEndsGeo(w,d,1.6),TM(x,2.4,z)); B.black.add(new THREE.BoxGeometry(.9,.9,.05),TM(x,.6,z+d/2+.02)); block(x-w/2-.6,z-d/2-.6,x+w/2+.6,z+d/2+.6,'castle'); };
@@ -3162,7 +3176,7 @@ function nearestSpot(){ return curSpots.reduce((a,b)=>Math.hypot(b.pos[0]-P.x,b.
 $('tView').onclick=()=>{ if(!started) return; if(P.mode==='walk'){ if(P.room) exitRoom(); if(P.level>=0){ const E=TEN[MODE].entry,TD=TEN[MODE].door; P.level=-1; if(TD){ P.x=20; P.z=-28; } else { P.x=E.X+6; P.z=E.zc; } } P.mode='drone'; $('vView').textContent='空撮'; P.pitch=Math.min(P.pitch,-.25); }
   else { P.mode='walk'; $('vView').textContent='歩く'; if(!walkable(P.x,P.z)){ if(SCEN&&PH&&PH.gnd){ goGround(); return; } const s=nearestSpot(); P.x=s.pos[0]; P.z=s.pos[1]; } P.pitch=Math.max(P.pitch,-.2); } };
 $('tTime').onclick=()=>applyTime((timeIdx+1)%TIMES.length);
-function setMode(m){ const wasIn=P.level>=0||!!P.room; P.room=null; MODE=m; MAPR=m==='toyo'?{x0:-640,x1:600,z0:-330,z1:900}:{x0:-300,x1:280,z0:-330,z1:310}; GM.visible=m==='modern'; GE.visible=m==='toyo'; FL=TEN[m].FL; ST=TEN[m].ST; setEraWalls(); mapC=m==='toyo'?mapCE:mapCM; curSpots=spotList(); buildPins(); lastArea=''; nearSpot=null;
+function setMode(m){ const wasIn=P.level>=0||!!P.room; P.room=null; MODE=m; MAPR=m==='toyo'?{x0:-640,x1:600,z0:-330,z1:900}:{x0:-300,x1:280,z0:-330,z1:310}; GM.visible=m==='modern'; GE.visible=m==='toyo'; M.stone.map=m==='toyo'?tStoneT:tStone; M.stone.color.set(m==='toyo'?0xd8d8d4:0xe2ded6); M.stoneK.map=m==='toyo'?tStoneKT:tStoneK; FL=TEN[m].FL; ST=TEN[m].ST; setEraWalls(); mapC=m==='toyo'?mapCE:mapCM; curSpots=spotList(); buildPins(); lastArea=''; nearSpot=null;
   $('vEra').textContent=m==='toyo'?'太閤':'現代'; $('eyebrow').textContent='大阪城さんぽ · '+(m==='toyo'?'太閤の時代':'現代'); applyTime(timeIdx);
   if(started&&(wasIn||P.mode==='walk'&&!walkable(P.x,P.z))){ teleport(wasIn?curSpots.find(s=>s.id==='iriguchi'):nearestSpot()); }
   if(started) showHint(m==='toyo'?'太閤・豊臣秀吉の時代（1590年代ごろ）の大坂城を、想像を交えて再現しています':'現代の大阪城に戻りました'); }
