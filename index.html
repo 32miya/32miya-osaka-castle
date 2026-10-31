@@ -3937,7 +3937,7 @@ function sideCounts(){ const c=countSides(); return {t:c.t.u+c.t.f,k:c.k.u+c.k.f
 #ticker .tx{position:absolute;top:0;left:0;white-space:nowrap;line-height:36px;font-size:16px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;will-change:transform}
 #scForce{margin:6px 0 2px;display:grid;gap:3px} #scForce .r{display:grid;grid-template-columns:44px 1fr auto;gap:6px;align-items:center;font-size:11.5px}
 #scForce .b{height:9px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden} #scForce .b i{display:block;height:100%;border-radius:5px}
-#scForce .n{font-size:10.5px;color:var(--mute)} #scForce .l{font-size:10.5px;color:#f1c27a;line-height:1.35} #scForce .u{font-size:10px;color:var(--mute);margin-top:1px}
+#scForce .n{font-size:10.5px;color:var(--mute)} #scForce .l{font-size:10.5px;color:#f1c27a;line-height:1.35} #scForce em{font-style:normal;color:#ff8a7a;font-size:.9em;margin-left:3px} #scForce .sw{display:flex;position:relative;overflow:visible} #scForce .sw i{border-radius:0} #scForce .sw i:first-child{border-radius:5px 0 0 5px} #scForce .sw i:last-child{border-radius:0 5px 5px 0} #scForce .sw b{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 4px #000;transition:left .4s} #scForce .b i{transition:width .4s} #scForce .st{font-weight:700;color:#9fc3ff} #scForce .st.bad{color:#ff8a7a} #scForce .u{font-size:10px;color:var(--mute);margin-top:1px}
 #scen #scText{display:none} #scen{box-sizing:border-box;max-width:calc(100% - 24px)} #scen .t{font-size:16px} #mini.battle{width:150px;height:150px}
 #scen.min{top:calc(env(safe-area-inset-top,0px) + 68px);width:calc(100% - 196px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));max-width:340px;padding:6px 8px 7px;border-radius:10px}
 #scen.min .d,#scen.min #scForce .u{display:none} #scen.min .t{font-size:13px;margin:0 0 4px;padding-right:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:22px}
@@ -3952,12 +3952,31 @@ function setTicker(text,label){ if(text===tick.text) return; tick.text=text; con
 function tickerNeed(){ return Math.max(0,tick.w-(tick.cw-tick.lbw-24))/tick.speed+5; }   /* 読み切るのに必要な秒数 */
 function updateTicker(dt){ if($('ticker').hidden) return; const room=tick.cw-tick.lbw-24; if(tick.w<=room) return; if(tick.hold>0){ tick.hold-=dt; return; }
   tick.x-=tick.speed*dt; if(tick.x<-tick.w+tick.lbw+room*.6){ tick.x=tick.lbw+12; tick.hold=2.2; } $('tkTx').style.transform=`translateX(${tick.x}px)`; }
-function drawForce(){ const F=FORCE[SCEN],el=$('scForce'); if(!F){ el.innerHTML='<div class="u">人足・職人を動員した築城の様子（人数は目安ではありません）</div>'; return; }
-  const c=sideCounts(),mx=Math.max(F.t,F.k),fm=v=>v>=10000?'約'+(v/10000).toFixed(v%10000?1:0)+'万':'約'+v.toLocaleString();
-  el.innerHTML=`<div class="r"><span>豊臣方</span><span class="b"><i style="width:${F.t/mx*100}%;background:#c8352a"></i></span><span>${fm(F.t)}</span></div>`+
-    `<div class="r"><span>徳川方</span><span class="b"><i style="width:${F.k/mx*100}%;background:#2f5fa8"></i></span><span>${fm(F.k)}</span></div>`+
+/* 場面ごとの兵力と戦況の移り変わり（通説をもとにした目安）: [場面の中の秒, 豊臣方, 徳川方, 戦況(豊臣の優勢 0〜1)] */
+const FLOW={fuyu:[[[0,100000,200000,.45],[30,100000,200000,.45]],
+  [[0,100000,200000,.5],[10,99800,199700,.55],[30,99000,199300,.36]],
+  [[0,99000,199300,.4],[12,98950,198600,.55],[30,98900,197800,.72]],
+  [[0,98900,197800,.62],[25,98800,197800,.42]],
+  [[0,98800,197800,.4],[30,98800,197800,.18]]],
+ natsu:[[[0,55000,155000,.3],[30,55000,155000,.28]],
+  [[0,55000,155000,.32],[12,53500,154000,.36],[30,50000,152500,.18]],
+  [[0,50000,152500,.25],[12,47000,150500,.5],[22,42000,148000,.6],[34,32000,146000,.2],[45,28000,145500,.1]],
+  [[0,28000,145500,.1],[40,6000,145000,.02]],
+  [[0,3000,145000,.01],[20,0,145000,0]]]};
+function flowAt(t){ const L=((FLOW[SCEN]||[])[PHI]); if(!L) return null; if(t<=L[0][0]) return L[0]; for(let i=1;i<L.length;i++) if(t<=L[i][0]){ const a=L[i-1],b=L[i],k=(t-a[0])/(b[0]-a[0]); return a.map((v,j)=>v+(b[j]-v)*k); } return L[L.length-1]; }
+let flowLast=null;
+function drawForce(){ const F=FORCE[SCEN],el=$('scForce'); if(!F){ el.innerHTML='<div class="u">人足・職人を動員した築城の様子（人数は目安ではありません）</div>'; flowLast=null; return; }
+  const fw=flowAt(phT)||[0,F.t,F.k,.5],t=fw[1],k=fw[2],bal=fw[3],mx=Math.max(F.t,F.k),fm=v=>v>=10000?'約'+(Math.round(v/1000)/10)+'万':'約'+(Math.round(v/100)*100).toLocaleString();
+  const L=(FLOW[SCEN]||[])[PHI]||[[0,t,k]],t0=L[0][1],k0=L[0][2],dl=(v0,v)=>v0-v>=50?`<em>▼${fm(v0-v).replace('約','')}</em>`:'';
+  const st=bal>=.62?'豊臣方 優勢':bal>=.45?'互角':bal>=.25?'豊臣方 劣勢':'豊臣方 総崩れ';
+  flowLast=[t,k,bal]; const c=sideCounts();
+  el.innerHTML=`<div class="r"><span>豊臣方</span><span class="b"><i style="width:${t/mx*100}%;background:#c8352a"></i></span><span>${fm(t)}${dl(t0,t)}</span></div>`+
+    `<div class="r"><span>徳川方</span><span class="b"><i style="width:${k/mx*100}%;background:#2f5fa8"></i></span><span>${fm(k)}${dl(k0,k)}</span></div>`+
+    `<div class="r w"><span>戦況</span><span class="b sw"><i style="width:${bal*100}%;background:#c8352a"></i><i style="width:${(1-bal)*100}%;background:#2f5fa8"></i><b style="left:${bal*100}%"></b></span><span class="st${bal<.45?' bad':''}">${st}</span></div>`+
     (((LOSS[SCEN]||[])[PHI])?`<div class="l">${LOSS[SCEN][PHI]}</div>`:'')+
-    ((TGT[SCEN]||[])[PHI]?`<div class="u">人形1体＝約${PER}人（この場面：豊臣 ${c.t}体・徳川 ${c.k}体）／兵力は通説で諸説あり</div>`:'<div class="u">和睦の後の場面のため、兵は並べていません／兵力は通説で諸説あり</div>'); }
+    ((TGT[SCEN]||[])[PHI]?`<div class="u">人形1体＝約${PER}人（この場面：豊臣 ${c.t}体・徳川 ${c.k}体）／兵力は通説で諸説あり</div>`:'<div class="u">兵力・戦況は通説をもとにした目安です</div>'); }
+/* 場面が進むにつれてメーターを動かす */
+{ let acc=0; const _u=updateTour; updateTour=function(dt){ _u(dt); if(!SCEN||!FORCE[SCEN]) return; acc+=dt; if(acc<.4) return; acc=0; const f=flowAt(phT); if(f&&flowLast&&(Math.abs(f[1]-flowLast[0])>20||Math.abs(f[2]-flowLast[1])>20||Math.abs(f[3]-flowLast[2])>.005)) drawForce(); }; }
 
 /* ---------- 自動案内（カメラが見どころを順に回る） ---------- */
 const tour={on:true,i:-1,t:0,dur:0,from:null,to:null,move:0,done:false,snap:null};
