@@ -2692,7 +2692,7 @@ const roomTxt=(name,kana,text,meta)=>({name,kana,text,meta});
 /* ---------- 太閤の時代 ---------- */
 B=BE;
 /* 千畳敷（表御殿の大広間） */
-{ const R=mkRoom(Object.assign({era:'toyo',zone:{x0:24.6,x1:27.4,z0:49.5,z1:50.6},exitPos:[26,52.5,Math.PI]},roomTxt('千畳敷（表御殿の大広間）','せんじょうじき','千枚の畳を敷けるほどといわれた大広間。秀吉はここで諸大名や海外からの使節と対面しました。奥の一段高い「上段の間」に秀吉が座り、背後の床の間と違い棚、金の襖絵が権威を示しました。ここは想像を交えた再現です。',[['広さ','このアプリでは約46m×24m'],['見どころ','上段の間・格天井・金の襖'],['再現','想像を交えた復元']])));
+{ const R=mkRoom(Object.assign({era:'toyo',zone:{x0:24.6,x1:27.4,z0:49.5,z1:50.6},exitPos:[26,52.5,Math.PI],extra:[{zone:{x0:.1,x1:1.15,z0:35,z1:37},exitPos:[-1.8,36,Math.PI/2],name:'千畳敷（西口）'},{zone:{x0:8,x1:10,z0:19.1,z1:20.15},exitPos:[9,17.4,0],name:'千畳敷（北口）'}]},roomTxt('千畳敷（表御殿の大広間）','せんじょうじき','千枚の畳を敷けるほどといわれた大広間。秀吉はここで諸大名や海外からの使節と対面しました。奥の一段高い「上段の間」に秀吉が座り、背後の床の間と違い棚、金の襖絵が権威を示しました。ここは想像を交えた再現です。',[['広さ','このアプリでは約46m×24m'],['見どころ','上段の間・格天井・金の襖'],['再現','想像を交えた復元']])));
   const w=46,d=24,h=6; shell(R,w,d,h,{floor:'tatami',ftile:1.8,wall:'kin',front:'shoji',ceil:'lacquer',door:3,doorH:2.8,lamps:0}); coffer(R,w,d,h,2,['tl_c_kiriw','tl_c_teal','tl_c_kikub','tl_c_red','tl_c_houou','tl_c_kirimon']);
   pillarsRow(R,'woodGrain',w,d,h,4,true); nageshi(R,'woodGrain',w,d,2.9); fusumaWall(R,w,d,2.85,4,['tl_w_matsu','tl_f_matsu','tl_w_tsurumatsu','tl_w_ume','tl_f_sakura']); ranmaRow(R,w,d,3.05,4.15,4,RANMA);
   /* 上段の間 */ rb(R,'tl_t_kin',-w/2+.3,w/2-.3,0,.45,-d/2+.3,-d/2+7,true,1.8); rb(R,'lacquer',-w/2+.3,w/2-.3,.38,.45,-d/2+6.95,-d/2+7.05);
@@ -2701,6 +2701,12 @@ B=BE;
   rg(R,'felt',new THREE.BoxGeometry(1,.06,1),-4,.48,-d/2+4.3); rg(R,'lacquer',new THREE.BoxGeometry(.8,.35,.3),-4,.62,-d/2+4.9);
   for(let i=0;i<8;i++) for(const s of [-1,1]) rg(R,'felt',new THREE.BoxGeometry(.7,.05,.7),s*(3+i*2.4),.03,1.5,0);
   for(const x of [-18,-6,6,18]) for(const z of [-2,6]){ rg(R,'darkwood',new THREE.CylinderGeometry(.05,.12,1.3,8),x,.65,z); rg(R,'lampIn',new THREE.CylinderGeometry(.12,.1,.2,8),x,1.4,z); R.boxes.push({x0:R.ox+x-.2,x1:R.ox+x+.2,z0:R.oz+z-.2,z1:R.oz+z+.2}); } }
+/* 対面所（表御殿の西の御殿）: 千畳敷と渡り廊下でつながる */
+{ const R=mkRoom(Object.assign({era:'toyo',zone:{x0:-32.15,x1:-31.1,z0:35,z1:37},exitPos:[-29.4,36,-Math.PI/2]},roomTxt('対面所（表御殿）','たいめんじょ','千畳敷の西にある御殿。秀吉が大名や家臣と少人数で向き合った書院造の座敷で、金の襖と違い棚、一段高い上段の間を備えていました。東の渡り廊下で千畳敷とつながっています。ここは想像を交えた再現です。',[['つくり','書院造・上段の間'],['つながり','渡り廊下で千畳敷へ'],['再現','想像を交えた復元']])));
+  R.zoneDir='e'; const w=18,d=12,h=4.4; shell(R,w,d,h,{floor:'tatami',ftile:1.8,wall:'kin',front:'shoji',ceil:'tl_c_goldgrid',ctile:3.4,door:2.2,lamps:4}); pillarsRow(R,'woodGrain',w,d,h,3.6,true); nageshi(R,'woodGrain',w,d,2.6);
+  fusumaWall(R,w,d,2.55,3.6,['tl_w_matsu','tl_w_tsurumatsu','tl_f_sakura','tl_w_ume']); ranmaRow(R,w,d,2.75,3.9,3.6,['ranma4','ranma2','ranma5']);
+  rb(R,'tl_t_kin',-w/2+.3,w/2-.3,0,.35,-d/2+.3,-d/2+4.2,true,1.8); rb(R,'lacquer',-w/2+.3,w/2-.3,.3,.36,-d/2+4.15,-d/2+4.25); tokonoma(R,-3,-d/2+.3,3.6,1.1,2.8); chigaidana(R,1.6,-d/2+.3,2.4,.9);
+  rg(R,'felt',new THREE.BoxGeometry(1,.06,1),-3,.38,-d/2+2.6); for(let i=0;i<4;i++) for(const s2 of [-1,1]) rg(R,'felt',new THREE.BoxGeometry(.7,.05,.7),s2*(2+i*2),.03,1.4,0); }
 /* 奥御殿（詰ノ丸） */
 { const R=mkRoom(Object.assign({era:'toyo',zone:{x0:-15.4,x1:-12.6,z0:-30.2,z1:-29.1},exitPos:[-14,-27.5,Math.PI]},roomTxt('奥御殿','おくごてん','秀吉や家族が日々を過ごした奥向きの御殿。表御殿の儀式の場とは違い、襖で仕切った落ち着いた座敷が続いていたと考えられます。部屋の配置は想像です。',[['用途','暮らしの場'],['再現','想像を交えた復元']])));
   const w=26,d=16,h=4.2; shell(R,w,d,h,{floor:'tatami',ftile:1.8,wall:'kin',front:'shoji',ceil:'tl_c_kacho',ctile:3.2,door:2.4,lamps:4}); pillarsRow(R,'woodGrain',w,d,h,3.6,true); nageshi(R,'woodGrain',w,d,2.4); fusumaWall(R,w,d,2.35,3.6,['tl_f_sakura','tl_w_ume','tl_p_botan','tl_p_tsuru','tl_f_take']); ranmaRow(R,w,d,2.55,3.35,3.6,['ranma6','ranma8','ranma5','ranma7']);
@@ -3045,20 +3051,22 @@ function doorMark(par,era,x,z,nx,nz,name,w,h,o){ o=o||{}; const old=MODE; MODE=e
   DOOR_MARKS.push({sp,base:h+1.9,era,x:wx+nx*1.2,z:wz+nz*1.2}); }
 ROOMS.forEach(R=>{ const dx=R.exitPos[0]-R.door[0],dz=R.exitPos[1]-R.door[1],l=Math.hypot(dx,dz)||1; R.nrm=[dx/l,dz/l];
   const small=R.name.includes('茶室'); doorMark(R.era==='modern'?GM:GE,R.era,R.door[0],R.door[1],dx/l,dz/l,R.name.replace(/（.*?）/g,''),small?.8:1.8,small?.9:2.4,{noren:R.era==='modern'?'#3b3a52':'#26406a',noNoren:small,sub:small?'にじり口 · 近づくと入れます':undefined,room:R}); });
+/* 渡り廊下からの入口 */
+ROOMS.forEach(R=>{ for(const e of R.extra||[]){ const cx=(e.zone.x0+e.zone.x1)/2,cz=(e.zone.z0+e.zone.z1)/2,dx=e.exitPos[0]-cx,dz=e.exitPos[1]-cz,l=Math.hypot(dx,dz)||1; doorMark(GE,R.era,cx,cz,dx/l,dz/l,e.name||R.name.replace(/（.*?）/g,''),1.8,2.4,{noren:'#26406a',sub:'渡り廊下から · 近づくと入れます'}); } });
 { const T=TEN.modern; doorMark(GM,'modern',T.door.x+.5,(T.door.z0+T.door.z1)/2,1,0,'天守閣 1階入口',2.2,2.9,{y:10,noNoren:true,open:true,sub:'入口 · 石段を上った先'}); 
   const t=labelSprite('天守閣入口','石段を上って天守台の上へ'); t.position.set(13.3,4,-22); GM.add(t); DOOR_MARKS.push({sp:t,base:4,era:'modern',x:13.3,z:-22}); }
 { const T=TEN.toyo,E=T.entry; const t=labelSprite('天守入口（穴蔵）','近づくと入れます'); t.position.set(E.X+.6,T.g0+4.6,E.zc); GE.add(t); DOOR_MARKS.push({sp:t,base:T.g0+4.6,era:'toyo',x:E.X+1,z:E.zc}); }
 function updateDoorMarks(t){ for(const d of DOOR_MARKS){ d.sp.position.y=d.base+Math.sin(t*2+d.x)*.12; const dist=Math.hypot(P.x-d.x,P.z-d.z); d.sp.visible=!P.room&&P.level<0&&dist<140&&dist>7; d.sp.material.opacity=Math.min(1,Math.max(.25,1.3-dist/120)); } }
 /* 近くの入口 → 画面下のボタンで入る */
 function doorSpot(){ if(P.room){ const R=P.room; return Math.hypot(P.x-(R.exitZone.x0+R.exitZone.x1)/2,P.z-(R.exitZone.z0+R.exitZone.z1)/2)<2.6?{name:'外に出る',exit:true}:null; }
-  if(P.level>=0||P.mode!=='walk') return null; let best=null,bd=7; for(const R of ROOMS){ if(R.era!==MODE) continue; const d=Math.hypot(P.x-R.exitPos[0],P.z-R.exitPos[1]); if(d<bd){ bd=d; best=R; } }
-  if(best) return {name:best.name.replace(/（.*?）/g,'')+'に入る',enter:best};
+  if(P.level>=0||P.mode!=='walk') return null; let best=null,bd=7,bx=null; for(const R of ROOMS){ if(R.era!==MODE) continue; for(const E of [R.exitPos,...(R.extra||[]).map(e=>e.exitPos)]){ const d=Math.hypot(P.x-E[0],P.z-E[1]); if(d<bd){ bd=d; best=R; bx=E; } } }
+  if(best) return {name:best.name.replace(/（.*?）/g,'')+'に入る',enter:best,ex:bx};
   const T=TEN[MODE]; if(T.door){ if(Math.hypot(P.x-(T.door.x+1.5),P.z-(T.door.z0+T.door.z1)/2)<5&&groundH(P.x,P.z)>9) return {name:'天守閣に入る',keep:true}; }
   else if(Math.hypot(P.x-(T.entry.X+2),P.z-T.entry.zc)<6) return {name:'天守に入る',keep:true}; return null; }
 
 function roomOK(R,x,z){ return R.rects.some(r=>inR(r,x,z,0))&&!R.boxes.some(b=>inR(b,x,z,.25)); }
-function enterRoom(R){ P.room=R; P.level=-1; P.x=R.spawn[0]; P.z=R.spawn[1]; P.yaw=R.spawn[2]; P.y=R.y+1.6; P.pitch=0; lastArea=''; showHint(R.name+'に入りました。出口へ向かうと外に出ます'); }
-function exitRoom(){ const R=P.room; P.room=null; P.x=R.exitPos[0]; P.z=R.exitPos[1]; P.yaw=R.exitPos[2]; P.y=groundH(P.x,P.z)+1.6; lastArea=''; showHint('外に出ました'); }
+function enterRoom(R,ex){ P.exitVia=ex||R.exitPos; P.room=R; P.level=-1; P.x=R.spawn[0]; P.z=R.spawn[1]; P.yaw=R.spawn[2]; P.y=R.y+1.6; P.pitch=0; lastArea=''; showHint(R.name+'に入りました。出口へ向かうと外に出ます'); }
+function exitRoom(){ const R=P.room,E=P.exitVia||R.exitPos; P.room=null; P.x=E[0]; P.z=E[1]; P.yaw=E[2]; P.y=groundH(P.x,P.z)+1.6; lastArea=''; showHint('外に出ました'); }
 function lookAtSpot(s){ const dx=s.look[0]-s.pos[0],dz=s.look[2]-s.pos[1],dy=s.look[1]-1.6; P.yaw=Math.atan2(-dx,-dz); P.pitch=Math.max(-.3,Math.min(.35,Math.atan2(dy,Math.hypot(dx,dz)))); }
 function teleport(s){ P.room=null; P.level=-1; P.x=s.pos[0]; P.z=s.pos[1]; P.mode='walk'; $('vView').textContent='歩く'; P.y=groundH(P.x,P.z)+1.6; lookAtSpot(s); }
 function tOf(s,z){ return Math.min(1,Math.max(0,(z-s.from)/(s.to-s.from))); }
@@ -3127,6 +3135,7 @@ function updatePlayer(dt){ let ix=0,iz=0; if(keys.KeyW||keys.ArrowUp) iz+=1; if(
       else if((r=stepIn(L,P.x,P.z,P.x+dx,P.z))>=0){ P.x+=dx; P.level=r; } else if((r=stepIn(L,P.x,P.z,P.x,P.z+dz))>=0){ P.z+=dz; P.level=r; } } }
   else if(TEN[MODE].door&&dx<0&&P.z>TEN[MODE].door.z0&&P.z<TEN[MODE].door.z1&&P.x+dx<TEN[MODE].door.x+.45&&P.x>TEN[MODE].door.x-.3&&groundH(P.x,P.z)>9){ P.level=1; P.x=TEN[MODE].door.xIn; showHint('天守閣1階に入りました。エレベーターで5階へ上がり、階段で8階の展望台まで上れます'); }
   else if(!P.room&&ROOMS.some(R=>R.era===MODE&&inR(R.zone,P.x+dx,P.z+dz,0))){ enterRoom(ROOMS.find(R=>R.era===MODE&&inR(R.zone,P.x+dx,P.z+dz,0))); }
+  else if(!P.room&&ROOMS.some(R=>R.era===MODE&&R.extra&&R.extra.some(e=>inR(e.zone,P.x+dx,P.z+dz,0)))){ const R=ROOMS.find(R=>R.era===MODE&&R.extra&&R.extra.some(e=>inR(e.zone,P.x+dx,P.z+dz,0))); enterRoom(R,R.extra.find(e=>inR(e.zone,P.x+dx,P.z+dz,0)).exitPos); }
   else if(!TEN[MODE].door&&dx<0&&P.z>TEN[MODE].entry.z0&&P.z<TEN[MODE].entry.z1&&P.x+dx<TEN[MODE].entry.X+.45&&P.x>TEN[MODE].entry.X-.2&&Math.abs(groundH(P.x,P.z)-TEN[MODE].g0)<.5){ P.level=0; P.x=TEN[MODE].entry.X-.2; showHint(MODE==='toyo'?'天守の穴蔵へ。奥の階段を上ると1階です':'天守閣の中へ。奥の階段を上ると1階です'); }
   else if(walkable(P.x+dx,P.z+dz)){ P.x+=dx; P.z+=dz; } else if(walkable(P.x+dx,P.z)) P.x+=dx; else if(walkable(P.x,P.z+dz)) P.z+=dz;
   const nn=(P.level>=0||P.room)?.08:.25; if(camera.near!==nn){ camera.near=nn; camera.updateProjectionMatrix(); }
@@ -3200,7 +3209,7 @@ $('cardX').onclick=closeCard; $('mapX').onclick=closeMap; $('mini').onclick=()=>
 /* 天守閣のエレベーター（1階⇔5階） */
 const ELV={up:{name:'エレベーターで5階へ',elev:5},dn:{name:'エレベーターで1階へ',elev:1}};
 function elevSpot(){ if(MODE!=='modern'||P.room||!(P.level===1||P.level===5)) return null; const T=TEN.modern; return Math.hypot(P.x-(T.cx+4.2),P.z-(T.cz+5.4))<1.8?(P.level===1?ELV.up:ELV.dn):null; }
-$('poi').onclick=()=>{ if(!nearSpot) return; if(nearSpot.enter){ enterRoom(nearSpot.enter); nearSpot=null; return; } if(nearSpot.exit){ exitRoom(); nearSpot=null; return; }
+$('poi').onclick=()=>{ if(!nearSpot) return; if(nearSpot.enter){ enterRoom(nearSpot.enter,nearSpot.ex); nearSpot=null; return; } if(nearSpot.exit){ exitRoom(); nearSpot=null; return; }
   if(nearSpot.keep){ const T=TEN[MODE]; if(T.door){ P.level=1; P.x=T.door.xIn; P.z=(T.door.z0+T.door.z1)/2; P.y=T.FL[1].y+1.6; P.yaw=Math.PI/2; showHint('天守閣1階に入りました'); } else { P.level=0; P.x=T.entry.X-.2; P.z=T.entry.zc; P.y=T.g0+1.6; P.yaw=Math.PI/2; showHint('天守の穴蔵に入りました。奥の階段を上ると1階です'); } nearSpot=null; return; }
   if(nearSpot.elev){ const T=TEN.modern; P.level=nearSpot.elev; P.x=T.cx+3.9; P.z=T.cz+5.4; P.y=T.FL[P.level].y+1.6; P.yaw=Math.PI/2; showHint(P.level===5?'5階に着きました。ここから階段で8階の展望台まで上れます':'1階に着きました'); nearSpot=null; return; } openCard(nearSpot); };
 function nearestSpot(){ return curSpots.reduce((a,b)=>Math.hypot(b.pos[0]-P.x,b.pos[1]-P.z)<Math.hypot(a.pos[0]-P.x,a.pos[1]-P.z)?b:a); }
