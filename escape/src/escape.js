@@ -420,10 +420,10 @@ ${isHost?`<button class="b p" id="escGo">出陣する（${lobby.length}人）</b
   /* ---------- 手控え（集めた手がかり）と錠前 ---------- */
   const notesSeen={n:0};
   function renderNotes(){ const N=(V&&V.notes)||[]; el('escNotes').innerHTML=`<div class="box"><h3>手控え</h3>${N.length?`<ol>${N.map(t=>`<li>${esc(t)}</li>`).join('')}</ol>`:'<p class="none">まだ手がかりはない。人に話を聞いたり、あやしい所を調べたりしよう。</p>'}<button id="escNX">閉じる</button></div>`; el('escNX').onclick=closeNotes; }
-  function openNotes(){ renderNotes(); el('escNotes').hidden=false; }
+  function openNotes(){ resetPad(); renderNotes(); el('escNotes').hidden=false; }
   function closeNotes(){ const n=el('escNotes'); if(n) n.hidden=true; }
   let lockVal=[0,0,0];
-  function openLock(){ if(!curSet||!V) return; const L=el('escLock'); L.hidden=false; me.use=false; me.latch=false;
+  function openLock(){ if(!curSet||!V) return; const L=el('escLock'); L.hidden=false; resetPad(); me.latch=false;
     const draw=()=>{ const clu=V.clu||[0,0,0]; L.innerHTML=`<div class="box"><h3>山里丸の門の錠前</h3><p class="sub">家紋の輪を回して、三つ合わせよ。</p>
 <p class="clues">わかっている家紋：${ORD.map((o,j)=>o+'＝'+(clu[j]?MON[curSet.code[j]][0]:'？')).join('　')}</p>
 <div class="dials">${ORD.map((o,i)=>`<div class="dial"><span>${o}</span><button data-i="${i}">${MON[lockVal[i]][0]}</button><small>押すと変わる</small></div>`).join('')}</div>
@@ -445,7 +445,7 @@ ${isHost?`<button class="b p" id="escGo">出陣する（${lobby.length}人）</b
   function startWorld(i,set){
     me.inGame=true; V=null; clearOthers(); el('escL').hidden=true; el('escEnd').hidden=true; el('escLog').innerHTML='';
     chooseEra('natsu'); setPhase(3); { const keep=FXS.filter(f=>f.type==='blaze'||f.type==='column'); clearUnits(); for(const f of keep) FXS.push(f); }   /* 場面の兵は消し、炎だけ残す（追手と見分けやすく） */
-    tourStop(); auto=false; $('scen').hidden=true; $('ticker').hidden=true; setFov(1);
+    tourStop(); powerMode(); auto=false; $('scen').hidden=true; $('ticker').hidden=true; setFov(1);
     $('eyebrow').textContent='大坂城脱出 · 落城の夜';
     started=true; if(isTouch) document.body.classList.add('touchui'); syncPad();
     const s=SPOT.spawn[i||0]; P.room=null; P.level=-1; P.mode='walk'; P.x=s[0]; P.z=s[1]; P.y=groundH(P.x,P.z)+1.6; P.yaw=Math.PI*.98; P.pitch=-.05; lastArea='';
@@ -466,7 +466,7 @@ ${isHost?`<button class="b p" id="escGo">出陣する（${lobby.length}人）</b
     if(!me.inGame) return;
     /* 走っているか（移動速度で判定） */
     const sp=Math.hypot(P.x-lastX,P.z-lastZ)/Math.max(dt,1e-3); lastX=P.x; lastZ=P.z; me.run=sp>3.2;
-    if(net.mode==='host'&&G&&!G.over){ hostStep(dt); V=snap(); net.sendT+=dt; if(net.sendT>=1/NET_HZ){ net.sendT=0; broadcast(V); } }
+    if(net.mode==='host'&&G&&!G.over){ hostStep(dt); net.sendT+=dt; if(net.sendT>=1/NET_HZ||!V){ net.sendT=0; V=snap(); broadcast(V); } }
     else if(net.mode==='client'){ net.sendT+=dt; if(net.sendT>=1/NET_HZ&&net.host&&net.host.open){ net.sendT=0; net.host.send(myState()); } }
     if(!V) return;
     const mine=V.pl.find(p=>p.id===net.myId);
@@ -551,7 +551,17 @@ ${net.mode==='host'?'<button class="p" id="escAgain">もう一度（同じ仲間
     if(el('escAgain')) el('escAgain').onclick=()=>{ lobby=lobby.filter(p=>p.id===0||net.conns.has(p.id)); hostStart(); };
     el('escTitle').onclick=()=>location.reload(); }
 
-  /* 部屋の中にある絵図を、奥御殿に入ったときだけ見えるようにする（部屋は地下の別座標にある） */
+  /* ---------- 仮想パッドが押しっぱなしで固まらないように ---------- */
+  function resetPad(){ if(joy.id!==null){ joy.id=null; joy.x=joy.y=0; padRest(stickB,stickK); } if(lookId!==null){ lookId=null; padRest(lookB,lookK); } looks.clear(); me.use=false; }
+  addEventListener('pointerup',e=>endPtr(e),true); addEventListener('pointercancel',e=>endPtr(e),true);
+  for(const ev of ['touchend','touchcancel']) addEventListener(ev,e=>{ if(!e.touches||e.touches.length===0) resetPad(); },true);
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) resetPad(); }); addEventListener('blur',resetPad); addEventListener('pagehide',resetPad);
+  /* ---------- スマホの発熱をおさえる（画質「軽」・毎秒30コマ） ---------- */
+  const SAVE=isTouch;
+  if(SAVE){ const _raf=window.requestAnimationFrame.bind(window); let lastT=0;
+    window.requestAnimationFrame=cb=>_raf(function tick(t){ if(t-lastT<31){ _raf(tick); return; } lastT=t; cb(t); }); }
+  function powerMode(){ if(!SAVE) return; if(quality==='high'){ try{ $('tQual').click(); }catch(e){} } for(const f of FXS) if(f.rate&&!f.esc) f.rate*=.5; }
+
   ui();
   const _uc=updateChars; updateChars=function(dt){ _uc(dt); try{ update(dt); }catch(e){ console.error('[T] esc',e); } };
   return {get G(){ return G; },get V(){ return V; },net,me,SPOT,STAGES,host,join,hostStart,update,targetFor,OKU,
