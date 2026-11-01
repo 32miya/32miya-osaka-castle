@@ -4795,14 +4795,19 @@ const ESC=(()=>{
 #escLock .dial button{width:100%;height:76px;border-radius:14px;border:2px solid #c99a35;background:#0d0d10;color:#fff;font-family:var(--f-disp);font-size:24px;font-weight:800}
 #escLock .dial small{display:block;font-size:10px;color:var(--mute);margin-top:4px}
 #escLock .clues{font-size:13px;color:var(--mute);margin:0 0 6px;text-align:center}
-#escEnd{position:fixed;inset:0;z-index:41;display:flex;overflow:auto;touch-action:pan-y;background:rgba(8,8,10,.82);padding:20px}
-#escEnd .box{width:min(400px,100%);text-align:center;margin:auto}
+#escEnd{position:fixed;inset:0;z-index:41;display:flex;overflow:auto;touch-action:pan-y;background:#0a0a0c center/cover no-repeat;padding:20px}
+#escEnd::before{content:'';position:fixed;inset:0;background:linear-gradient(0deg,rgba(8,8,10,0) 45%,rgba(8,8,10,.45) 100%);pointer-events:none}
+@media (orientation:landscape){#escEnd::before{background:linear-gradient(90deg,rgba(8,8,10,0) 45%,rgba(8,8,10,.5) 100%)}}
+#escEnd .box{position:relative;background:rgba(10,10,14,.7);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);border:1px solid rgba(232,177,58,.35);border-radius:16px;padding:18px 18px 8px}
+#escEnd h2,#escEnd p,#escEnd dl{text-shadow:0 1px 6px #000}
+#escEnd .box{width:min(380px,100%);text-align:center;margin:calc(env(safe-area-inset-top,0px) + 4px) auto auto}
+@media (orientation:landscape){#escEnd .box{margin:auto 0 auto auto;width:min(360px,46vw)}}
 @media (max-height:520px){#escEnd h2{font-size:26px;margin-bottom:4px}#escEnd dl{margin:6px 0 10px}#escEnd button{height:42px;margin-bottom:6px}}
-#escEnd h2{font-family:var(--f-disp);font-size:34px;letter-spacing:.14em;margin:0 0 10px}
-#escEnd p{color:var(--mute);line-height:1.8;font-size:14px}
-#escEnd dl{display:grid;grid-template-columns:auto auto;gap:4px 16px;justify-content:center;margin:14px 0 20px;font-size:14px}
+#escEnd h2{font-family:var(--f-disp);font-size:30px;letter-spacing:.14em;margin:0 0 6px}
+#escEnd p{color:#d6d8da;line-height:1.7;font-size:13.5px;margin:6px 0}
+#escEnd dl{display:grid;grid-template-columns:auto auto;gap:3px 16px;justify-content:center;margin:8px 0 12px;font-size:13px}
 #escEnd dt{color:var(--mute)} #escEnd dd{margin:0;font-weight:700;text-align:left}
-#escEnd button{width:100%;height:50px;border-radius:12px;border:0;font:inherit;font-weight:700;font-size:16px;margin-bottom:10px;background:#2a2b30;color:#fff}
+#escEnd button{width:100%;height:46px;border-radius:12px;border:0;font:inherit;font-weight:700;font-size:16px;margin-bottom:10px;background:#2a2b30;color:#fff}
 #escEnd button.p{background:var(--shu)}
 `; document.head.appendChild(css);
     const L=document.createElement('section'); L.id='escL'; document.body.appendChild(L);
@@ -4895,7 +4900,7 @@ ${isHost?`<div class="lvs">${LEVELS.map((L,i)=>`<button class="lv${i===sel?' on'
     const q=nudge(LV.spawn[0]+OFFS[i||0][0],LV.spawn[1]+OFFS[i||0][1]); P.room=null; P.level=-1; P.mode='walk'; P.x=q[0]; P.z=q[1]; P.y=groundH(P.x,P.z)+1.6; P.yaw=LV.spawn[2]; P.pitch=-.05; lastArea='';
     closeLock(); closeNotes(); notesSeen.n=-1;
     for(const id of ['escHud','escArrow','escUse','escCr','escNB']) el(id).hidden=false; me.cr=false; el('escCr').setAttribute('aria-pressed','false');
-    lastTm=1e9; el('escMin').hidden=true; showIntro(lv); onEvent(lvTitle(lv)+' はじまり');
+    lastTm=1e9; el('escMin').hidden=true; preloadRes(lv); showIntro(lv); onEvent(lvTitle(lv)+' はじまり');
   }
   function closeHint(){ const h=$('hint'); if(h){ h.hidden=true; h.style.opacity='0'; } }
 
@@ -4962,7 +4967,9 @@ ${isHost?`<div class="lvs">${LEVELS.map((L,i)=>`<button class="lv${i===sel?' on'
     el('escPg').style.width=(mine&&tg&&mine.hk===tg.k?(tg.sw?(V.gh/1.2*100):mine.hp*100):0)+'%';
     el('escPl').innerHTML=V.pl.map(p=>`<div><i style="background:${COLS[p.c%4]}"></i>${esc(p.n)}${p.cap?' 捕縛':''}${p.carry?' '+esc(p.carry):''}</div>`).join('');
   }
-  function onEnd(r){ me.inGame=false; me.use=false; if(r.win) saveClear(r.lv); const E=el('escEnd'); E.hidden=false; for(const id of ['escHud','escArrow','escUse','escCr','escCap','escNB','escWarn','escIntro','escMin']) el(id).hidden=true; closeLock(); closeNotes();
+  const resImg=(win,lv)=>'result/'+(win?'win'+(lv+1):'lose')+'.webp';
+  function preloadRes(lv){ for(const w of [true,false]){ const im=new Image(); im.src=resImg(w,lv); } }
+  function onEnd(r){ me.inGame=false; me.use=false; if(r.win) saveClear(r.lv); const E=el('escEnd'); E.style.backgroundImage=`url(${resImg(r.win,r.lv)})`; E.style.backgroundPosition=(r.win?['22% 60%','78% 60%','72% 60%','55% 60%','18% 60%'][r.lv]:'60% 50%'); E.hidden=false; for(const id of ['escHud','escArrow','escUse','escCr','escCap','escNB','escWarn','escIntro','escMin']) el(id).hidden=true; closeLock(); closeNotes();
     const last=r.lv>=LEVELS.length-1, host=net.mode==='host';
     E.innerHTML=`<div class="box"><div style="color:#e8b13a;font-size:12px;letter-spacing:.2em">${esc(lvTitle(r.lv))}</div><h2 style="color:${r.win?'#9effa8':'#ff8f7e'}">${r.win?(last?'脱出成功':'面クリア'):'失敗'}</h2><p>${esc(r.msg)}</p>
 <dl><dt>かかった時間</dt><dd>${fmt(r.used)}</dd><dt>捕まった回数</dt><dd>${r.cau}回</dd><dt>仲間を助けた</dt><dd>${r.res}回</dd></dl>
