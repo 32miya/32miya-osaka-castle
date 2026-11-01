@@ -4255,7 +4255,11 @@ const ESC=(()=>{
   const MAXP=4, TIME_LIMIT=15*60, NET_HZ=10;
   const PEER_PREFIX='osaka-escape-32miya-';
   const COLS=['#e0412f','#e8b13a','#3fa7d6','#7bc96f'];
-  const SPRS=['sanada','onna_musha','kimura','t_ninja'];
+  /* 仲間の姿：豊臣方の武将（立ち姿は地図の画像、しゃがみ姿は crouch.webp） */
+  const SPRS=['t_bs_mori','t_bs_akashi','t_bs_chosokabe','t_bs_ono'], CRS=['cr_mori','cr_akashi','cr_chosokabe','cr_ono'];
+  const CROUCH_META={"cr_mori":[4,4,4,279,287,1.77],"cr_mori_b":[4,344,4,288,322,1.77],"cr_chosokabe":[4,684,4,258,309,1.77],"cr_chosokabe_b":[4,1024,4,255,322,1.77],"cr_akashi":[4,1364,4,259,292,1.77],"cr_akashi_b":[4,1704,4,244,311,1.77],"cr_ono":[4,4,404,297,306,1.77],"cr_ono_b":[4,344,404,271,306,1.77],"cr_ii":[4,684,404,253,330,1.77],"cr_ii_b":[4,1024,404,247,300,1.77],"cr_maeda":[4,1364,404,262,292,1.77],"cr_maeda_b":[4,1704,404,240,296,1.77],"cr_date":[4,4,804,319,302,1.77],"cr_date_b":[4,344,804,284,293,1.77],"cr_matsudaira":[4,684,804,262,295,1.77],"cr_matsudaira_b":[4,1024,804,252,303,1.77],"cr_todo":[4,1364,804,256,345,1.77],"cr_todo_b":[4,1704,804,253,304,1.77],"cr_uesugi":[4,4,1204,265,342,1.77],"cr_uesugi_b":[4,344,1204,246,299,1.77],"cr_satake":[4,684,1204,288,340,1.77],"cr_satake_b":[4,1024,1204,240,268,1.77],"cr_honda":[4,1364,1204,282,369,1.77],"cr_honda_b":[4,1704,1204,234,305,1.77],"cr_kimura2":[4,4,1604,261,348,1.77],"cr_kimura2_b":[4,344,1604,259,304,1.77]};
+  { const pg=ATLAS_META.pages; for(const k in CROUCH_META){ const m=CROUCH_META[k].slice(); m[0]=pg; ATLAS_META.s[k]=m; } ATLAS_META.pages=pg+1;
+    const t=new THREE.TextureLoader().load('crouch.webp'); t.encoding=THREE.sRGBEncoding; t.anisotropy=4; ATL.tex.push(t); }
   const qs=new URLSearchParams(location.search);
 
   /* ---------- 舞台（座標は大阪城さんぽの豊臣期マップ） ---------- */
@@ -4373,8 +4377,8 @@ const ESC=(()=>{
     g.fillStyle='rgba(10,10,12,.72)'; const w=Math.min(250,g.measureText(text).width+30); g.beginPath(); g.roundRect?g.roundRect(128-w/2,8,w,48,22):g.rect(128-w/2,8,w,48); g.fill(); g.fillStyle=col; g.fillRect(128-w/2+12,28,8,8); g.fillStyle='#fff'; g.fillText(text,136,33);
     const t=new THREE.CanvasTexture(c),s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true})); s.scale.set(2.4,.6,1); s.renderOrder=9; PROP.add(s); return s; }
   const others=new Map();  /* id → {F,tag,col,n,carry} */
-  function otherOf(p){ let o=others.get(p.id); if(!o){ o={F:figure(SPRS[p.c%4]),tag:nameTag(p.n,COLS[p.c%4]),n:p.n,bk:crowd.add('bucket',0,-999,0,{s:.7})}; others.set(p.id,o); } return o; }
-  function clearOthers(){ for(const o of others.values()){ hideFig(o.F); PROP.remove(o.tag); if(o.bk) crowd.move(o.bk,0,-999,0); } others.clear(); }
+  function otherOf(p){ let o=others.get(p.id); if(!o){ o={F:figure(SPRS[p.c%4]),C:figure(CRS[p.c%4]),tag:nameTag(p.n,COLS[p.c%4]),n:p.n,bk:crowd.add('bucket',0,-999,0,{s:.7})}; others.set(p.id,o); } return o; }
+  function clearOthers(){ for(const o of others.values()){ hideFig(o.F); hideFig(o.C); PROP.remove(o.tag); if(o.bk) crowd.move(o.bk,0,-999,0); } others.clear(); }
 
   /* 追手 */
   const enemyFigs=PATROLS.map((_,i)=>figure(i%3===2?'k_teppo':'k_yari',1.1));
@@ -4724,10 +4728,12 @@ ${isHost?`<button class="b p" id="escGo">出陣する（${lobby.length}人）</b
     for(const p of V.pl){ if(p.id===net.myId) continue; seenIds.add(p.id); const o=otherOf(p);
       const t=o.t||(o.t={x:p.x,y:p.y,z:p.z,yaw:p.yaw}); const k=Math.min(1,dt*10); t.x+=(p.x-t.x)*k; t.y+=(p.y-t.y)*k; t.z+=(p.z-t.z)*k; t.yaw=p.yaw;
       if(Math.hypot(p.x-t.x,p.z-t.z)>8){ t.x=p.x; t.z=p.z; t.y=p.y; }
-      const gy=t.y-(p.cr?1:1.6); if(p.room&&!(P.room||P.level>=0)) hideFig(o.F); else placeFig(o.F,t.x,gy-(p.cap?.5:0),t.z,t.yaw);
-      o.tag.position.set(t.x,gy+3.1,t.z); o.tag.visible=!(p.room&&!(P.room||P.level>=0)); o.tag.material.opacity=p.cap?.55:1;
+      const gy=t.y-(p.cr?.95:1.6),low=p.cr||p.cap;
+      if(p.room&&!(P.room||P.level>=0)){ hideFig(o.F); hideFig(o.C); }
+      else if(low){ hideFig(o.F); placeFig(o.C,t.x,gy,t.z,t.yaw); } else { hideFig(o.C); placeFig(o.F,t.x,gy,t.z,t.yaw); }
+      o.tag.position.set(t.x,gy+(low?2.3:3.2),t.z); o.tag.visible=!(p.room&&!(P.room||P.level>=0)); o.tag.material.opacity=p.cap?.55:1;
       if(o.bk) crowd.move(o.bk,p.carry?t.x:0,p.carry?gy+1.9:-999,t.z); }
-    for(const [id,o] of others) if(!seenIds.has(id)){ hideFig(o.F); PROP.remove(o.tag); if(o.bk) crowd.move(o.bk,0,-999,0); others.delete(id); }
+    for(const [id,o] of others) if(!seenIds.has(id)){ hideFig(o.F); hideFig(o.C); PROP.remove(o.tag); if(o.bk) crowd.move(o.bk,0,-999,0); others.delete(id); }
     /* 追手 */
     V.en.forEach((e,i)=>{ const F=enemyFigs[i],y=groundH(e[0],e[1]),near=Math.hypot(e[0]-P.x,e[1]-P.z)<70&&!(P.room||P.level>=0); placeFig(F,e[0],y,e[1],e[2]);
       const fn=fans[i]; fn.visible=near; if(near){ fn.position.set(e[0],y+.12,e[1]); fn.rotation.y=e[2]; const hot=Math.min(1,e[3]*1.4),c=new THREE.Color(0xffb030).lerp(new THREE.Color(0xff2a10),hot); fn.userData.f.material.color.copy(c); fn.userData.e.material.color.copy(c); fn.userData.f.material.opacity=.24+hot*.24; }
@@ -4797,6 +4803,18 @@ ${isHost?`<button class="b p" id="escGo">出陣する（${lobby.length}人）</b
 ${net.mode==='host'?'<button class="p" id="escAgain">もう一度（同じ仲間で）</button>':'<p>主の「もう一度」を待っています</p>'}<button id="escTitle">タイトルへ</button></div>`;
     if(el('escAgain')) el('escAgain').onclick=()=>{ lobby=lobby.filter(p=>p.id===0||net.conns.has(p.id)); hostStart(); };
     el('escTitle').onclick=()=>location.reload(); }
+
+  /* ---------- ミニマップ：自分を中心に、仲間の位置を色の点で ---------- */
+  const lastOut=new Map();
+  function drawMates(){ if(!V) return; const dpr=Math.min(2,devicePixelRatio||1),S=miniC.width,k=S/150;
+    const cx0=P.room&&P.room.door?P.room.door[0]:P.x, cz0=P.room&&P.room.door?P.room.door[1]:P.z;
+    for(const p of V.pl){ if(p.id===net.myId) continue; let x=p.x,z=p.z;
+      if(p.room){ const lo=lastOut.get(p.id); if(!lo) continue; x=lo[0]; z=lo[1]; } else lastOut.set(p.id,[x,z]);
+      let mx=S/2+(x-cx0)*k, my=S/2+(z-cz0)*k; const m=7*dpr, out=mx<m||mx>S-m||my<m||my>S-m; mx=Math.max(m,Math.min(S-m,mx)); my=Math.max(m,Math.min(S-m,my));
+      mini2.fillStyle=COLS[p.c%4]; mini2.strokeStyle=p.cap?'#ff3b2f':'#fff'; mini2.lineWidth=(p.cap?2.5:1.5)*dpr;
+      mini2.beginPath(); mini2.arc(mx,my,(out?3.5:5)*dpr,0,6.283); mini2.fill(); mini2.stroke();
+      if(!out){ mini2.font=`bold ${9*dpr}px sans-serif`; mini2.textAlign='center'; mini2.lineWidth=3*dpr; mini2.strokeStyle='rgba(0,0,0,.75)'; const nm=p.n.slice(0,4); mini2.strokeText(nm,mx,my-8*dpr); mini2.fillStyle='#fff'; mini2.fillText(nm,mx,my-8*dpr); } } }
+  const _dm=drawMini; drawMini=function(){ if(!me.inGame) return _dm(); $('mini').classList.remove('battle'); _drawMini0(); drawMates(); };
 
   /* ---------- 仮想パッドが押しっぱなしで固まらないように ---------- */
   function resetPad(){ if(joy.id!==null){ joy.id=null; joy.x=joy.y=0; padRest(stickB,stickK); } if(lookId!==null){ lookId=null; padRest(lookB,lookK); } looks.clear(); me.use=false; }
