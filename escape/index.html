@@ -4796,10 +4796,12 @@ const ESC=(()=>{
 #escLock .dial small{display:block;font-size:10px;color:var(--mute);margin-top:4px}
 #escLock .clues{font-size:13px;color:var(--mute);margin:0 0 6px;text-align:center}
 #escEnd{position:fixed;inset:0;z-index:41;display:flex;overflow:auto;touch-action:pan-y;background:#0a0a0c center/cover no-repeat;padding:20px}
-#escEnd::before{content:'';position:fixed;inset:0;background:linear-gradient(0deg,rgba(8,8,10,0) 45%,rgba(8,8,10,.45) 100%);pointer-events:none}
-@media (orientation:landscape){#escEnd::before{background:linear-gradient(90deg,rgba(8,8,10,0) 45%,rgba(8,8,10,.5) 100%)}}
-#escEnd .box{position:relative;background:rgba(10,10,14,.7);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);border:1px solid rgba(232,177,58,.35);border-radius:16px;padding:18px 18px 8px}
-#escEnd h2,#escEnd p,#escEnd dl{text-shadow:0 1px 6px #000}
+#escEnd::before{content:'';position:fixed;inset:0;background:linear-gradient(0deg,rgba(8,8,10,0) 55%,rgba(8,8,10,.25) 100%);pointer-events:none}
+@media (orientation:landscape){#escEnd::before{background:linear-gradient(90deg,rgba(8,8,10,0) 55%,rgba(8,8,10,.25) 100%)}}
+#escEnd .box{position:relative;background:rgba(10,10,14,.28);-webkit-backdrop-filter:blur(1.5px);backdrop-filter:blur(1.5px);border:1px solid rgba(232,177,58,.35);border-radius:16px;padding:18px 18px 8px}
+#escEnd h2,#escEnd p,#escEnd dl,#escEnd .box>div{text-shadow:0 0 3px #000,0 1px 8px #000,0 0 14px rgba(0,0,0,.8)}
+#escEnd dt{color:#e4e4e4!important}
+#escEnd button:not(.p){background:rgba(30,31,36,.55)!important;border:1px solid rgba(255,255,255,.25)!important}
 #escEnd .box{width:min(380px,100%);text-align:center;margin:calc(env(safe-area-inset-top,0px) + 4px) auto auto}
 @media (orientation:landscape){#escEnd .box{margin:auto 0 auto auto;width:min(360px,46vw)}}
 @media (max-height:520px){#escEnd h2{font-size:26px;margin-bottom:4px}#escEnd dl{margin:6px 0 10px}#escEnd button{height:42px;margin-bottom:6px}}
