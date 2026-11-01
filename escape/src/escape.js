@@ -745,6 +745,11 @@ ${host?(r.win&&!last?`<button class="p" id="escNext">次の面へ：${esc(lvTitl
       if(!out){ mini2.font=`bold ${9*dpr}px sans-serif`; mini2.textAlign='center'; mini2.lineWidth=3*dpr; mini2.strokeStyle='rgba(0,0,0,.75)'; const nm=p.n.slice(0,4); mini2.strokeText(nm,mx,my-8*dpr); mini2.fillStyle='#fff'; mini2.fillText(nm,mx,my-8*dpr); } } }
   const _dm=drawMini; drawMini=function(){ if(!me.inGame) return _dm(); $('mini').classList.remove('battle'); _drawMini0(); drawMates(); };
 
+  /* ---------- 部屋の入口〜出口の通り道をあける（家具の当たり判定が入口をふさぐ部屋がある） ---------- */
+  for(const R of ROOMS){ if(!R.exitZone||!R.spawn||!R.boxes) continue; const ez=R.exitZone,sx=R.spawn[0],sz=R.spawn[1];
+    const cor={x0:Math.min(sx,ez.x0)-.6,x1:Math.max(sx,ez.x1)+.6,z0:Math.min(sz,ez.z0)-1.2,z1:Math.max(sz,ez.z1)+.6};
+    R.boxes=R.boxes.filter(b=>!(b.x1+.25>cor.x0&&b.x0-.25<cor.x1&&b.z1+.25>cor.z0&&b.z0-.25<cor.z1)); }
+
   /* ---------- 仮想パッドが押しっぱなしで固まらないように ---------- */
   function resetPad(){ if(joy.id!==null){ joy.id=null; joy.x=joy.y=0; padRest(stickB,stickK); } if(lookId!==null){ lookId=null; padRest(lookB,lookK); } looks.clear(); me.use=false; }
   addEventListener('pointerup',e=>endPtr(e),true); addEventListener('pointercancel',e=>endPtr(e),true);
