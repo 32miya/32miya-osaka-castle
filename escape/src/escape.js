@@ -5,7 +5,7 @@
    面（ステージ）はすべて LEVELS のデータと小さな関数で書く。
    ===================================================================== */
 const ESC=(()=>{
-  const VER='0.3';
+  const VER='0.4';
   const MAXP=4, NET_HZ=10;
   const PEER_PREFIX='osaka-escape-32miya-';
   const COLS=['#e0412f','#e8b13a','#3fa7d6','#7bc96f'];
@@ -109,134 +109,175 @@ const ESC=(()=>{
      ===================================================================== */
   let LV=null, LVI=0, SET=null, W={};
 
-  /* ---------- 其の一　城下の密書（朝・上町の城下町） ---------- */
+  /* 2人いれば2人で同時に、ひとりなら1か所で押さえれば進む（閂・太鼓・荷車の轅など） */
+  function swTick(keys,dt,done){ const need=Math.min(keys.length,Math.max(1,Math.min(2,nPl()))),held=keys.filter(k=>G.sw[k]).length; if(held>=need){ G.gh+=dt; if(G.gh>=1.2){ G.gh=0; done(); } } else G.gh=Math.max(0,G.gh-dt*2); }
+  /* 外に置く「調べる」場所（俵・灯籠など） */
+  function outSpots(list){ return list.map(d=>{ const o=spot(d.x,d.z); aSpr(d.spr,o.x,o.y,o.z,{s:d.s||1}); o.n=d.n; return o; }); }
+
+  /* ---------- 其の一　城下の密書（朝・上町の城下町と寺町） ---------- */
   const SHOPS=[['町家（上町の商家）','商家'],['町家（酒屋）','酒屋'],['町家（薬種屋）','薬種屋']];
   const SHOP_ELIM={商家:'反物や小間物には目もくれなかったよ',酒屋:'酒の匂いなんぞ、しなかったねえ',薬種屋:'薬臭くはなかったぞ'};
   const SHOP_SPOTS=[{n:'帳場の箪笥',spr:'cabinet'},{n:'奥の棚',spr:'shelf'},{n:'土間の甕',spr:'jar'}];
   const SPOT_HINT=['帳場で銭勘定をするふりをしておった','奥の棚に手を伸ばしておった','土間の甕をのぞきこんでおった'];
-  const PW=[['山','川'],['月','花'],['松','鶴'],['雪','炭']];
+  const PW=[['山','川'],['月','花'],['松','鶴'],['雪','炭'],['風','林']];
   const RUM_POS=[[-160,710],[-360,630],[-60,590],[140,670],[-160,510],[140,510],[-260,750]];
   const L1={ name:'城下の密書', sub:'慶長十九年 十月 ・ 朝 ・ 上町の城下町', time:0, scen:null, limit:600,
-    story:'大坂の陣を前に、徳川の間者が大坂城の絵図を写した「密書」を城下の店に隠した。町の者に聞き込み、密書を取り返して三の丸の門まで届けよ。',
-    bounds:{x0:-400,x1:180,z0:428,z1:842}, spawn:[-72,800,-Math.PI/2],
-    patrols:[{p:[[-340,590],[120,590]],s:1.7,spr:'k_ninja'},{p:[[120,710],[-340,710]],s:1.6,spr:'k_ninja'},{p:[[-160,480],[-160,800]],s:1.5,spr:'k_ninja'},{p:[[140,800],[140,480]],s:1.5,spr:'k_ninja'},{p:[[-340,510],[0,510]],s:1.6,spr:'k_ninja'},{p:[[-360,780],[-360,480]],s:1.4,spr:'k_ninja'}],
-    setup(){ const sh=rint(3),wr=shuffle([0,1,2].filter(i=>i!==sh)); return {shop:sh,wrong:wr,spot:rint(3),rpos:shuffle([...RUM_POS.keys()]).slice(0,3),pw:rint(PW.length)}; },
+    story:'大坂の陣を前に、徳川の間者が大坂城の絵図を写した「密書」を城下の店に隠した。町の者に聞き込み、密書を取り返して読み解き、三の丸の門まで届けよ。',
+    bounds:{x0:-600,x1:180,z0:428,z1:842}, spawn:[-72,800,-Math.PI/2],
+    patrols:[{p:[[-340,590],[120,590]],s:1.7,spr:'k_ninja'},{p:[[120,710],[-340,710]],s:1.6,spr:'k_ninja'},{p:[[-160,480],[-160,800]],s:1.5,spr:'k_ninja'},{p:[[140,800],[140,480]],s:1.5,spr:'k_ninja'},{p:[[-340,510],[0,510]],s:1.6,spr:'k_ninja'},{p:[[-360,780],[-360,480]],s:1.4,spr:'k_ninja'},{p:[[-570,790],[-420,790]],s:1.5,spr:'k_ninja'}],
+    setup(){ const sh=rint(3),wr=shuffle([0,1,2].filter(i=>i!==sh)); return {shop:sh,wrong:wr,spot:rint(3),rpos:shuffle([...RUM_POS.keys()]).slice(0,3),pw:rint(PW.length),pairs:shuffle([...PW.keys()]).slice(0,4)}; },
     build(s){ W.elder=npc('roujin',-50,798,'町年寄'); W.rum=s.rpos.map((ci,j)=>npc(['musume_r','shonin','onna_b'][j],RUM_POS[ci][0],RUM_POS[ci][1],'町の者'));
-      W.spots=SHOPS.map(sp=>roomProps(room(sp[0]),SHOP_SPOTS)); W.guard=npc('samurai_a',-50,468,'三の丸の門番'); W.goal=spot(-60,440,{fixed:true}); W.gateBlk={x0:-64.5,x1:-55.5,z0:451,z1:462}; },
-    init(){ return {o:0,t0:0,r:[0,0,0],srch:[[0,0,0],[0,0,0],[0,0,0]],mitsu:0,pass:0}; },
+      W.spots=SHOPS.map(sp=>roomProps(room(sp[0]),SHOP_SPOTS)); W.tera=room('寺の本堂'); W.monk=W.tera?roomProps(W.tera,[{n:'住職',spr:'p_monk'}])[0]:null;
+      W.guard=npc('samurai_a',-50,468,'三の丸の門番'); W.goal=spot(-60,440,{fixed:true}); W.gateBlk={x0:-64.5,x1:-55.5,z0:451,z1:462}; },
+    init(){ return {o:0,r:[0,0,0],srch:[[0,0,0],[0,0,0],[0,0,0]],pass:0}; },
     rumor(j){ const s=SET; if(j<2) return ['町娘','商人'][j]+'「黒い身なりの男が店に入るのを見たよ。'+SHOP_ELIM[SHOPS[s.wrong[j]][1]]+'」'; return '女「あの男、店の中で'+SPOT_HINT[s.spot]+'」'; },
     target(f,p){ if(near(p,W.elder)) return {k:'elder',l:'町年寄に話を聞く',d:.15};
-      if(f.o>=1&&!f.mitsu){ for(let j=0;j<3;j++) if(near(p,W.rum[j])) return {k:'rum'+j,l:'町の者に話を聞く',d:.15};
-        for(let s=0;s<3;s++) for(let i=0;i<3;i++){ const o=W.spots[s][i]; if(o&&!f.srch[s][i]&&near(p,o,2)) return {k:'s'+s+i,l:o.n+'を調べる',d:.7}; } }
-      if(near(p,W.guard,3.2)) return f.mitsu&&!f.pass?{k:'lock',l:'門番に合言葉を答える',d:.1}:{k:'guard',l:'門番に話しかける',d:.15};
+      if(f.o>=1&&f.o<=2) for(let j=0;j<3;j++) if(near(p,W.rum[j])) return {k:'rum'+j,l:'町の者に話を聞く',d:.15};
+      if(f.o===2) for(let s=0;s<3;s++) for(let i=0;i<3;i++){ const o=W.spots[s][i]; if(o&&!f.srch[s][i]&&near(p,o,2)) return {k:'s'+s+i,l:o.n+'を調べる',d:.7}; }
+      if(f.o===3&&near(p,W.monk,2.4)) return {k:'monk',l:'住職に密書を見せる',d:.6};
+      if(near(p,W.guard,3.2)) return f.o===4?{k:'lock',l:'門番に合言葉を答える',d:.1}:{k:'guard',l:'門番に話しかける',d:.15};
       return null; },
     complete(p,k){ const f=G.f,s=SET;
-      if(k==='elder'){ const m='町年寄「間者は、商家・酒屋・薬種屋のどれかに密書を隠したらしい。町の者に聞き込んでくれ。店へは町家の入口から入れる」'; note(m); event(m); if(f.o<1) f.o=1; }
-      else if(k.startsWith('rum')){ const j=+k[3],m=L1.rumor(j); f.r[j]=1; note(m); event(m); }
+      if(k==='elder'){ const m='町年寄「間者は、商家・酒屋・薬種屋のどれかに密書を隠したらしい。まずは町の者三人に聞き込んでくれ」'; note(m); event(m); if(f.o<1) f.o=1; }
+      else if(k.startsWith('rum')){ const j=+k[3],m=L1.rumor(j); f.r[j]=1; note(m); event(m); if(f.o===1&&f.r.every(Boolean)){ f.o=2; event('聞き込みは済んだ。証言から店を突き止め、町家の入口から入って探せ'); } }
       else if(k[0]==='s'){ const sh=+k[1],i=+k[2]; f.srch[sh][i]=1;
-        if(sh===s.shop&&i===s.spot){ f.mitsu=1; f.o=2; const pr=shuffle(PW.map((q,ix)=>ix)).filter(ix=>ix!==s.pw).slice(0,2).concat([s.pw]); const pairs=shuffle(pr).map(ix=>`問い「${PW[ix][0]}」には「${PW[ix][1]}」`).join('、');
-          note('密書の端に、合言葉の控え：'+pairs); event(p.n+'が'+SHOPS[sh][1]+'の'+SHOP_SPOTS[i].n+'から密書を見つけた！ 三の丸の門番に合言葉を答えて城へ'); }
+        if(sh===s.shop&&i===s.spot){ f.o=3; note('密書は見つけたが、読めない暗号で書かれている。寺町の寺の住職なら読めるかもしれない'); event(p.n+'が'+SHOPS[sh][1]+'の'+SHOP_SPOTS[i].n+'から密書を見つけた！ だが暗号で読めない――寺町の住職をたずねよ'); }
         else if(sh!==s.shop) penalty(10,SHOPS[sh][1]+'の'+SHOP_SPOTS[i].n+'には何もない。この店ではなさそうだ'); else penalty(10,SHOP_SPOTS[i].n+'には何もない'); }
+      else if(k==='monk'){ const pairs=s.pairs.includes(s.pw)?s.pairs:[s.pw,...s.pairs.slice(0,3)]; const m='住職「ふむ……これは間者の合言葉の控えじゃ。'+shuffle(pairs).map(ix=>`問い「${PW[ix][0]}」には「${PW[ix][1]}」`).join('、')+'。三の丸の門番は、このどれかを問うてくるはずじゃ」'; note(m); event(m); f.o=4; }
       else if(k==='guard') event(f.pass?'門番「よし、通れ」':'門番「密書を持たぬ者は通せぬ。合言葉もな」'); },
-    lock(){ const f=V.f,s=SET; const opts=shuffle([...new Set([s.pw,...shuffle([...PW.keys()])])].slice(0,4)).map(i=>PW[i][1]); return {title:'三の丸の門番',sub:`「合言葉は？」――問いは「${PW[s.pw][0]}」`,slots:1,syms:opts,known:'手控えの「密書の控え」を見よう'}; },
-    code(v,syms){ const f=G.f; if(syms[v[0]]===PW[SET.pw][1]){ f.pass=1; f.o=3; event('門番「……よし、通れ。密書は城へ届けよ」'); } else penalty(15,'門番「違う！ 怪しい奴め」'); },
-    tick(){ const f=G.f; if(f.o===3&&allIn(W.goal,7)) finish(true,'密書は無事に城へ届いた。間者のたくらみは潰えた――'); },
+    lock(){ const s=SET; const opts=shuffle(s.pairs.includes(s.pw)?s.pairs:[s.pw,...s.pairs.slice(0,3)]).map(i=>PW[i][1]); return {title:'三の丸の門番',sub:`「合言葉は？」――問いは「${PW[s.pw][0]}」`,slots:1,syms:opts,known:'住職が読み解いた控えは「手控え」にある'}; },
+    code(v,syms){ const f=G.f; if(f.o!==4) return; if(syms[v[0]]===PW[SET.pw][1]){ f.pass=1; f.o=5; event('門番「……よし、通れ。密書は城へ届けよ」'); } else penalty(15,'門番「違う！ 怪しい奴め」'); },
+    tick(){ const f=G.f; if(f.o===5&&allIn(W.goal,7)) finish(true,'密書は無事に城へ届いた。間者のたくらみは潰えた――'); },
     block(x,z,f){ return !f.pass&&inR(W.gateBlk,x,z,.2); },
-    obj(f){ return ['町年寄の話を聞け','町の者に聞き込み、密書を隠した店を突き止めて探せ','密書を三の丸の門へ。門番に合言葉を答えよ','三の丸の門をくぐって城へ入れ'][f.o]+(f.o===1?`（聞き込み ${f.r.filter(Boolean).length} / 3）`:''); },
-    arrow(f){ if(f.o===0) return W.elder; if(f.o===1){ const j=f.r.findIndex(x=>!x); if(j>=0) return {x:W.rum[j].x,z:W.rum[j].z,n:'町の者'}; return P.room?{n:'店の中を調べよう'}:{n:'町家の入口から店に入ろう'}; } if(f.o===2) return W.guard; return {x:W.goal.x,z:W.goal.z,n:'三の丸の門'}; },
-    glints(f){ const g=[]; if(f.o===1&&!f.mitsu) W.spots.forEach((S,s)=>S.forEach((o,i)=>{ if(o&&!f.srch[s][i]) g.push([o.x,o.y+1.3,o.z]); })); return g; },
-    render(f,t){ bob(W.elder.q,f.o===0,t); W.rum.forEach((r,j)=>bob(r.q,f.o>=1&&!f.r[j],t)); bob(W.guard.q,f.o===2,t); },
-    check(f){ return f.o>=2?[-60,560]:[-72,800]; } };
+    obj(f){ return ['町年寄の話を聞け',`町の者に聞き込め（${f.r.filter(Boolean).length} / 3）`,'証言から店を突き止め、密書を探し出せ','寺町の寺へ。住職に密書を読み解いてもらえ','三の丸の門番に合言葉を答えよ','三の丸の門をくぐって城へ入れ'][f.o]; },
+    arrow(f){ if(f.o===0) return W.elder; if(f.o===1){ const j=f.r.findIndex(x=>!x); return j>=0?{x:W.rum[j].x,z:W.rum[j].z,n:'町の者'}:{n:''}; }
+      if(f.o===2) return P.room?{n:'店の中を調べよう'}:{n:'町家の入口から店に入ろう'};
+      if(f.o===3){ if(P.room===W.tera) return {x:W.monk.x,z:W.monk.z,n:'住職'}; const d=W.tera&&nearestDoor(W.tera); return d?{x:d[0],z:d[1],n:'寺町の寺'}:{n:'寺町の寺へ'}; }
+      if(f.o===4) return W.guard; return {x:W.goal.x,z:W.goal.z,n:'三の丸の門'}; },
+    glints(f){ const g=[]; if(f.o===2) W.spots.forEach((S,s)=>S.forEach((o,i)=>{ if(o&&!f.srch[s][i]) g.push([o.x,o.y+1.3,o.z]); })); if(f.o===3&&W.monk) g.push([W.monk.x,W.monk.y+2.2,W.monk.z]); return g; },
+    render(f,t){ bob(W.elder.q,f.o===0,t); W.rum.forEach((r,j)=>bob(r.q,f.o===1&&!f.r[j],t)); bob(W.guard.q,f.o===4,t); },
+    check(f){ return f.o>=4?[-60,560]:f.o===3?[-420,800]:[-72,800]; } };
 
   /* ---------- 其の二　真田丸の狼煙（夕・惣構の南） ---------- */
   const SMOKE_C=[['赤','nb_red','夕日が燃え'],['白','nb_white','雪が舞い'],['黒','nb_black','夜が来る']];
   const SITE_POS=[[60,960],[160,1045],[250,905],[440,1035],[110,905],[210,1005],[400,915]];
+  const CRATES=[{x:-12,z:916,n:'俵',spr:'tawara',s:1.2},{x:-84,z:932,n:'木箱',spr:'crates'},{x:-46,z:962,n:'樽',spr:'barrels'}];
   const L2={ name:'真田丸の狼煙', sub:'慶長十九年 十二月 ・ 夕 ・ 惣構の南', time:2, scen:'fuyu', phase:2, limit:600,
-    story:'徳川の大軍が真田丸に迫っている。三つの狼煙台に、正しい順で火を入れて城へ合図を送れ。そして真田丸へ駆け込め。',
+    story:'徳川の大軍が真田丸に迫っている。火を起こし、三つの狼煙台に正しい順で火を入れて城へ合図を送れ。門前の陣太鼓で真田丸の兵を呼び、中へ駆け込め。',
     bounds:{x0:-130,x1:520,z0:880,z1:1092}, spawn:[-60,896,Math.PI],
-    patrols:[{p:[[30,1000],[210,1000]],s:1.6},{p:[[120,925],[120,1070]],s:1.5,spr:'k_teppo'},{p:[[300,1070],[480,1070]],s:1.7},{p:[[470,900],[470,1060]],s:1.4,spr:'k_teppo'},{p:[[-100,1060],[20,1060]],s:1.5},{p:[[200,940],[200,1070]],s:1.6}],
-    setup(){ return {sites:shuffle([...SITE_POS.keys()]).slice(0,3),col:shuffle([0,1,2]),order:shuffle([0,1,2])}; },
-    build(s){ W.scout=npc('r_bushou',-40,904,'真田の物見'); W.fire=spot(-28,900); aSpr('kagaribi',W.fire.x,W.fire.y,W.fire.z,{s:1.2});
+    patrols:[{p:[[30,1000],[210,1000]],s:1.6},{p:[[120,925],[120,1070]],s:1.5,spr:'k_teppo'},{p:[[300,1070],[480,1070]],s:1.7},{p:[[470,900],[470,1060]],s:1.4,spr:'k_teppo'},{p:[[-100,1060],[20,1060]],s:1.5},{p:[[200,940],[200,1070]],s:1.6},{p:[[230,1080],[230,990]],s:1.4,spr:'k_teppo'}],
+    setup(){ return {sites:shuffle([...SITE_POS.keys()]).slice(0,3),col:shuffle([0,1,2]),order:shuffle([0,1,2]),flint:rint(3)}; },
+    build(s){ W.scout=npc('r_bushou',-40,904,'真田の物見'); W.fire=spot(-28,900); aSpr('kagaribi',W.fire.x,W.fire.y,W.fire.z,{s:1.2}); W.crates=outSpots(CRATES);
       W.sites=s.sites.map((ci,j)=>{ const o=spot(SITE_POS[ci][0],SITE_POS[ci][1]); aSpr('log',o.x+.6,o.y,o.z,{s:1.2}); aSpr(SMOKE_C[s.col[j]][1],o.x-.9,o.y,o.z+.3,{}); return o; });
-      W.goal=spot(268,947); },
-    init(){ return {o:0,lit:0,on:[0,0,0]}; },
+      W.goal=spot(268,947); W.drA=spot(262,935); W.drB=spot(262,959); aSpr('taiko',W.drA.x,W.drA.y,W.drA.z,{}); aSpr('taiko',W.drB.x,W.drB.y,W.drB.z,{}); },
+    init(){ return {o:0,cr:[0,0,0],lit:0,on:[0,0,0]}; },
     target(f,p){ if(near(p,W.scout)) return {k:'scout',l:'真田の物見に話を聞く',d:.15};
-      if(f.o===1){ if(p.carry!=='火種'&&near(p,W.fire,3)) return {k:'take',l:'篝火から火種をとる',d:.5};
+      if(f.o===1) for(let i=0;i<3;i++) if(!f.cr[i]&&near(p,W.crates[i],2.6)) return {k:'cr'+i,l:W.crates[i].n+'を調べる',d:.6};
+      if(f.o===2&&near(p,W.fire,3)) return {k:'kindle',l:'火打ち石で篝火を起こす',d:1.2};
+      if(f.o===3){ if(p.carry!=='火種'&&near(p,W.fire,3)) return {k:'take',l:'篝火から火種をとる',d:.5};
         if(p.carry==='火種') for(let j=0;j<3;j++) if(!f.on[j]&&near(p,W.sites[j],3.2)) return {k:'lite'+j,l:SMOKE_C[SET.col[j]][0]+'い旗の狼煙台に火を入れる',d:.6}; }
+      if(f.o===4){ if(near(p,W.drA,2.4)) return {k:'swA',l:'陣太鼓を打つ',sw:1}; if(near(p,W.drB,2.4)) return {k:'swB',l:'陣太鼓を打つ',sw:1}; }
       return null; },
     complete(p,k){ const f=G.f,s=SET;
-      if(k==='scout'){ const m='物見「徳川勢が真田丸に迫っておる。狼煙は三つ――'+s.order.map(c=>SMOKE_C[c][2]).join('、')+'――その順に上げよ。順を誤れば、敵に気取られる」'; note(m); event(m); if(f.o<1) f.o=1; }
+      if(k==='scout'){ const m='物見「徳川勢が真田丸に迫っておる。狼煙は三つ――'+s.order.map(c=>SMOKE_C[c][2]).join('、')+'――その順に上げよ。だが篝火が消えてしもうた。火打ち石が陣の荷のどれかに入っておるはずじゃ」'; note(m); event(m); if(f.o<1) f.o=1; }
+      else if(k.startsWith('cr')){ const i=+k[2]; f.cr[i]=1; if(i===s.flint){ f.o=2; event(p.n+'が'+CRATES[i].n+'の中から火打ち石を見つけた！ 篝火を起こせ'); } else penalty(5,CRATES[i].n+'には兵糧しか入っていない'); }
+      else if(k==='kindle'){ f.o=3; event('篝火が燃え上がった！ 火種を運び、狼煙台に火を入れよ'); note('物見の言葉：夕日＝赤、雪＝白、夜＝黒 と読み替えよ'); }
       else if(k==='take'){ p.carry='火種'; }
       else if(k.startsWith('lite')){ const j=+k[4]; p.carry=false;
-        if(s.col[j]===s.order[f.lit]){ f.on[j]=1; f.lit++; event(p.n+'が'+SMOKE_C[s.col[j]][0]+'い旗の狼煙を上げた（'+f.lit+' / 3）'); if(f.lit>=3){ f.o=2; event('三つの狼煙が上がった！ 真田丸へ駆け込め'); } }
+        if(s.col[j]===s.order[f.lit]){ f.on[j]=1; f.lit++; event(p.n+'が'+SMOKE_C[s.col[j]][0]+'い旗の狼煙を上げた（'+f.lit+' / 3）'); if(f.lit>=3){ f.o=4; event('三つの狼煙が上がった！ 真田丸の門前で陣太鼓を打ち、門を開けさせよ'+(nPl()>=2?'（二つ同時に）':'')); } }
         else { f.on=[0,0,0]; f.lit=0; penalty(15,'順が違う！ 狼煙はかき消され、はじめからやり直しだ'); } } },
     drop(p){ p.carry=false; },
-    tick(){ const f=G.f; if(f.o===2&&allIn(W.goal,9)) finish(true,'狼煙は上がり、真田丸から鬨の声が響いた。合図は城へ届いた――'); },
-    obj(f){ return ['真田の物見の話を聞け',`篝火の火種で、狼煙台に正しい順で火を入れよ（${f.lit} / 3）`,'真田丸の門まで全員で駆け込め'][f.o]; },
-    arrow(f,mine){ if(f.o===0) return W.scout; if(f.o===1){ if(!mine||mine.carry!=='火種') return {x:W.fire.x,z:W.fire.z,n:'篝火'}; return {n:'物見の言葉を思い出し、旗の色で狼煙台を選べ'}; } return {x:W.goal.x,z:W.goal.z,n:'真田丸'}; },
-    glints(f){ const g=[]; if(f.o===1){ g.push([W.fire.x,W.fire.y+2.4,W.fire.z]); W.sites.forEach((o,j)=>{ if(!f.on[j]) g.push([o.x,o.y+2.2,o.z]); }); } return g; },
-    render(f,t){ bob(W.scout.q,f.o===0,t); fxSet('kg',{type:'blaze',x:W.fire.x,y:W.fire.y+.8,z:W.fire.z,r:.5,h:1.2,rate:12,ring:false});
+    tick(dt){ const f=G.f; if(f.o===4) swTick(['swA','swB'],dt,()=>{ f.o=5; event('太鼓に応えて、真田丸の門が開いた！ 全員で駆け込め'); }); if(f.o===5&&allIn(W.goal,9)) finish(true,'狼煙は上がり、真田丸から鬨の声が響いた。合図は城へ届いた――'); },
+    obj(f){ return ['真田の物見の話を聞け','陣の荷（俵・木箱・樽）から火打ち石を探せ','火打ち石で篝火を起こせ',`火種を運び、狼煙台に正しい順で火を入れよ（${f.lit} / 3）`,(V.pl.length>1?'真田丸の門前の陣太鼓を、二人で同時に打て':'真田丸の門前の陣太鼓を打て'),'真田丸の門まで全員で駆け込め'][f.o]; },
+    arrow(f,mine){ if(f.o===0) return W.scout; if(f.o===1) return {n:'俵・木箱・樽を調べよう'}; if(f.o===2) return {x:W.fire.x,z:W.fire.z,n:'篝火'};
+      if(f.o===3){ if(!mine||mine.carry!=='火種') return {x:W.fire.x,z:W.fire.z,n:'篝火'}; return {n:'物見の言葉を思い出し、旗の色で狼煙台を選べ'}; }
+      if(f.o===4){ const a=Math.hypot(W.drA.x-P.x,W.drA.z-P.z)<Math.hypot(W.drB.x-P.x,W.drB.z-P.z)?W.drA:W.drB; return {x:a.x,z:a.z,n:'陣太鼓'}; } return {x:W.goal.x,z:W.goal.z,n:'真田丸'}; },
+    glints(f){ const g=[]; if(f.o===1) W.crates.forEach((o,i)=>{ if(!f.cr[i]) g.push([o.x,o.y+1.6,o.z]); }); if(f.o===2) g.push([W.fire.x,W.fire.y+2.4,W.fire.z]);
+      if(f.o===3) W.sites.forEach((o,j)=>{ if(!f.on[j]) g.push([o.x,o.y+2.2,o.z]); }); if(f.o===4){ g.push([W.drA.x,W.drA.y+1.6,W.drA.z]); g.push([W.drB.x,W.drB.y+1.6,W.drB.z]); } return g; },
+    render(f,t){ bob(W.scout.q,f.o===0,t); if(f.o>=3) fxSet('kg',{type:'blaze',x:W.fire.x,y:W.fire.y+.8,z:W.fire.z,r:.5,h:1.2,rate:12,ring:false}); else fxSet('kg',null);
       W.sites.forEach((o,j)=>{ const want=!!f.on[j],has=fxMap.has('sm'+j); if(want&&!has){ fxSet('sm'+j,{type:'column',x:o.x,y:o.y+1,z:o.z,r:1.4,rate:6}); fxSet('sf'+j,{type:'blaze',x:o.x,y:o.y+.5,z:o.z,r:.7,h:1.4,rate:16,ring:false}); } if(!want&&has){ fxSet('sm'+j,null); fxSet('sf'+j,null); } }); },
-    check(f){ return [-60,896]; } };
+    check(f){ return f.o>=4?[230,947]:[-60,896]; } };
 
   /* ---------- 其の三　二の丸の導火線（夜・二の丸の大名屋敷） ---------- */
   const DROOMS=[['大名屋敷の広間（武具の間）','広間',[{n:'鎧櫃',spr:'armor'},{n:'槍掛け',spr:'spears'},{n:'陣太鼓',spr:'drumbox'}],['武者の抜け殻の中','長き得物の掛かる所','戦を告げる音の内']],
     ['大名屋敷の書院','書院',[{n:'文机',spr:'lowtable'},{n:'掛け軸',spr:'kakejiku'},{n:'違い棚',spr:'shelf'}],['筆と硯の眠る台','絵の垂れ下がる裏','段違いの棚の上']],
     ['大名屋敷の奥座敷','奥座敷',[{n:'屏風',spr:'by_crane'},{n:'行灯',spr:'andon'},{n:'長持',spr:'chest_k'}],['鶴の舞う衝立の陰','夜を照らす灯の傍ら','衣を納める箱の底']]];
   const KG_POS=[[-120,165],[40,120],[150,40],[-100,-100],[-190,-40]];
+  const EXITS=[{n:'京橋口',d:'乾（いぬい）',x:-201,z:-214},{n:'青屋口',d:'子（ね）',x:-55,z:-214},{n:'玉造口',d:'巽（たつみ）',x:155,z:204},{n:'大手口',d:'酉（とり）',x:-226,z:107}];
   const L3={ name:'二の丸の導火線', sub:'慶長二十年 四月 ・ 夜 ・ 二の丸', time:3, scen:null, limit:600,
-    story:'夏の陣を前に、城内の内通者が二の丸の大名屋敷に火薬の導火線を仕掛けた。三つの屋敷すべてで導火線を見つけて切り、逃げる内通者を追え。',
+    story:'夏の陣を前に、城内の内通者が二の丸の大名屋敷に火薬の導火線を仕掛けた。導火線を切り、火薬樽を湿らせ、逃げた内通者の行き先を突き止めて捕らえよ。',
     bounds:{x0:-238,x1:208,z0:-232,z1:212}, spawn:[-195,190,0],
     patrols:[{p:[[-120,-150],[40,-150]],s:1.8},{p:[[-80,-205],[-80,-158],[-30,-158],[-30,-205]],s:1.6,spr:'k_teppo'},{p:[[60,-210],[60,-160]],s:1.5},{p:[[-205,60],[-205,-120]],s:1.6},{p:[[0,150],[150,150]],s:1.7,spr:'k_teppo'},{p:[[100,40],[100,-100]],s:1.5},{p:[[-150,120],[-40,120]],s:1.6},{p:[[180,-120],[180,100]],s:1.5}],
-    setup(){ return {kg:rint(KG_POS.length),corr:[rint(3),rint(3),rint(3)]}; },
+    setup(){ return {kg:rint(KG_POS.length),corr:[rint(3),rint(3),rint(3)],exit:rint(EXITS.length)}; },
     build(s){ W.boss=npc('samurai_a',-200,182,'番頭'); W.kg=KG_POS.map(c=>{ const o=spot(c[0],c[1]); aSpr('kagaribi',o.x,o.y,o.z,{s:1.2}); return o; });
-      W.rooms=DROOMS.map(d=>({R:room(d[0]),spots:roomProps(room(d[0]),d[2])})); W.goal=spot(-201,-214); aSpr('k_ninja',W.goal.x+2,W.goal.y,W.goal.z-4,{}); },
-    init(){ return {o:0,kg:KG_POS.map(()=>0),note:0,cut:[0,0,0],srch:[[0,0,0],[0,0,0],[0,0,0]]}; },
+      W.rooms=DROOMS.map(d=>({R:room(d[0]),spots:roomProps(room(d[0]),d[2])}));
+      W.well=spot(-150,-60); aSpr('bucket',W.well.x+1.2,W.well.y,W.well.z,{}); aSpr('w_bucket',W.well.x-1,W.well.y,W.well.z+.5,{}); W.powder=spot(120,-195); aSpr('barrels',W.powder.x,W.powder.y,W.powder.z,{s:1.3});
+      W.exits=EXITS.map(e=>{ const o=spot(e.x,e.z); o.n=e.n; return o; }); },
+    init(){ return {o:0,kg:KG_POS.map(()=>0),cut:[0,0,0],srch:[[0,0,0],[0,0,0],[0,0,0]],wet:0,need:nPl()>=2?2:1,wx:[0,0,0,0]}; },
     target(f,p){ if(near(p,W.boss)) return {k:'boss',l:'番頭に話を聞く',d:.15};
-      if(f.o>=1&&!f.note) for(let j=0;j<W.kg.length;j++) if(!f.kg[j]&&near(p,W.kg[j],3)) return {k:'kg'+j,l:'篝火のまわりを調べる',d:.5};
-      if(f.o>=1) for(let r=0;r<3;r++){ if(f.cut[r]) continue; for(let i=0;i<3;i++){ const o=W.rooms[r].spots[i]; if(o&&!f.srch[r][i]&&near(p,o,2)) return {k:'s'+r+i,l:o.n+'を調べる',d:.7}; } }
+      if(f.o===1) for(let j=0;j<W.kg.length;j++) if(!f.kg[j]&&near(p,W.kg[j],3)) return {k:'kg'+j,l:'篝火のまわりを調べる',d:.5};
+      if(f.o===2) for(let r=0;r<3;r++){ if(f.cut[r]) continue; for(let i=0;i<3;i++){ const o=W.rooms[r].spots[i]; if(o&&!f.srch[r][i]&&near(p,o,2)) return {k:'s'+r+i,l:o.n+'を調べる',d:.7}; } }
+      if(f.o===3){ if(!p.carry&&near(p,W.well,3)) return {k:'fill',l:'井戸で水をくむ',d:.9}; if(p.carry==='水'&&near(p,W.powder,3.5)) return {k:'wet',l:'火薬樽に水をかける',d:.6}; }
       return null; },
     complete(p,k){ const f=G.f,s=SET;
-      if(k==='boss'){ const m='番頭「内通者が二の丸の大名屋敷――広間・書院・奥座敷に導火線を仕掛けた。あやつは見回りの篝火のそばで、書付を落としていったらしい」'; note(m); event(m); if(f.o<1) f.o=1; }
-      else if(k.startsWith('kg')){ const j=+k.slice(2); f.kg[j]=1; if(j===s.kg){ f.note=1; if(f.o<2) f.o=2; const m='内通者の書付「広間は'+DROOMS[0][3][s.corr[0]]+'、書院は'+DROOMS[1][3][s.corr[1]]+'、奥座敷は'+DROOMS[2][3][s.corr[2]]+'に仕掛けよ」'; note(m); event(p.n+'が篝火のそばで内通者の書付を拾った！'); } else event('篝火のまわりには何もない'); }
-      else if(k[0]==='s'){ const r=+k[1],i=+k[2]; f.srch[r][i]=1; if(i===s.corr[r]){ f.cut[r]=1; const n=f.cut.filter(Boolean).length; event(p.n+'が'+DROOMS[r][1]+'の'+DROOMS[r][2][i].n+'で導火線を切った！（'+n+' / 3）'); if(n>=3){ f.o=3; event('すべての導火線を切った！ 内通者が京橋口へ逃げていく――追え！'); } } else penalty(10,DROOMS[r][2][i].n+'には何もない'); } },
-    tick(){ const f=G.f; if(f.o===3&&allIn(W.goal,9)) finish(true,'京橋口で内通者を取り押さえた。二の丸は火の海にならずにすんだ――'); },
-    obj(f){ return ['番頭の話を聞け','見回りの篝火のまわりで、内通者の書付を探せ',`書付を手がかりに、大名屋敷の広間・書院・奥座敷で導火線を切れ（${f.cut.filter(Boolean).length} / 3）`,'京橋口へ逃げた内通者を全員で追え'][f.o]; },
-    arrow(f){ if(f.o===0) return W.boss; if(f.o===1){ let b=null,bd=1e9; W.kg.forEach((o,j)=>{ if(f.kg[j]) return; const d=Math.hypot(o.x-P.x,o.z-P.z); if(d<bd){ bd=d; b=o; } }); return b?{x:b.x,z:b.z,n:'篝火'}:{n:'篝火を調べよう'}; }
-      if(f.o===2){ if(P.room) return {n:P.room.name.replace('大名屋敷の','')+'の中を調べよう'}; let b=null,bd=1e9,bn=''; W.rooms.forEach((q,r)=>{ if(f.cut[r]||!q.R) return; const d=nearestDoor(q.R); if(!d) return; const dd=Math.hypot(d[0]-P.x,d[1]-P.z); if(dd<bd){ bd=dd; b=d; bn=DROOMS[r][1]; } }); return b?{x:b[0],z:b[1],n:'大名屋敷（'+bn+'）の入口'}:{n:'大名屋敷を探そう'}; }
-      return {x:W.goal.x,z:W.goal.z,n:'京橋口'}; },
-    glints(f){ const g=[]; if(f.o===1) W.kg.forEach((o,j)=>{ if(!f.kg[j]) g.push([o.x,o.y+2.6,o.z]); }); if(f.o>=1&&f.o<3) W.rooms.forEach((q,r)=>{ if(!f.cut[r]) q.spots.forEach((o,i)=>{ if(o&&!f.srch[r][i]) g.push([o.x,o.y+1.3,o.z]); }); }); return g; },
-    render(f,t){ bob(W.boss.q,f.o===0,t); },
-    check(f){ return f.o>=3?[-60,-150]:[-195,190]; } };
+      if(k==='boss'){ if(f.o===4){ const e=EXITS[s.exit],m='番頭「見張りの話では、内通者は'+e.d+'の方角の口へ逃げたそうな」（子＝北、卯＝東、午＝南、酉＝西、乾＝北西、巽＝南東）'; note(m); event(m); f.o=5; return; }
+        const m='番頭「内通者が二の丸の大名屋敷――広間・書院・奥座敷に導火線を仕掛けた。あやつは見回りの篝火のそばで、書付を落としていったらしい」'; note(m); event(m); if(f.o<1) f.o=1; }
+      else if(k.startsWith('kg')){ const j=+k.slice(2); f.kg[j]=1; if(j===s.kg){ f.o=2; const m='内通者の書付「広間は'+DROOMS[0][3][s.corr[0]]+'、書院は'+DROOMS[1][3][s.corr[1]]+'、奥座敷は'+DROOMS[2][3][s.corr[2]]+'に仕掛けよ」'; note(m); event(p.n+'が篝火のそばで内通者の書付を拾った！'); } else event('篝火のまわりには何もない'); }
+      else if(k[0]==='s'){ const r=+k[1],i=+k[2]; f.srch[r][i]=1; if(i===s.corr[r]){ f.cut[r]=1; const n=f.cut.filter(Boolean).length; event(p.n+'が'+DROOMS[r][1]+'の'+DROOMS[r][2][i].n+'で導火線を切った！（'+n+' / 3）'); if(n>=3){ f.o=3; event('導火線はすべて切った。だが火薬樽がまだ危ない――井戸の水で湿らせよ'); } } else penalty(10,DROOMS[r][2][i].n+'には何もない'); }
+      else if(k==='fill'){ p.carry='水'; }
+      else if(k==='wet'){ p.carry=false; f.wet++; if(f.wet>=f.need){ f.o=4; event('火薬樽を湿らせた！ 番頭に知らせ、内通者の行き先を聞け'); } else event('火薬樽を湿らせた（あと'+(f.need-f.wet)+'杯）'); } },
+    drop(p){ p.carry=false; },
+    tick(){ const f=G.f; if(f.o!==5) return; W.exits.forEach((o,i)=>{ if(i===SET.exit){ if(allIn(o,8)) finish(true,EXITS[i].n+'で内通者を取り押さえた。二の丸は火の海にならずにすんだ――'); } else if(!f.wx[i]&&inCount(o,6)>0){ f.wx[i]=1; penalty(15,EXITS[i].n+'には誰もいない……方角を考え直せ'); } }); },
+    obj(f){ return ['番頭の話を聞け','見回りの篝火のまわりで、内通者の書付を探せ',`書付を手がかりに、大名屋敷の広間・書院・奥座敷で導火線を切れ（${f.cut.filter(Boolean).length} / 3）`,`井戸の水で火薬樽を湿らせよ（${f.wet} / ${f.need}杯）`,'番頭に知らせて、内通者の行き先を聞け','方角を読み解き、内通者が逃げた口へ全員で向かえ'][f.o]; },
+    arrow(f,mine){ if(f.o===0||f.o===4) return W.boss; if(f.o===1){ let b=null,bd=1e9; W.kg.forEach((o,j)=>{ if(f.kg[j]) return; const d=Math.hypot(o.x-P.x,o.z-P.z); if(d<bd){ bd=d; b=o; } }); return b?{x:b.x,z:b.z,n:'篝火'}:{n:''}; }
+      if(f.o===2){ if(P.room) return {n:P.room.name.replace('大名屋敷の','')+'の中を調べよう'}; let b=null,bd=1e9,bn=''; W.rooms.forEach((q,r)=>{ if(f.cut[r]||!q.R) return; const d=nearestDoor(q.R); if(!d) return; const dd=Math.hypot(d[0]-P.x,d[1]-P.z); if(dd<bd){ bd=dd; b=d; bn=DROOMS[r][1]; } }); return b?{x:b[0],z:b[1],n:'大名屋敷（'+bn+'）の入口'}:{n:''}; }
+      if(f.o===3) return mine&&mine.carry==='水'?{x:W.powder.x,z:W.powder.z,n:'火薬樽'}:{x:W.well.x,z:W.well.z,n:'井戸'};
+      return {n:'ミニマップは北が上。方角から口を選べ'}; },
+    glints(f){ const g=[]; if(f.o===1) W.kg.forEach((o,j)=>{ if(!f.kg[j]) g.push([o.x,o.y+2.6,o.z]); }); if(f.o===2) W.rooms.forEach((q,r)=>{ if(!f.cut[r]) q.spots.forEach((o,i)=>{ if(o&&!f.srch[r][i]) g.push([o.x,o.y+1.3,o.z]); }); });
+      if(f.o===3){ g.push([W.well.x,W.well.y+1.6,W.well.z]); g.push([W.powder.x,W.powder.y+2,W.powder.z]); } if(f.o===5) W.exits.forEach((o,i)=>{ if(!f.wx[i]) g.push([o.x,o.y+3,o.z]); }); return g; },
+    render(f,t){ bob(W.boss.q,f.o===0||f.o===4,t); },
+    check(f){ return f.o>=3?[-150,-40]:[-195,190]; } };
 
   /* ---------- 其の四　裸城の宝（昼・本丸と二の丸） ---------- */
   const TREAS=[{n:'黄金の茶碗',spr:'ex_chawan_gold',d:'日の光を宿す器'},{n:'瓢箪',spr:'ex_hyotan',d:'太閤殿下の馬印と同じかたち'},{n:'松の茶壺',spr:'ex_tsubo_matsu',d:'常盤の木が描かれた壺'},{n:'伊万里の花瓶',spr:'ex_vase_imari',d:'海を渡ってきた染付'},{n:'太刀',spr:'ex_katana1',d:'鞘に眠る刃'},{n:'兜',spr:'ex_kabuto1',d:'戦場で頭を守るもの'}];
+  const TORO=[{x:-120,z:182,n:'石灯籠',spr:'toro1'},{x:60,z:190,n:'石灯籠',spr:'toro2'},{x:150,z:120,n:'石灯籠',spr:'toro3'}];
   const L4={ name:'裸城の宝', sub:'慶長二十年 五月 ・ 昼 ・ 堀を埋められた本丸', time:1, scen:'natsu', phase:0, limit:600,
-    story:'堀を埋められた大坂城は、もはや裸城。徳川の手に渡る前に、本丸の御殿から本物の名物を選び出し、二の丸の長持に納めて城を出よ。',
+    story:'堀を埋められた大坂城は、もはや裸城。長持の鍵を見つけ、本丸の御殿から本物の名物を選んで納め、荷車に積んで、番兵の目をそらして大手門から運び出せ。',
     bounds:{x0:-278,x1:208,z0:-100,z1:212}, spawn:[0,126,0],
     patrols:[{p:[[-200,150],[100,150]],s:1.8},{p:[[-44,14],[54,14]],s:1.5,spr:'k_ninja'},{p:[[-66,-6],[-66,66]],s:1.5,spr:'k_ninja'},{p:[[70,-40],[70,70]],s:1.4,spr:'k_ninja'},{p:[[-200,190],[-200,40]],s:1.6},{p:[[120,190],[120,40]],s:1.6,spr:'k_teppo'}],
-    setup(){ return {order:shuffle([0,1,2,3,4,5]),real:shuffle([0,1,2,3,4,5]).slice(0,3)}; },
-    build(s){ W.mekiki=npc('shonin',14,124,'目利き'); W.box=spot(-8,128); aSpr('chest_k',W.box.x,W.box.y,W.box.z,{s:1.2});
+    setup(){ return {order:shuffle([0,1,2,3,4,5]),real:shuffle([0,1,2,3,4,5]).slice(0,3),key:rint(3)}; },
+    build(s){ W.mekiki=npc('shonin',14,124,'目利き'); W.box=spot(-8,128); aSpr('chest_k',W.box.x,W.box.y,W.box.z,{s:1.2}); W.toro=outSpots(TORO);
       const a=roomProps(room('千畳敷（表御殿の大広間）'),s.order.slice(0,3).map(i=>({n:TREAS[i].n,spr:TREAS[i].spr,s:1.3}))),b=roomProps(room('対面所（表御殿）'),s.order.slice(3).map(i=>({n:TREAS[i].n,spr:TREAS[i].spr,s:1.3})));
-      W.items=[]; s.order.forEach((ti,k)=>{ W.items[ti]=(k<3?a[k]:b[k-3]); }); W.goal=spot(-248,107); W.R1=room('千畳敷（表御殿の大広間）'); W.R2=room('対面所（表御殿）'); },
-    init(){ return {o:0,taken:[0,0,0,0,0,0],fake:[0,0,0,0,0,0],dl:0}; },
+      W.items=[]; s.order.forEach((ti,k)=>{ W.items[ti]=(k<3?a[k]:b[k-3]); }); W.R1=room('千畳敷（表御殿の大広間）'); W.R2=room('対面所（表御殿）');
+      W.cart=spot(-40,132); aSpr('cart',W.cart.x,W.cart.y,W.cart.z,{s:1.3}); W.hA=spot(W.cart.x-3.5,W.cart.z,{fixed:true}); W.hB=spot(W.cart.x+3.5,W.cart.z,{fixed:true});
+      W.bell=spot(130,195); aSpr('bell',W.bell.x,W.bell.y,W.bell.z,{s:1.2}); W.ban=spot(-224,107); W.banIt=aSpr('k_yari',W.ban.x,W.ban.y,W.ban.z,{s:1.1}); W.banTag=aObj(nameTag('大手の番兵','#ff6b55')); W.banTag.position.set(W.ban.x,W.ban.y+3,W.ban.z);
+      W.banBlk={x0:-240,x1:-220,z0:96,z1:118}; W.goal=spot(-252,107); },
+    init(){ return {o:0,toro:[0,0,0],taken:[0,0,0,0,0,0],fake:[0,0,0,0,0,0],dl:0}; },
     target(f,p){ if(near(p,W.mekiki)) return {k:'mekiki',l:'目利きに話を聞く',d:.15};
-      if(f.o===1){ if(!p.carry) for(let i=0;i<6;i++){ const o=W.items[i]; if(o&&!f.taken[i]&&!f.fake[i]&&near(p,o,2)) return {k:'it'+i,l:TREAS[i].n+'を手に取る',d:.5}; }
+      if(f.o===1) for(let i=0;i<3;i++) if(!f.toro[i]&&near(p,W.toro[i],2.8)) return {k:'toro'+i,l:'石灯籠の中を調べる',d:.6};
+      if(f.o===2){ if(!p.carry) for(let i=0;i<6;i++){ const o=W.items[i]; if(o&&!f.taken[i]&&!f.fake[i]&&near(p,o,2)) return {k:'it'+i,l:TREAS[i].n+'を手に取る',d:.5}; }
         if(p.carry==='宝物'&&near(p,W.box,3)) return {k:'put',l:'長持に納める',d:.5}; }
+      if(f.o===3){ if(near(p,W.hA,1.8)) return {k:'swA',l:'荷車の轅（ながえ）を持ち上げる',sw:1}; if(near(p,W.hB,1.8)) return {k:'swB',l:'荷車の轅（ながえ）を持ち上げる',sw:1}; }
+      if(f.o===4&&near(p,W.bell,3)) return {k:'bell',l:'半鐘を打ち鳴らす',d:.8};
       return null; },
     complete(p,k){ const f=G.f,s=SET;
-      if(k==='mekiki'){ const m='目利き「本物の名物は三つ――'+s.real.map(i=>TREAS[i].d).join('、')+'。それ以外は贋物じゃ。御殿の千畳敷と対面所にある」'; note(m); event(m); if(f.o<1) f.o=1; }
+      if(k==='mekiki'){ const m='目利き「本物の名物は三つ――'+s.real.map(i=>TREAS[i].d).join('、')+'。それ以外は贋物じゃ。御殿の千畳敷と対面所にある。長持の鍵は、二の丸の石灯籠のどれかに隠しておいた」'; note(m); event(m); if(f.o<1) f.o=1; }
+      else if(k.startsWith('toro')){ const i=+k[4]; f.toro[i]=1; if(i===s.key){ f.o=2; event(p.n+'が石灯籠の中から長持の鍵を見つけた！ 本物の名物を運び入れよ'); } else penalty(5,'この灯籠には何もない'); }
       else if(k.startsWith('it')){ const i=+k.slice(2); if(s.real.includes(i)){ f.taken[i]=1; p.carry='宝物'; p.ci=i; event(p.n+'が'+TREAS[i].n+'を手に取った。二の丸の長持へ運べ'); } else { f.fake[i]=1; penalty(10,TREAS[i].n+'は贋物だった'); } }
-      else if(k==='put'){ p.carry=false; f.dl++; event('長持に名物を納めた（'+f.dl+' / 3）'); if(f.dl>=3){ f.o=2; event('名物はすべて納めた！ 大手門から城を出よ'); } } },
+      else if(k==='put'){ p.carry=false; f.dl++; event('長持に名物を納めた（'+f.dl+' / 3）'); if(f.dl>=3){ f.o=3; event('名物はすべて納めた！ 長持を荷車に積め'+(nPl()>=2?'（轅を二人で同時に）':'')); } }
+      else if(k==='bell'){ f.o=5; event('半鐘が鳴り響く！ 大手の番兵が持ち場を離れた――今のうちに大手門から出よ'); } },
     drop(p){ if(p.carry==='宝物'&&p.ci!==undefined){ G.f.taken[p.ci]=0; event('運んでいた名物は取り上げられ、御殿に戻された……'); } p.carry=false; },
-    tick(){ const f=G.f; if(f.o===2&&allIn(W.goal,9)) finish(true,'名物を積んだ長持は、大手門から無事に運び出された――'); },
-    obj(f){ return ['目利きの話を聞け',`本丸の御殿から本物の名物を選び、二の丸の長持へ運べ（${f.dl} / 3）`,'大手門から全員で城を出よ'][f.o]; },
-    arrow(f,mine){ if(f.o===0) return W.mekiki; if(f.o===1){ if(mine&&mine.carry==='宝物') return {x:W.box.x,z:W.box.z,n:'長持'}; if(P.room) return {n:'目利きの言葉で本物を見分けよう'};
-        const d1=W.R1&&nearestDoor(W.R1),d2=W.R2&&nearestDoor(W.R2),c=[d1,d2].filter(Boolean).sort((a,b)=>Math.hypot(a[0]-P.x,a[1]-P.z)-Math.hypot(b[0]-P.x,b[1]-P.z))[0]; return c?{x:c[0],z:c[1],n:'御殿の入口'}:{n:'本丸の御殿へ'}; }
-      return {x:W.goal.x,z:W.goal.z,n:'大手門'}; },
-    glints(f){ const g=[]; if(f.o===1){ W.items.forEach((o,i)=>{ if(o&&!f.taken[i]&&!f.fake[i]) g.push([o.x,o.y+1.4,o.z]); }); g.push([W.box.x,W.box.y+1.6,W.box.z]); } return g; },
-    render(f,t){ bob(W.mekiki.q,f.o===0,t); },
-    check(f){ return f.o>=2?[-150,110]:[0,126]; } };
+    tick(dt){ const f=G.f; if(f.o===3) swTick(['swA','swB'],dt,()=>{ f.o=4; event('長持を荷車に積んだ！ だが大手門には番兵がいる。遠くの半鐘を鳴らして気をそらせ'); }); if(f.o===5&&allIn(W.goal,9)) finish(true,'名物を積んだ荷車は、大手門から無事に運び出された――'); },
+    block(x,z,f){ return f.o<5&&inR(W.banBlk,x,z,.2); },
+    obj(f){ return ['目利きの話を聞け','二の丸の石灯籠から、長持の鍵を探せ',`本丸の御殿から本物の名物を選び、長持へ運べ（${f.dl} / 3）`,(V.pl.length>1?'荷車の轅（ながえ）を二人で同時に持ち上げ、長持を積め':'荷車の轅を持ち上げ、長持を積め'),'二の丸の東の半鐘を鳴らし、大手の番兵の気をそらせ','大手門から全員で城を出よ'][f.o]; },
+    arrow(f,mine){ if(f.o===0) return W.mekiki; if(f.o===1) return {n:'二の丸の石灯籠を調べよう'};
+      if(f.o===2){ if(mine&&mine.carry==='宝物') return {x:W.box.x,z:W.box.z,n:'長持'}; if(P.room) return {n:'目利きの言葉で本物を見分けよう'};
+        const c=[W.R1&&nearestDoor(W.R1),W.R2&&nearestDoor(W.R2)].filter(Boolean).sort((a,b)=>Math.hypot(a[0]-P.x,a[1]-P.z)-Math.hypot(b[0]-P.x,b[1]-P.z))[0]; return c?{x:c[0],z:c[1],n:'御殿の入口'}:{n:''}; }
+      if(f.o===3) return {x:W.cart.x,z:W.cart.z,n:'荷車'}; if(f.o===4) return {x:W.bell.x,z:W.bell.z,n:'半鐘'}; return {x:W.goal.x,z:W.goal.z,n:'大手門'}; },
+    glints(f){ const g=[]; if(f.o===1) W.toro.forEach((o,i)=>{ if(!f.toro[i]) g.push([o.x,o.y+2,o.z]); }); if(f.o===2){ W.items.forEach((o,i)=>{ if(o&&!f.taken[i]&&!f.fake[i]) g.push([o.x,o.y+1.4,o.z]); }); g.push([W.box.x,W.box.y+1.6,W.box.z]); }
+      if(f.o===3){ g.push([W.hA.x,W.hA.y+1.2,W.hA.z]); g.push([W.hB.x,W.hB.y+1.2,W.hB.z]); } if(f.o===4) g.push([W.bell.x,W.bell.y+2.6,W.bell.z]); return g; },
+    render(f,t){ bob(W.mekiki.q,f.o===0,t); const gone=f.o>=5; if(W.banIt) crowd.move(W.banIt,gone?0:W.ban.x,gone?-999:W.ban.y,W.ban.z); W.banTag.visible=!gone; },
+    check(f){ return f.o>=3?[-60,140]:[0,126]; } };
 
   /* ---------- 其の五　落城の夜（夜・本丸から大川へ） ---------- */
   const MON=[['桐','ki_kiri'],['菊','mon_kiku'],['瓢箪','ki_hyotan'],['巴','mon_tomoe'],['梅鉢','ki_umebachi'],['桜','mon_sakura']];
@@ -247,7 +288,7 @@ const ESC=(()=>{
   const FIREBOX={x0:-30,x1:-18,z0:-108,z1:-100};
   const S5={swW:{x:-64,z:-76.5},swE:{x:72.5,z:-76.5},well:{x:2,z:-91},fire:{x:-24,z:-103.5},boat:{x:-54,z:-304},lock:{x:-58,z:-78.3}};
   const L5={ name:'落城の夜', sub:'慶長二十年 五月七日 ・ 夜 ・ 本丸から大川へ', time:3, scen:'natsu', phase:3, keepFire:true, limit:900,
-    story:'徳川方が城内になだれ込み、天守は炎に包まれた。抜け道の絵図を手に、山里丸から極楽橋を渡り、大川の小舟まで落ちのびよ。',
+    story:'徳川方が城内になだれ込み、天守は炎に包まれた。抜け道の絵図を探し、錠前と閂を破り、極楽橋の火を消して、大川の小舟まで落ちのびよ。',
     bounds:{x0:-160,x1:120,z0:-312,z1:100}, spawn:[0,-24,Math.PI*.98],
     patrols:[{p:[[-66,-6],[-66,-66]],s:1.5},{p:[[-44,14],[54,14]],s:1.6},{p:[[72,-6],[72,-66]],s:1.4,spr:'k_teppo'},{p:[[-44,-86],[46,-86]],s:1.15},{p:[[-120,-150],[40,-150]],s:1.9},{p:[[-80,-205],[-80,-158],[-30,-158],[-30,-205]],s:1.6,spr:'k_teppo'},{p:[[60,-210],[60,-160]],s:1.5},{p:[[-110,-268],[10,-268]],s:1.8},{p:[[-140,-235],[-140,-290]],s:1.4,spr:'k_teppo'}],
     setup(){ return {code:[rint(6),rint(6),rint(6)],clue:shuffle([...CLUE_CAND.keys()]).slice(0,3),hide:rint(4)}; },
@@ -267,14 +308,13 @@ const ESC=(()=>{
       W.bW=aObj(beam(0xffd36a)); W.bE=aObj(beam(0xffd36a)); W.bWell=aObj(beam(0x7cc8ff)); W.bFire=aObj(beam(0xff8a3a)); W.bBoat=aObj(beam(0x9effa8)); W.rW=aObj(ring(0xffd36a)); W.rE=aObj(ring(0xffd36a)); W.rBoat=aObj(ring(0x9effa8));
       for(const k of ['swW','swE','well','fire','boat','lock']) S5[k].y=groundH(S5[k].x,S5[k].z); W.fireLvl=-1; },
     init(){ return {o:0,talk0:0,talk1:0,srch:[0,0,0,0],clu:[0,0,0],lock:0,gate:0,rope:0,water:0,need:nPl()>=2?4:3,fire:1}; },
-    target(f,p){ const s=SET;
+    target(f,p){
       if(f.o===0){ if(near(p,W.npc0,3)) return {k:'talk0',l:'侍女に話を聞く',d:.15}; for(let i=0;i<4;i++){ const h=W.hide[i]; if(h&&!f.srch[i]&&near(p,h,2)) return {k:'srch'+i,l:HIDES[i].n+'を調べる',d:.7}; } }
       if(f.o===1){ if(near(p,W.npc1,3)) return {k:'talk1',l:'傷ついた兵に話を聞く',d:.15}; for(let j=0;j<3;j++) if(!f.clu[j]&&near(p,W.clue[j],3.2)) return {k:'clue'+j,l:ORD[j]+'の幟を調べる',d:.3};
-        if(!f.lock&&near(p,S5.lock,3)) return {k:'lock',l:'錠前を開ける',d:.05};
-        if(f.lock){ if(near(p,S5.swW,2.6)) return {k:'swW',l:'西の閂を押さえる',sw:1}; if(near(p,S5.swE,2.6)) return {k:'swE',l:'東の閂を押さえる',sw:1}; } }
-      if(f.o===2){ if(W.rope&&f.rope<2&&near(p,W.rope,1.9)) return {k:'rope',l:'茶道具の棚を調べる',d:.6};
-        if(!p.carry&&near(p,S5.well,3)) return f.rope<2?{k:'well',l:'井戸を調べる',d:.2}:{k:'fill',l:'水をくむ',d:.9};
-        if(p.carry==='水'&&near(p,S5.fire,6.5)) return {k:'pour',l:'火に水をかける',d:.6}; }
+        if(near(p,S5.lock,3)) return {k:'lock',l:'錠前を開ける',d:.05}; }
+      if(f.o===2){ if(near(p,S5.swW,2.6)) return {k:'swW',l:'西の閂を押さえる',sw:1}; if(near(p,S5.swE,2.6)) return {k:'swE',l:'東の閂を押さえる',sw:1}; }
+      if(f.o===3){ if(W.rope&&near(p,W.rope,1.9)) return {k:'rope',l:'茶道具の棚を調べる',d:.6}; if(near(p,S5.well,3)) return {k:'well',l:'井戸を調べる',d:.2}; }
+      if(f.o===4){ if(!p.carry&&near(p,S5.well,3)) return {k:'fill',l:'水をくむ',d:.9}; if(p.carry==='水'&&near(p,S5.fire,6.5)) return {k:'pour',l:'火に水をかける',d:.6}; }
       return null; },
     complete(p,k){ const f=G.f,s=SET;
       if(k==='talk0'){ const r=HIDES[s.hide].r; note('侍女「絵図は奥御殿に。'+r+'」'); f.talk0=1; event('侍女「抜け道の絵図は、奥御殿に隠してございます。'+r+'……」'); }
@@ -282,36 +322,37 @@ const ESC=(()=>{
       else if(k==='talk1'){ const m='兵「山里丸の門の錠前は、家紋を三つ合わせねば開かぬ。本丸のどこかに壱・弐・参と記した幟が立っておる……その順に合わせよ」'+(nPl()>=2?'「錠が外れても、閂は西と東に二つ。同時に押さえねば動かぬ」':''); note(m); f.talk1=1; event(m); }
       else if(k.startsWith('clue')){ const j=+k.slice(4); if(!f.clu[j]){ f.clu[j]=1; const mn=MON[s.code[j]][0]; note(ORD[j]+'の幟の家紋は「'+mn+'」'); event(p.n+'が'+ORD[j]+'の幟を見つけた。家紋は「'+mn+'」'); } }
       else if(k==='well'){ if(f.rope<1){ f.rope=1; note('井戸の釣瓶の縄が切れている。山里丸の茶室に替えがあるかもしれない'); } event('釣瓶の縄が切れている……。山里丸の茶室に替えの縄はないか？'); }
-      else if(k==='rope'){ f.rope=2; note('茶室で替えの縄を見つけ、井戸に付けた'); event(p.n+'が茶室で替えの縄を見つけた！ これで井戸の水がくめる'); }
+      else if(k==='rope'){ f.rope=2; f.o=4; note('茶室で替えの縄を見つけ、井戸に付けた'); event(p.n+'が茶室で替えの縄を見つけた！ 井戸で水をくみ、極楽橋の火を消せ'); }
       else if(k==='fill'){ p.carry='水'; }
-      else if(k==='pour'){ p.carry=false; f.water++; if(f.water>=f.need){ f.fire=0; f.o=3; event('極楽橋の火が消えた！ 二の丸を抜けて大川の舟をめざせ'); } else event('火が弱まった（あと'+(f.need-f.water)+'杯）'); } },
+      else if(k==='pour'){ p.carry=false; f.water++; if(f.water>=f.need){ f.fire=0; f.o=5; event('極楽橋の火が消えた！ 二の丸を抜けて大川の舟をめざせ'); } else event('火が弱まった（あと'+(f.need-f.water)+'杯）'); } },
     lock(){ const f=V.f; return {title:'山里丸の門の錠前',sub:'家紋の輪を回して、三つ合わせよ。',slots:3,syms:MON.map(m=>m[0]),known:'わかっている家紋：'+ORD.map((o,j)=>o+'＝'+(f.clu[j]?MON[SET.code[j]][0]:'？')).join('　')}; },
-    code(v){ const f=G.f; if(f.lock) return; if(v.every((x,i)=>x===SET.code[i])){ f.lock=1; event('カチリ――錠前が外れた！ '+(nPl()>=2?'西と東の閂を同時に押さえろ':'閂を押さえて門を開けろ')); } else penalty(15,'錠前はびくともしない……家紋の組み合わせが違うようだ'); },
+    code(v){ const f=G.f; if(f.o!==1) return; if(v.every((x,i)=>x===SET.code[i])){ f.lock=1; f.o=2; event('カチリ――錠前が外れた！ '+(nPl()>=2?'西と東の閂を同時に押さえろ':'閂を押さえて門を開けろ')); } else penalty(15,'錠前はびくともしない……家紋の組み合わせが違うようだ'); },
     drop(p){ p.carry=false; },
     tick(dt){ const f=G.f;
-      if(f.o===1&&f.lock){ const need=Math.min(2,nPl()),held=(G.sw.swW?1:0)+(G.sw.swE?1:0); if(held>=need){ G.gh+=dt; if(G.gh>=1.2){ f.gate=1; f.o=2; G.gh=0; event('閂が外れた！ 山里丸へ。極楽橋が燃えている――井戸の水で消せ'); } } else G.gh=Math.max(0,G.gh-dt*2); }
-      if(f.o===3){ const all=G.pl.every(p=>!p.cap&&Math.hypot(p.x-S5.boat.x,p.z-S5.boat.z)<7); if(all){ G.winT=(G.winT||0)+dt; if(G.winT>2) finish(true,'全員が小舟に乗り込み、燃える大坂城をあとにした――'); } else G.winT=0; } },
+      if(f.o===2) swTick(['swW','swE'],dt,()=>{ f.gate=1; f.o=3; event('閂が外れた！ 山里丸へ。極楽橋が燃えている――井戸を調べよ'); });
+      if(f.o===5){ const all=G.pl.every(p=>!p.cap&&Math.hypot(p.x-S5.boat.x,p.z-S5.boat.z)<7); if(all){ G.winT=(G.winT||0)+dt; if(G.winT>2) finish(true,'全員が小舟に乗り込み、燃える大坂城をあとにした――'); } else G.winT=0; } },
     block(x,z,f){ if(!f.gate&&(inR(GATES5.W,x,z,.3)||inR(GATES5.E,x,z,.3))) return true; if(f.fire&&inR(FIREBOX,x,z,.2)) return true; return false; },
-    obj(f){ if(f.o===0) return '侍女の言葉を手がかりに、奥御殿で「抜け道の絵図」を探せ'; if(f.o===1) return f.lock?(V.pl.length<2?'閂を押さえて、山里丸への門を開けろ':'西と東の閂を同時に押さえて、門を開けろ'):'本丸に立つ三本の幟の家紋を集め、山里丸への門の錠前を開けろ';
-      if(f.o===2) return `井戸で水をくみ、極楽橋の火を消せ（${f.water} / ${f.need}杯）`; const n=V.pl.filter(p=>!p.cap&&Math.hypot(p.x-S5.boat.x,p.z-S5.boat.z)<7).length; return '二の丸の追手をかわし、大川の小舟へ全員で乗り込め'+(n?`（舟に ${n} / ${V.pl.length}人）`:''); },
+    obj(f){ const n=V.pl.filter(p=>!p.cap&&Math.hypot(p.x-S5.boat.x,p.z-S5.boat.z)<7).length;
+      return ['侍女の言葉を手がかりに、奥御殿で「抜け道の絵図」を探せ','本丸に立つ三本の幟の家紋を集め、山里丸への門の錠前を開けろ',(V.pl.length<2?'閂を押さえて、山里丸への門を開けろ':'西と東の閂を同時に押さえて、門を開けろ'),'山里丸の井戸を使えるようにせよ',`井戸で水をくみ、極楽橋の火を消せ（${f.water} / ${f.need}杯）`,'二の丸の追手をかわし、大川の小舟へ全員で乗り込め'+(n?`（舟に ${n} / ${V.pl.length}人）`:'')][f.o]; },
     arrow(f,mine){ const OKU=room('奥御殿'),CHA=room('山里丸の茶室');
       if(f.o===0){ if(!f.talk0) return W.npc0; if(OKU&&P.room!==OKU){ const ex=OKU.exitPos; return {x:ex[0],z:ex[1]-1.5,n:'奥御殿'}; } return {n:'侍女の言葉をたよりに、部屋を調べよう'}; }
-      if(f.o===1){ if(!f.lock){ if(!f.talk1) return W.npc1; const n=f.clu.filter(Boolean).length; if(n<3) return {n:`本丸のどこかに立つ幟を探せ（${n} / 3）`}; return {x:S5.lock.x,z:S5.lock.z,n:'山里丸の門の錠前'}; }
-        const dw=Math.hypot(P.x-S5.swW.x,P.z-S5.swW.z),de=Math.hypot(P.x-S5.swE.x,P.z-S5.swE.z),ot=V.pl.filter(p=>p.id!==net.myId&&!p.cap); let w=dw<=de; if(ot.length){ const o=ot[0]; w=Math.hypot(o.x-S5.swW.x,o.z-S5.swW.z)>Math.hypot(o.x-S5.swE.x,o.z-S5.swE.z); } return w?{x:S5.swW.x,z:S5.swW.z,n:'西の閂'}:{x:S5.swE.x,z:S5.swE.z,n:'東の閂'}; }
-      if(f.o===2){ if(mine&&mine.carry==='水') return {x:S5.fire.x,z:S5.fire.z,n:'極楽橋の火'}; if(f.rope===1&&CHA){ if(P.room!==CHA){ const ex=CHA.exitPos; return {x:ex[0],z:ex[1]-1.2,n:'山里丸の茶室'}; } return {n:'茶室の中を調べよう'}; } return {x:S5.well.x,z:S5.well.z,n:'井戸'}; }
+      if(f.o===1){ if(!f.talk1) return W.npc1; const n=f.clu.filter(Boolean).length; if(n<3) return {n:`本丸のどこかに立つ幟を探せ（${n} / 3）`}; return {x:S5.lock.x,z:S5.lock.z,n:'山里丸の門の錠前'}; }
+      if(f.o===2){ const dw=Math.hypot(P.x-S5.swW.x,P.z-S5.swW.z),de=Math.hypot(P.x-S5.swE.x,P.z-S5.swE.z),ot=V.pl.filter(p=>p.id!==net.myId&&!p.cap); let w=dw<=de; if(ot.length){ const o=ot[0]; w=Math.hypot(o.x-S5.swW.x,o.z-S5.swW.z)>Math.hypot(o.x-S5.swE.x,o.z-S5.swE.z); } return w?{x:S5.swW.x,z:S5.swW.z,n:'西の閂'}:{x:S5.swE.x,z:S5.swE.z,n:'東の閂'}; }
+      if(f.o===3){ if(f.rope===1&&CHA){ if(P.room!==CHA){ const ex=CHA.exitPos; return {x:ex[0],z:ex[1]-1.2,n:'山里丸の茶室'}; } return {n:'茶室の中を調べよう'}; } return {x:S5.well.x,z:S5.well.z,n:'井戸'}; }
+      if(f.o===4) return mine&&mine.carry==='水'?{x:S5.fire.x,z:S5.fire.z,n:'極楽橋の火'}:{x:S5.well.x,z:S5.well.z,n:'井戸'};
       return {x:S5.boat.x,z:S5.boat.z,n:'大川の小舟'}; },
     glints(f){ const g=[]; if(f.o===0) W.hide.forEach((h,i)=>{ if(h&&!f.srch[i]) g.push([h.x,h.y+1.3,h.z]); });
-      if(f.o===1){ if(!f.lock) g.push([S5.lock.x,S5.lock.y+1.9,S5.lock.z+1]); W.clue.forEach((c,j)=>{ if(!f.clu[j]) g.push([c.x,c.y+3.4,c.z]); }); }
-      if(f.o===2&&W.rope&&f.rope===1) g.push([W.rope.x,W.rope.y+1.1,W.rope.z]); return g; },
+      if(f.o===1){ g.push([S5.lock.x,S5.lock.y+1.9,S5.lock.z+1]); W.clue.forEach((c,j)=>{ if(!f.clu[j]) g.push([c.x,c.y+3.4,c.z]); }); }
+      if(f.o===3&&W.rope&&f.rope===1) g.push([W.rope.x,W.rope.y+1.1,W.rope.z]); return g; },
     render(f,t,dt){ bob(W.npc0.q,f.o===0&&!f.talk0,t); bob(W.npc1.q,f.o===1&&!f.talk1,t); W.clue.forEach((c,j)=>{ c.tag.material.opacity=f.clu[j]?.45:1; });
       const show=(m,on,o,y)=>{ m.visible=!!on; if(on) m.position.set(o.x,y!==undefined?y:o.y,o.z); };
-      const sw=f.o===1&&!!f.lock; show(W.bW,sw,S5.swW); show(W.bE,sw,S5.swE); show(W.rW,sw,S5.swW,S5.swW.y+.05); show(W.rE,sw,S5.swE,S5.swE.y+.05);
+      const sw=f.o===2; show(W.bW,sw,S5.swW); show(W.bE,sw,S5.swE); show(W.rW,sw,S5.swW,S5.swW.y+.05); show(W.rE,sw,S5.swE,S5.swE.y+.05);
       W.rW.material.color.set(V.sw&&V.sw.swW?0x9effa8:0xffd36a); W.rE.material.color.set(V.sw&&V.sw.swE?0x9effa8:0xffd36a);
-      show(W.bWell,f.o===2,S5.well); show(W.bFire,f.o===2&&f.fire,S5.fire); show(W.bBoat,f.o===3,S5.boat); show(W.rBoat,f.o===3,S5.boat,S5.boat.y+.05);
+      show(W.bWell,f.o===3||f.o===4,S5.well); show(W.bFire,f.o===4,S5.fire); show(W.bBoat,f.o===5,S5.boat); show(W.rBoat,f.o===5,S5.boat,S5.boat.y+.05);
       for(const k in W.gates){ const g=W.gates[k]; if(f.gate&&g.visible){ g.position.y-=dt*1.4; if(g.position.y<g.userData.by-3.6) g.visible=false; } }
       const lvl=f.fire?Math.max(.25,1-f.water/f.need):0; if(lvl!==W.fireLvl){ W.fireLvl=lvl; if(lvl>0){ fxSet('bf',{type:'blaze',x:S5.fire.x,y:.4,z:S5.fire.z,r:1.5+1.7*lvl,h:3.5,rate:34*lvl,ring:false}); fxSet('bs',{type:'column',x:S5.fire.x,y:3,z:S5.fire.z,r:4,rate:3}); } else { fxSet('bf',null); fxSet('bs',null); } }
       if(W.boat) W.boat.position.y=WATER_Y+.3+Math.sin(t*1.3)*.08; },
-    check(f){ return [[0,-24],[-64,-30],[-62,-90],[-24,-136]][f.o]; } };
+    check(f){ return [[0,-24],[-64,-30],[-64,-70],[-62,-90],[-62,-90],[-24,-136]][f.o]; } };
 
   const LEVELS=[L1,L2,L3,L4,L5];
   const lvTitle=i=>'其の'+KAN[i]+'　'+LEVELS[i].name;
@@ -484,6 +525,8 @@ const ESC=(()=>{
 #escIntro .row{display:flex;gap:12px;align-items:center;margin:0 0 12px;font-size:14px;line-height:1.6}
 #escIntro svg{flex:0 0 64px}
 #escIntro button{width:100%;height:48px;border-radius:12px;border:0;font:inherit;font-weight:700;font-size:16px;margin-top:4px;background:var(--shu);color:#fff}
+#escMin{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:30;pointer-events:none;text-align:center;font-family:var(--f-disp);font-weight:800;font-size:clamp(34px,11vw,92px);line-height:1.15;letter-spacing:.04em;white-space:nowrap;color:#ff2a1a;text-shadow:0 0 18px rgba(0,0,0,.9),0 3px 0 #000,0 0 40px rgba(255,40,20,.6);animation:escMinA 3.4s ease-out forwards}
+@keyframes escMinA{0%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}10%{opacity:1;transform:translate(-50%,-50%) scale(1)}20%{opacity:.55}30%{opacity:1}40%{opacity:.55}50%{opacity:1}85%{opacity:1}100%{opacity:0}}
 #escCap{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;pointer-events:none;background:rgba(60,0,0,.45);font-family:var(--f-disp);font-weight:800;font-size:24px;text-align:center;line-height:1.6;text-shadow:0 2px 10px #000}
 #escLog{position:fixed;left:calc(env(safe-area-inset-left,0px) + 12px);top:calc(env(safe-area-inset-top,0px) + 130px);z-index:7;pointer-events:none;display:grid;gap:4px;max-width:min(300px,45vw)}
 #escLog div{font-size:12px;background:rgba(17,18,20,.72);border-left:3px solid #e8b13a;padding:5px 8px;border-radius:4px;line-height:1.45;transition:opacity .6s}
@@ -519,7 +562,7 @@ const ESC=(()=>{
     const hud=document.createElement('div'); hud.innerHTML=`<div id="escHud" hidden><div class="stg" id="escStg"></div><div class="tm" id="escTm"></div><div class="obj" id="escObj"></div></div>
 <div id="escArrow" hidden><svg viewBox="0 0 34 34"><path d="M17 3 L29 29 L17 22 L5 29 Z" fill="#ffd36a" stroke="#111" stroke-width="1.5"/></svg><span id="escDist"></span></div>
 <button id="escUse" hidden><span id="escUseL">調べる</span><span class="pg" id="escPg"></span></button><button id="escCr" hidden aria-pressed="false">しゃがむ</button>
-<button id="escNB" hidden>手控え 0</button><section id="escNotes" hidden></section><section id="escLock" hidden></section><div id="escVig"></div><div id="escWarn" hidden></div><section id="escIntro" hidden></section><div id="escCap" hidden></div><div id="escLog"></div><div id="escPl"></div><section id="escEnd" hidden></section>`; document.body.append(...hud.children);
+<button id="escNB" hidden>手控え 0</button><section id="escNotes" hidden></section><section id="escLock" hidden></section><div id="escVig"></div><div id="escMin" hidden><div>残り時間</div><div style="font-size:1.5em">1分</div></div><div id="escWarn" hidden></div><section id="escIntro" hidden></section><div id="escCap" hidden></div><div id="escLog"></div><div id="escPl"></div><section id="escEnd" hidden></section>`; document.body.append(...hud.children);
     const U=el('escUse'); const down=e=>{ e.preventDefault(); e.stopPropagation(); me.use=true; latch(); }, up=e=>{ e.preventDefault(); e.stopPropagation(); me.use=false; };
     U.addEventListener('pointerdown',down); U.addEventListener('pointerup',up); U.addEventListener('pointercancel',up); U.addEventListener('pointerleave',up);
     el('escNB').addEventListener('click',e=>{ e.stopPropagation(); openNotes(); });
@@ -605,7 +648,7 @@ ${isHost?`<div class="lvs">${LEVELS.map((L,i)=>`<button class="lv${i===sel?' on'
     const q=nudge(LV.spawn[0]+OFFS[i||0][0],LV.spawn[1]+OFFS[i||0][1]); P.room=null; P.level=-1; P.mode='walk'; P.x=q[0]; P.z=q[1]; P.y=groundH(P.x,P.z)+1.6; P.yaw=LV.spawn[2]; P.pitch=-.05; lastArea='';
     closeLock(); closeNotes(); notesSeen.n=-1;
     for(const id of ['escHud','escArrow','escUse','escCr','escNB']) el(id).hidden=false; me.cr=false; el('escCr').setAttribute('aria-pressed','false');
-    showIntro(lv); onEvent(lvTitle(lv)+' はじまり');
+    lastTm=1e9; el('escMin').hidden=true; showIntro(lv); onEvent(lvTitle(lv)+' はじまり');
   }
   function closeHint(){ const h=$('hint'); if(h){ h.hidden=true; h.style.opacity='0'; } }
 
@@ -656,9 +699,11 @@ ${isHost?`<div class="lvs">${LEVELS.map((L,i)=>`<button class="lv${i===sel?' on'
     LV.render(V.f,t,dt);
     hudUpdate(mine);
   }
+  let lastTm=1e9,minT=0;
   function hudUpdate(mine){
-    el('escStg').textContent=lvTitle(LVI);
+    el('escStg').textContent=lvTitle(LVI)+'　任務 '+Math.min(6,(V.f.o||0)+1)+' / 6';
     el('escObj').textContent=LV.obj(V.f); const tm=el('escTm'); tm.textContent=fmt(V.tm); tm.classList.toggle('low',V.tm<60);
+    if(V.tm<=60&&lastTm>60){ const m=el('escMin'); m.hidden=true; void m.offsetWidth; m.hidden=false; clearTimeout(minT); minT=setTimeout(()=>{ m.hidden=true; },3500); } lastTm=V.tm;
     const T=LV.arrow(V.f,mine)||{n:''},svg=el('escArrow').querySelector('svg');
     if(T.x===undefined){ svg.style.display='none'; el('escDist').textContent=T.n; }
     else { const dx=T.x-P.x,dz=T.z-P.z,d=Math.hypot(dx,dz),ang=Math.atan2(-dx,-dz)-P.yaw; svg.style.display=''; svg.style.transform=`rotate(${-ang}rad)`; el('escDist').textContent=(T.n||'')+' '+Math.round(d)+'m'; }
@@ -670,7 +715,7 @@ ${isHost?`<div class="lvs">${LEVELS.map((L,i)=>`<button class="lv${i===sel?' on'
     el('escPg').style.width=(mine&&tg&&mine.hk===tg.k?(tg.sw?(V.gh/1.2*100):mine.hp*100):0)+'%';
     el('escPl').innerHTML=V.pl.map(p=>`<div><i style="background:${COLS[p.c%4]}"></i>${esc(p.n)}${p.cap?' 捕縛':''}${p.carry?' '+esc(p.carry):''}</div>`).join('');
   }
-  function onEnd(r){ me.inGame=false; me.use=false; if(r.win) saveClear(r.lv); const E=el('escEnd'); E.hidden=false; for(const id of ['escHud','escArrow','escUse','escCr','escCap','escNB','escWarn','escIntro']) el(id).hidden=true; closeLock(); closeNotes();
+  function onEnd(r){ me.inGame=false; me.use=false; if(r.win) saveClear(r.lv); const E=el('escEnd'); E.hidden=false; for(const id of ['escHud','escArrow','escUse','escCr','escCap','escNB','escWarn','escIntro','escMin']) el(id).hidden=true; closeLock(); closeNotes();
     const last=r.lv>=LEVELS.length-1, host=net.mode==='host';
     E.innerHTML=`<div class="box"><div style="color:#e8b13a;font-size:12px;letter-spacing:.2em">${esc(lvTitle(r.lv))}</div><h2 style="color:${r.win?'#9effa8':'#ff8f7e'}">${r.win?(last?'脱出成功':'面クリア'):'失敗'}</h2><p>${esc(r.msg)}</p>
 <dl><dt>かかった時間</dt><dd>${fmt(r.used)}</dd><dt>捕まった回数</dt><dd>${r.cau}回</dd><dt>仲間を助けた</dt><dd>${r.res}回</dd></dl>
