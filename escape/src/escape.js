@@ -82,7 +82,7 @@ const ESC=(()=>{
   function aObj(o){ if(!o.parent) PROP.add(o); LIT.objs.push(o); return o; }
   const fxMap=new Map();
   function fxSet(key,f){ const old=fxMap.get(key); if(old){ const i=FXS.indexOf(old); if(i>=0) FXS.splice(i,1); fxMap.delete(key); } if(f){ f.esc=true; FXS.push(f); fxMap.set(key,f); } }
-  function clearLv(){ for(const it of LIT.items) crowd.hide(it); for(const o of LIT.objs){ if(o.parent) o.parent.remove(o); } LIT.items=[]; LIT.objs=[]; for(const k of [...fxMap.keys()]) fxSet(k,null); fxMap.clear(); }
+  function clearLv(){ for(const it of LIT.items) crowd.hide(it); for(const o of LIT.objs){ if(o.parent) o.parent.remove(o); o.traverse(c=>{ if(c.isSprite&&c.material){ if(c.material.map&&c.material.map.isCanvasTexture&&c.material.map!==sparkTex&&c.material.map!==glowTex) c.material.map.dispose(); c.material.dispose(); } }); } LIT.items=[]; LIT.objs=[]; for(const k of [...fxMap.keys()]) fxSet(k,null); fxMap.clear(); }
   const room=n=>ROOMS.find(R=>R.era==='toyo'&&R.name===n);
   function doorsOf(R){ const d=[R.door]; for(const e of R.extra||[]) if(e.zone) d.push([(e.zone.x0+e.zone.x1)/2,(e.zone.z0+e.zone.z1)/2]); return d; }
   function nearestDoor(R){ let best=null,bd=1e9; for(const d of doorsOf(R)){ if(LV&&LV.bounds&&!inR(LV.bounds,d[0],d[1],-2)) continue; const q=Math.hypot(d[0]-P.x,d[1]-P.z); if(q<bd){ bd=q; best=d; } } return best; }
@@ -399,7 +399,7 @@ const ESC=(()=>{
   function newGame(players,lv,set){
     G={lv,set,t:LEVELS[lv].limit,over:null,winT:0,allCapT:0,rescues:0,caught:0,sw:{},gh:0,notes:[],f:null,
       pl:players.map((p,i)=>({id:p.id,n:p.n,c:i,x:0,y:1.6,z:0,yaw:0,cr:false,run:false,use:false,room:false,cap:false,grace:3,carry:false,hk:null,hp:0,rel:false})),
-      en:LEVELS[lv].patrols.slice(0,MAXE).map(P0=>({p:P0.p.map(c=>nudge(c[0],c[1])),s:P0.s,spr:P0.spr||'k_yari',i:1,x:0,z:0,yaw:0,pause:0,al:{},look:0}))};
+      en:LEVELS[lv].patrols.slice(0,MAXE).map(P0=>({p:P0.p.map(c=>[c[0],c[1]]),s:P0.s,spr:P0.spr||'k_yari',i:1,x:0,z:0,yaw:0,pause:0,al:{},look:0}))};
     for(const e of G.en){ e.x=e.p[0][0]; e.z=e.p[0][1]; }
   }
   function targetFor(st,p){
@@ -438,16 +438,28 @@ const ESC=(()=>{
     if(LV.tick){ LV.tick(dt); if(G.over) return; }
     /* 追手 */
     for(const e of G.en){
+      if(!e.fx){ e.fx=1; e.p=fixPath(e.p.map(c=>nudge(c[0],c[1])),LV.bounds); e.x=e.p[0][0]; e.z=e.p[0][1]; e.i=1%e.p.length; }
       let maxA=0,tgt=null; for(const p of G.pl){ const s=seen(e,p),a=e.al[p.id]||0,na=s>0?Math.min(1.2,a+dt*s):Math.max(0,a-dt*.7); e.al[p.id]=na; if(na>maxA){ maxA=na; tgt=p; }
         if(na>=1&&!p.cap){ p.cap=true; if(LV.drop) LV.drop(p); p.carry=false; e.al[p.id]=0; e.pause=3; G.caught++; event(p.n+'が徳川方の追手に見つかり、捕まった！'+(nPl()>1?' 近づいて「縄を解く」で助けよう':'')); } }
       e.look=maxA;
-      if(tgt&&maxA>.25){ e.yaw=Math.atan2(-(tgt.x-e.x),-(tgt.z-e.z)); if(maxA>.5&&dist(e.x,e.z,tgt.x,tgt.z)>1.6){ const d=dist(e.x,e.z,tgt.x,tgt.z); e.x+=(tgt.x-e.x)/d*dt*1.1; e.z+=(tgt.z-e.z)/d*dt*1.1; } continue; }
+      if(tgt&&maxA>.25){ e.yaw=Math.atan2(-(tgt.x-e.x),-(tgt.z-e.z)); if(maxA>.5&&dist(e.x,e.z,tgt.x,tgt.z)>1.6){ const d=dist(e.x,e.z,tgt.x,tgt.z); enMove(e,e.x+(tgt.x-e.x)/d*dt*1.1,e.z+(tgt.z-e.z)/d*dt*1.1); } continue; }
       if(e.pause>0){ e.pause-=dt; e.yaw+=Math.sin(performance.now()/700+e.x)*dt*.8; continue; }
       const w=e.p[e.i],d=dist(e.x,e.z,w[0],w[1]);
       if(d<.4){ e.i=(e.i+1)%e.p.length; e.pause=1.6; continue; }
-      e.yaw=Math.atan2(-(w[0]-e.x),-(w[1]-e.z)); const st=Math.min(d,e.s*dt); e.x+=(w[0]-e.x)/d*st; e.z+=(w[1]-e.z)/d*st; }
+      e.yaw=Math.atan2(-(w[0]-e.x),-(w[1]-e.z)); const st=Math.min(d,e.s*dt); if(!enMove(e,e.x+(w[0]-e.x)/d*st,e.z+(w[1]-e.z)/d*st)){ e.stk=(e.stk||0)+dt; if(e.stk>1.5){ e.stk=0; e.i=(e.i+1)%e.p.length; e.pause=.8; } } else e.stk=0; }
     if(onl().length&&onl().every(p=>p.cap)){ G.allCapT+=dt; if(G.allCapT>2.6){ G.allCapT=0; G.t-=45; resetToCheck('全員捕まってしまった……（−45秒）。少し前からやり直し'); } } else G.allCapT=0;
   }
+  /* 見回りの道が建物や堀を突き抜けないよう、歩ける所へずらす（だめなら歩ける区間だけに縮める） */
+  function enOk(x,z,B){ return (!B||inR(B,x,z,0))&&_walkable(x,z)&&!hitBlock(x,z,.6); }
+  function segBad(a,b,B){ const L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(2,Math.ceil(L/1.5)); let k=0; for(let i=0;i<=n;i++){ const t=i/n; if(!enOk(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,B)) k++; } return k/(n+1); }
+  function pathBad(p,B){ let w=0; for(let i=0;i<p.length;i++){ if(p.length===2&&i===1) break; w=Math.max(w,segBad(p[i],p[(i+1)%p.length],B)); } return w; }
+  function fixPath(p,B){ if(pathBad(p,B)<=.02) return p;
+    for(let r=1;r<=14;r++) for(const [dx,dz] of [[r,0],[-r,0],[0,r],[0,-r]]){ const q=p.map(c=>[c[0]+dx,c[1]+dz]); if(pathBad(q,B)<=.02) return q; }
+    if(p.length===2){ const a=p[0],b=p[1],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(2,Math.ceil(L/1.5)); let bs=-1,bl=0,cs=-1;
+      for(let i=0;i<=n+1;i++){ const t=i/n,ok=i<=n&&enOk(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,B); if(ok&&cs<0) cs=i; if(!ok&&cs>=0){ if(i-cs>bl){ bl=i-cs; bs=cs; } cs=-1; } }
+      if(bl>=3){ const P=t=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]; return [P(bs/n),P((bs+bl-1)/n)]; } }
+    return p; }
+  function enMove(e,nx,nz){ const B=LV&&LV.bounds; if(enOk(nx,nz,B)){ e.x=nx; e.z=nz; return true; } if(enOk(nx,e.z,B)){ e.x=nx; return true; } if(enOk(e.x,nz,B)){ e.z=nz; return true; } return false; }
   const OFFS=[[0,0],[3,0],[-3,0],[0,3]];
   function resetToCheck(m){ const c=LV.check(G.f); G.pl.forEach((p,i)=>{ p.cap=false; p.grace=5; if(LV.drop) LV.drop(p); p.carry=false; const q=nudge(c[0]+OFFS[i][0],c[1]+OFFS[i][1]); p.x=q[0]; p.z=q[1]; sendTo(p.id,{t:'tp',x:p.x,z:p.z}); }); for(const e of G.en) e.al={}; event(m); }
   function finish(win,msg){ const used=LEVELS[G.lv].limit-G.t; G.over={win,msg,used,res:G.rescues,cau:G.caught,lv:G.lv}; broadcast({t:'end',...G.over}); onEnd(G.over); }
@@ -641,7 +653,7 @@ body.escPlay #mini .tap{display:block!important}
 #escAsk .b{width:100%;height:46px;border-radius:12px;border:0;font:inherit;font-weight:700;font-size:15px;margin-top:6px;background:#2a2b30;color:#fff}
 #escAsk .b.p{background:var(--shu)}
 @media (orientation:landscape) and (max-height:500px){
- #escHud{right:auto;width:min(36vw,300px);top:calc(env(safe-area-inset-top,0px) + 6px)}
+ #escHud{right:auto;width:min(42vw,320px);top:calc(env(safe-area-inset-top,0px) + 6px)} #escHud .stg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.08em}
  #escHud .tm{font-size:22px} #escHud .obj{font-size:11.5px} #escHud .obj .tk.hint{font-size:11px}
  #escPl{top:calc(env(safe-area-inset-top,0px) + 6px);right:calc(env(safe-area-inset-right,0px) + 112px);max-width:none}
  #escPl div{font-size:10.5px;padding:3px 7px}
@@ -651,6 +663,10 @@ body.escPlay #mini .tap{display:block!important}
  #escCr{right:calc(env(safe-area-inset-right,0px) + 140px);bottom:calc(env(safe-area-inset-bottom,0px) + 116px);width:56px;height:56px}
  #escLog{max-width:min(300px,36vw)} #escLog div{font-size:11px;padding:4px 7px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden} #escLog div:nth-child(n+3){display:none}
  #escArrow{bottom:calc(env(safe-area-inset-bottom,0px) + 6px)}
+}
+@media (orientation:landscape) and (max-height:350px){
+ #escUse{width:64px;height:64px;font-size:12px} #escCr{width:48px;height:48px;bottom:calc(env(safe-area-inset-bottom,0px) + 100px);right:calc(env(safe-area-inset-right,0px) + 138px);font-size:11px}
+ #escNB,#escMenu{top:calc(env(safe-area-inset-top,0px) + 100px)}
  body.escPlay #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 50px)!important;max-width:calc(100% - 470px)!important;min-width:200px}
 }
 `; document.head.appendChild(css);
@@ -835,9 +851,9 @@ ${isHost?`<div class="lvs">${LEVELS.map((L,i)=>`<button class="lv${i===sel?' on'
   let hudHTML='',plHTML='';
 
   /* ---------- 全体マップ（ミニマップをタップ） ---------- */
-  function openBigMap(){ if(!me.inGame||!LV) return; el('escMap').hidden=false; drawBigMap(); }
+  function openBigMap(){ if(!me.inGame||!LV||!V) return; el('escMap').hidden=false; drawBigMap(); }
   function closeBigMap(){ el('escMap').hidden=true; }
-  function drawBigMap(){ const cv=el('escMapC'),dpr=Math.min(2,devicePixelRatio||1),W0=innerWidth,H0=innerHeight; if(cv.width!==Math.round(W0*dpr)){ cv.width=Math.round(W0*dpr); cv.height=Math.round(H0*dpr); }
+  function drawBigMap(){ if(!V||!LV) return; const cv=el('escMapC'),dpr=Math.min(2,devicePixelRatio||1),W0=innerWidth,H0=innerHeight; if(cv.width!==Math.round(W0*dpr)){ cv.width=Math.round(W0*dpr); cv.height=Math.round(H0*dpr); }
     const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W0,H0);
     const B=LV.bounds,m=12,bx0=B.x0-m,bx1=B.x1+m,bz0=B.z0-m,bz1=B.z1+m,bw=bx1-bx0,bh=bz1-bz0,pad=44,k=Math.min((W0-pad*2)/bw,(H0-pad*2-20)/bh),ox=(W0-bw*k)/2,oz=(H0-bh*k)/2+10;
     const X=x=>ox+(x-bx0)*k,Z=z=>oz+(z-bz0)*k;
@@ -968,6 +984,9 @@ ${host?(r.win&&!last?`<button class="p" id="escNext">次の面へ：${esc(lvTitl
   ui();
   const _uc=updateChars; updateChars=function(dt){ _uc(dt); try{ update(dt); }catch(e){ console.error('[T] esc',e); } };
   return {get G(){ return G; },get V(){ return V; },get LV(){ return LV; },get W(){ return W; },get SET(){ return SET; },LEVELS,net,me,host,join,hostStart,update,targetFor,onCode,openLock,
-    debug:{walk:(x,z)=>walkable(x,z),step:(n,dt)=>{ for(let i=0;i<n;i++) update(dt||.05); },tp:(x,z)=>{ P.room=null; P.level=-1; P.x=x; P.z=z; P.y=groundH(x,z)+1.6; },enter:R=>enterRoom(R),room,unlock:()=>{ try{ localStorage.setItem('escClear','5'); }catch(e){} },chat:()=>{ const c=chatTarget(); return c&&{who:c.who,name:c.it.name,line:chatLine(c.it)}; },npcs:()=>NPCS.filter(n=>n.it&&!n.it.hidden&&!n.it.off).map(n=>[n.it.name,n.it.x,n.it.z,personaOf(n.it.name)]),bigMap:openBigMap}};
+    debug:{walk:(x,z)=>walkable(x,z),step:(n,dt)=>{ for(let i=0;i<n;i++) update(dt||.05); },tp:(x,z)=>{ P.room=null; P.level=-1; P.x=x; P.z=z; P.y=groundH(x,z)+1.6; },enter:R=>enterRoom(R),room,unlock:()=>{ try{ localStorage.setItem('escClear','5'); }catch(e){} },chat:()=>{ const c=chatTarget(); return c&&{who:c.who,name:c.it.name,line:chatLine(c.it)}; },npcs:()=>NPCS.filter(n=>n.it&&!n.it.hidden&&!n.it.off).map(n=>[n.it.name,n.it.x,n.it.z,personaOf(n.it.name)]),bigMap:openBigMap,reach:()=>{ const B=LV.bounds,x0=Math.floor(B.x0),z0=Math.floor(B.z0),nx=Math.ceil(B.x1-x0)+1,nz=Math.ceil(B.z1-z0)+1,ok=(x,z)=>inR(B,x,z,0)&&_walkable(x,z)&&!hitBlock(x,z,.3),seen=new Uint8Array(nx*nz),q=[]; const sp=nudge(LV.spawn[0],LV.spawn[1]); const si=Math.round(sp[0])-x0,sj=Math.round(sp[1])-z0; seen[sj*nx+si]=1; q.push(si,sj); let h=0; while(h<q.length){ const i=q[h++],j=q[h++]; for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){ const a=i+di,b=j+dj; if(a<0||b<0||a>=nx||b>=nz||seen[b*nx+a]) continue; seen[b*nx+a]=2; if(ok(a+x0,b+z0)){ seen[b*nx+a]=1; q.push(a,b); } } }
+      const near=(x,z,r)=>{ for(let dx=-r;dx<=r;dx++) for(let dz=-r;dz<=r;dz++){ const a=Math.round(x)+dx-x0,b=Math.round(z)+dz-z0; if(a>=0&&b>=0&&a<nx&&b<nz&&seen[b*nx+a]===1) return true; } return false; };
+      const out=[],chk=(k,o)=>{ if(!o||typeof o!=='object') return; if(Array.isArray(o)){ o.forEach((v,i)=>chk(k+'['+i+']',v)); return; } if(typeof o.x==='number'&&typeof o.z==='number'&&!o.inRoom){ if(!near(o.x,o.z,3)) out.push(k+'@'+Math.round(o.x)+','+Math.round(o.z)); } else if(o.door&&Array.isArray(o.door)){ if(!near(o.door[0],o.door[1],3)) out.push(k+'.door'); } };
+      for(const k in W) chk(k,W[k]); return {cells:q.length/2,bad:out}; },enOk:(x,z)=>[enOk(x,z,LV.bounds),_walkable(x,z),hitBlock(x,z,.6),inR(LV.bounds,x,z,0)]}};
 })();
 window.__esc=ESC;
