@@ -15,6 +15,8 @@ s=re.sub(r'<meta name="description" content="[^"]*">','<meta name="description" 
 rep('function updatePlayer(dt){','const ESCF={cr:false,lock:false};\nfunction updatePlayer(dt){')
 rep('const sp=drone?(run?30:15):(run?5.4:2.2);','const sp=(drone?(run?30:15):(run?5.4:2.2))*(ESCF.cr?.45:1)*(ESCF.lock?0:1);')
 rep('floorY(P.level,P.x,P.z):groundH(P.x,P.z))+1.6; P.y+=','floorY(P.level,P.x,P.z):groundH(P.x,P.z))+(ESCF.cr&&!drone?.95:1.6); P.y+=')
+# 向きの決まった人物の絵が、横から見て線のように細くならないよう、最低でも6割の幅は見せる
+rep("} else rgt=vec3(cos(iYaw),0.,-sin(iYaw));","} else { rgt=vec3(cos(iYaw),0.,-sin(iYaw)); vec3 cd=cameraPosition-iPos; cd.y=0.; cd=normalize(cd+vec3(1e-4,0.,0.)); vec3 bR=vec3(cd.z,0.,-cd.x); float dd=dot(rgt,bR); if(abs(dd)<.6){ vec3 pp=rgt-dd*bR; pp=length(pp)>1e-4?normalize(pp):vec3(0.); rgt=(dd<0.?-.6:.6)*bR+.8*pp; } }")
 # 画像の場所
 if prefix:
     rep("'assets/atlas'","'"+prefix+"assets/atlas'")
