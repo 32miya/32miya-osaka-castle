@@ -5294,6 +5294,8 @@ body.escPlay #mini .tap{display:block!important}
   let tgKey=null;
   function latch(){ if(!tgKey) return; me.latch=true; me.latchKey=tgKey; me.latchX=P.x; me.latchZ=P.z; me.latchT=performance.now(); }
   function useNow(){ return me.use||!!me.latch; }
+  /* タイトルや部屋の画面の背景も、現代の大阪ではなく豊臣期の大坂城にする */
+  function toyoBack(){ try{ if(typeof MODE!=='undefined'&&MODE!=='toyo') chooseEra('toyo'); applyTime(2); closeHint(); }catch(e){ console.warn(e); } }
   function titleScreen(){ const L=el('escL'); L.hidden=false; let nm=''; try{ nm=localStorage.getItem('escName')||''; }catch(e){}
     L.innerHTML=`<div class="box"><h1><small>大坂の陣 ・ 十の任務</small>大坂城脱出</h1>
 <p class="lead">慶長十九年から二十年、大坂の陣。豊臣方に仕えるあなたたちは、城下から本丸、そして燃え落ちる天守まで、十の任務に挑む。聞き込み、謎を解き、探し出し、徳川方の追手をかわして脱出せよ。1〜4人で遊べる協力脱出ゲームです。</p>
@@ -5312,7 +5314,7 @@ ${lastRoom()?`<button class="b" id="escRe">前の部屋（${esc(lastRoom().code)
     if(el('escRe')) el('escRe').onclick=()=>{ name(); join(lastRoom().code); };
     const pc=qs.get('room'); if(pc){ el('escJoinF').hidden=false; el('escCode').value=pc; }
     waitReady(); }
-  function waitReady(){ if(!ready){ setTimeout(waitReady,200); return; } const s=el('escSolo'); if(!s) return; s.disabled=false; s.textContent='ひとりで遊ぶ'; el('escHost').disabled=false; el('escJoinB').disabled=false; }
+  function waitReady(){ if(!ready){ setTimeout(waitReady,200); return; } toyoBack(); const s=el('escSolo'); if(!s) return; s.disabled=false; s.textContent='ひとりで遊ぶ'; el('escHost').disabled=false; el('escJoinB').disabled=false; }
   function lobbyStatus(t){ const s=el('escSt'); if(s){ s.className='st'; s.textContent=t; } }
   function lobbyErr(t){ const s=el('escSt'); if(s){ s.className='st er'; s.textContent=t; } if(!el('escSt')) onEvent(t); }
   function showLobby(){ if(me.inGame) return; const L=el('escL'); L.hidden=false; const isHost=net.mode==='host'; if(pickLv===null) pickLv=progress(); const sel=pickLv;
