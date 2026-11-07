@@ -2162,8 +2162,12 @@ function ringSlab(bt,o,i,y,th){ const P=[{x0:o.x0,x1:o.x1,z0:o.z0,z1:i.z0},{x0:o
 /* 階段の吹き抜け（お城さんぽ共通仕様）: 床と天井の穴を階段より左右に広くあけ、上の階には手すりを回す。
    下から見上げたとき上の階の床・柱・窓が見え、行き先が塞がって見えないようにする */
 const WELL=.65,WELL_B=1.1;
-function wellR(s){ if(!s) return null; const d=Math.sign(s.to-s.from),r={x0:s.x0-WELL,x1:s.x1+WELL,z0:s.z0,z1:s.z1}; if(d>0) r.z0-=WELL_B; else r.z1+=WELL_B; return r; }
-function stairWell(F,s,mat){ const y=F.y,d=Math.sign(s.to-s.from),w=wellR(s),zb=s.from-d*WELL_B,zm=(w.z0+w.z1)/2,L=w.z1-w.z0,xa=w.x0,xb=w.x1;
+/* F（上の階）を渡すと、穴がその階の壁より外に出ないように収める（外に出ると下の屋根の瓦が見えてしまう） */
+function wellR(s,F){ if(!s) return null; const d=Math.sign(s.to-s.from),r={x0:s.x0-WELL,x1:s.x1+WELL,z0:s.z0,z1:s.z1}; if(d>0) r.z0-=WELL_B; else r.z1+=WELL_B;
+  if(F&&F.rects&&F.rects.length){ let a=1e9,b=-1e9,c=1e9,e=-1e9; for(const q of F.rects){ a=Math.min(a,q.x0); b=Math.max(b,q.x1); c=Math.min(c,q.z0); e=Math.max(e,q.z1); }
+    r.x0=Math.min(s.x0,Math.max(r.x0,a+.15)); r.x1=Math.max(s.x1,Math.min(r.x1,b-.15)); r.z0=Math.min(s.z0,Math.max(r.z0,c+.15)); r.z1=Math.max(s.z1,Math.min(r.z1,e-.15)); }
+  return r; }
+function stairWell(F,s,mat,bnd){ const y=F.y,d=Math.sign(s.to-s.from),w=wellR(s,bnd||F),zb=s.from-d*WELL_B,zm=(w.z0+w.z1)/2,L=w.z1-w.z0,xa=w.x0,xb=w.x1;
   coll(F,xa-.05,s.x0,w.z0,w.z1); coll(F,s.x1,xb+.05,w.z0,w.z1); coll(F,xa-.05,xb+.05,Math.min(zb,s.from)-.12,Math.max(zb,s.from)+.0);
   for(const x of [xa,xb]){ B[mat].add(new THREE.BoxGeometry(.1,.1,L),TM(x,y+.9,zm)); B[mat].add(new THREE.BoxGeometry(.08,.08,L),TM(x,y+.45,zm)); for(const z of [w.z0,zm,w.z1]) B[mat].add(new THREE.BoxGeometry(.12,.95,.12),TM(x,y+.47,z)); }
   B[mat].add(new THREE.BoxGeometry(xb-xa,.1,.1),TM((xa+xb)/2,y+.9,zb)); B[mat].add(new THREE.BoxGeometry(xb-xa,.08,.08),TM((xa+xb)/2,y+.45,zb));
@@ -2186,12 +2190,13 @@ function planTenshu(T){ const {cx,cz,g0,bh}=T; const yB=g0+bh; const FL=[],ST=[]
   ST.forEach((s,i)=>s.rise=FL[i+1].y-FL[i].y);
   T.FL=FL; T.ST=ST; return T; }
 function buildTenshuInterior(T){ const {cx,cz,FL,ST}=T,MT=T.mat;
+  /* 吹き抜けを収める範囲（各階の歩ける範囲と同じ: 外壁から0.9m内側） */ const WB=F=>F&&{rects:[{x0:cx-F.w/2+.9,x1:cx+F.w/2-.9,z0:cz-F.d/2+.9,z1:cz+F.d/2-.9}]};
   FL.forEach((F,i)=>{ if(i===0) return; const fp={x0:cx-F.w/2,x1:cx+F.w/2,z0:cz-F.d/2,z1:cz+F.d/2},bal=F.bal;
     const wp=bal?{x0:fp.x0-bal,x1:fp.x1+bal,z0:fp.z0-bal,z1:fp.z1+bal}:fp;
     F.rects=[bal?{x0:wp.x0+.35,x1:wp.x1-.35,z0:wp.z0+.35,z1:wp.z1-.35}:{x0:fp.x0+.9,x1:fp.x1-.9,z0:fp.z0+.9,z1:fp.z1-.9}];
-    slab(B[F.floorMat||MT.floor],wp,clipR(wp,i>1?wellR(ST[i-1]):ST[i-1]),F.y,.25);
-    const last=i===FL.length-1; slab(B[F.ceilMat||MT.ceil],fp,last?null:clipR(fp,wellR(ST[i])),F.y+F.h-(last?0:.25),.2);
-    if(ST[i-1]&&i>1) stairWell(F,ST[i-1],'darkwood');
+    slab(B[F.floorMat||MT.floor],wp,clipR(wp,i>1?wellR(ST[i-1],WB(F)):ST[i-1]),F.y,.25);
+    const last=i===FL.length-1; slab(B[F.ceilMat||MT.ceil],fp,last?null:clipR(fp,wellR(ST[i],WB(FL[i+1]))),F.y+F.h-(last?0:.25),.2);
+    if(ST[i-1]&&i>1) stairWell(F,ST[i-1],'darkwood',WB(F));
     const H=F.h-.25,a=F.w/2-.3,b=F.d/2-.3; let sides=[[2*a,cx,cz-b,0],[2*a,cx,cz+b,0],[2*b,cx-a,cz,Math.PI/2],[2*b,cx+a,cz,Math.PI/2]];
     if(i===1&&T.doorE&&!T.win){ const d0=T.doorE.z0,d1=T.doorE.z1; sides=sides.slice(0,3).concat([[d0-(cz-b),cx+a,(cz-b+d0)/2,Math.PI/2],[(cz+b)-d1,cx+a,(d1+cz+b)/2,Math.PI/2]]); B[MT.wall].add(inWallGeo(d1-d0,H-3),TM(cx+a,F.y+3+(H-3)/2,(d0+d1)/2,Math.PI/2)); for(const z of [d0,d1]) B.black.add(new THREE.BoxGeometry(.3,3,.2),TM(cx+a,F.y+1.5,z)); }
     if(F.open){ for(const [L,x,z,ry] of sides){ const half=L/2,dg=1.2,Ls=half-dg;
