@@ -4250,5 +4250,26 @@ window.__oc={P,dbg:{renderer,M,sun},ROOMS,walkable,groundH,walkFloor:(L,x,z)=>wa
 })();
 
 </script>
+<!-- oshiro-portal:begin（お城さんぽ入口へ戻るボタン・各城共通。このブロックごと </body> の直前に貼る） -->
+<style>
+.oshiro-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin-top:2px;padding:9px 14px;border:1px solid rgba(238,240,241,.28);border-radius:10px;
+  color:#eef0f1;text-decoration:none;font-size:13px;letter-spacing:.08em;background:rgba(17,18,20,.55)}
+.oshiro-back::before{content:"‹";font-size:18px;line-height:0;margin-top:-2px}
+.oshiro-back:active{transform:scale(.98)}
+#menu .oshiro-back{align-self:stretch;justify-content:center;margin-top:0}
+</style>
+<script>
+(function(){
+  var DEFAULT_PORTAL = "https://32miya.github.io/oshiro/";
+  var portal = DEFAULT_PORTAL;
+  try{ var v = localStorage.getItem("oshiroSanpo.portal"); if(v){ v = JSON.parse(v); if(/^https?:\/\//.test(v)) portal = v; } }catch(e){}
+  function make(){ var a=document.createElement("a"); a.className="oshiro-back"; a.href=portal; a.textContent="お城選びへ戻る"; return a; }
+  var go = document.getElementById("goBtn");
+  if(go && go.parentNode) go.parentNode.insertBefore(make(), go.nextSibling);
+  var menu = document.getElementById("menu");
+  if(menu) menu.appendChild(make());
+})();
+</script>
+<!-- oshiro-portal:end -->
 </body>
 </html>
