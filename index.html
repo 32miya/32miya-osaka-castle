@@ -1668,6 +1668,20 @@ function frustumGeo(wT,dT,h,bat,tile,cap){ const a=wT/2,b=dT/2,A=a+bat,B=b+bat,v
   quad(v,uv,[-A,0,-B],[-A,0,B],[-a,h,b],[-a,h,-b],2*B/t,sl);
   if(cap) quad(v,uv,[-a,h,b],[a,h,b],[a,h,-b],[-a,h,-b],2*a/t,2*b/t);
   return geoFrom(v,uv); }
+/* 天守台の石垣に穴蔵の入口をあける（お城さんぽ共通仕様）: 斜面の石垣が入口の前をふさがず、奥の通路が見えるようにする。
+   door={z0,z1,y1}（東面、天守台の中心からの z と高さ） */
+function frustumDoorGeo(wT,dT,h,bat,tile,cap,door){ const a=wT/2,b=dT/2,A=a+bat,B=b+bat,v=[],uv=[],t=tile||3,sl=Math.hypot(h,bat)/t;
+  quad(v,uv,[-A,0,B],[A,0,B],[a,h,b],[-a,h,b],2*A/t,sl);
+  quad(v,uv,[A,0,-B],[-A,0,-B],[-a,h,-b],[a,h,-b],2*A/t,sl);
+  quad(v,uv,[-A,0,-B],[-A,0,B],[-a,h,b],[-a,h,-b],2*B/t,sl);
+  if(cap) quad(v,uv,[-a,h,b],[a,h,b],[a,h,-b],[-a,h,-b],2*a/t,2*b/t);
+  /* 東面: 入口の所だけ四角く抜く */
+  const P=(s,w)=>{ const bz=B-2*B*s,tz=b-2*b*s,bx=A,tx=a; return [bx+(tx-bx)*w,h*w,bz+(tz-bz)*w]; };
+  const vv=door.y1/h,Bv=B-(B-b)*vv,s0=(Bv-door.z1)/(2*Bv),s1=(Bv-door.z0)/(2*Bv),S=[0,s0,s1,1],W=[0,vv,1];
+  for(let i=0;i<3;i++) for(let j=0;j<2;j++){ if(i===1&&j===0) continue; const sa=S[i],sb=S[i+1],wa=W[j],wb=W[j+1];
+    v.push(...P(sa,wa),...P(sb,wa),...P(sb,wb),...P(sa,wa),...P(sb,wb),...P(sa,wb)); const U=s=>s*2*B/t,V=w=>w*sl;
+    uv.push(U(sa),V(wa),U(sb),V(wa),U(sb),V(wb),U(sa),V(wa),U(sb),V(wb),U(sa),V(wb)); }
+  return geoFrom(v,uv); }
 function gableRoofGeo(L,D,H,oh,ohx){ const hx=L/2+ohx,hz=D/2+oh,yE=-oh*H/(D/2),sl=Math.hypot(hz,H-yE),v=[],uv=[];
   quad(v,uv,[-hx,yE,hz],[hx,yE,hz],[hx,H,0],[-hx,H,0],2*hx/2.2,sl/1.1);
   quad(v,uv,[hx,yE,-hz],[-hx,yE,-hz],[-hx,H,0],[hx,H,0],2*hx/2.2,sl/1.1);
@@ -2145,6 +2159,16 @@ function tamon(bt,x0,x1,z0,z1,h,y,mats){ const w=x1-x0,d=z1-z0,cx=(x0+x1)/2,cz=(
 /* ---------- 天守の内部（共通の仕組み） ---------- */
 function ringSlab(bt,o,i,y,th){ const P=[{x0:o.x0,x1:o.x1,z0:o.z0,z1:i.z0},{x0:o.x0,x1:o.x1,z0:i.z1,z1:o.z1},{x0:o.x0,x1:i.x0,z0:i.z0,z1:i.z1},{x0:i.x1,x1:o.x1,z0:i.z0,z1:i.z1}];
   for(const r of P){ const w=r.x1-r.x0,d=r.z1-r.z0; if(w<.01||d<.01) continue; bt.add(boxUVGeo(w,th,d,2.4,2.4),TM((r.x0+r.x1)/2,y-th/2,(r.z0+r.z1)/2)); } }
+/* 階段の吹き抜け（お城さんぽ共通仕様）: 床と天井の穴を階段より左右に広くあけ、上の階には手すりを回す。
+   下から見上げたとき上の階の床・柱・窓が見え、行き先が塞がって見えないようにする */
+const WELL=.65,WELL_B=1.1;
+function wellR(s){ if(!s) return null; const d=Math.sign(s.to-s.from),r={x0:s.x0-WELL,x1:s.x1+WELL,z0:s.z0,z1:s.z1}; if(d>0) r.z0-=WELL_B; else r.z1+=WELL_B; return r; }
+function stairWell(F,s,mat){ const y=F.y,d=Math.sign(s.to-s.from),w=wellR(s),zb=s.from-d*WELL_B,zm=(w.z0+w.z1)/2,L=w.z1-w.z0,xa=w.x0,xb=w.x1;
+  coll(F,xa-.05,s.x0,w.z0,w.z1); coll(F,s.x1,xb+.05,w.z0,w.z1); coll(F,xa-.05,xb+.05,Math.min(zb,s.from)-.12,Math.max(zb,s.from)+.0);
+  for(const x of [xa,xb]){ B[mat].add(new THREE.BoxGeometry(.1,.1,L),TM(x,y+.9,zm)); B[mat].add(new THREE.BoxGeometry(.08,.08,L),TM(x,y+.45,zm)); for(const z of [w.z0,zm,w.z1]) B[mat].add(new THREE.BoxGeometry(.12,.95,.12),TM(x,y+.47,z)); }
+  B[mat].add(new THREE.BoxGeometry(xb-xa,.1,.1),TM((xa+xb)/2,y+.9,zb)); B[mat].add(new THREE.BoxGeometry(xb-xa,.08,.08),TM((xa+xb)/2,y+.45,zb));
+  /* 穴の縁の框（床の厚みを見せて、穴だと分かるように） */
+  for(const x of [xa,xb]) B.darkwood.add(new THREE.BoxGeometry(.08,.34,L),TM(x,y-.17,zm)); B.darkwood.add(new THREE.BoxGeometry(xb-xa,.34,.08),TM((xa+xb)/2,y-.17,zb)); }
 /* T: {cx,cz,g0,bw,bd,bh,bat,ext(levels),floors:[{lv,h,...}],mat:{wall,floor,ceil,stone,rail}} */
 function planTenshu(T){ const {cx,cz,g0,bh}=T; const yB=g0+bh; const FL=[],ST=[];
   /* 外観の各層の高さを先に計算 */
@@ -2165,8 +2189,9 @@ function buildTenshuInterior(T){ const {cx,cz,FL,ST}=T,MT=T.mat;
   FL.forEach((F,i)=>{ if(i===0) return; const fp={x0:cx-F.w/2,x1:cx+F.w/2,z0:cz-F.d/2,z1:cz+F.d/2},bal=F.bal;
     const wp=bal?{x0:fp.x0-bal,x1:fp.x1+bal,z0:fp.z0-bal,z1:fp.z1+bal}:fp;
     F.rects=[bal?{x0:wp.x0+.35,x1:wp.x1-.35,z0:wp.z0+.35,z1:wp.z1-.35}:{x0:fp.x0+.9,x1:fp.x1-.9,z0:fp.z0+.9,z1:fp.z1-.9}];
-    slab(B[F.floorMat||MT.floor],wp,clipR(wp,ST[i-1]),F.y,.25);
-    const last=i===FL.length-1; slab(B[F.ceilMat||MT.ceil],fp,last?null:clipR(fp,ST[i]),F.y+F.h-(last?0:.25),.2);
+    slab(B[F.floorMat||MT.floor],wp,clipR(wp,i>1?wellR(ST[i-1]):ST[i-1]),F.y,.25);
+    const last=i===FL.length-1; slab(B[F.ceilMat||MT.ceil],fp,last?null:clipR(fp,wellR(ST[i])),F.y+F.h-(last?0:.25),.2);
+    if(ST[i-1]&&i>1) stairWell(F,ST[i-1],'darkwood');
     const H=F.h-.25,a=F.w/2-.3,b=F.d/2-.3; let sides=[[2*a,cx,cz-b,0],[2*a,cx,cz+b,0],[2*b,cx-a,cz,Math.PI/2],[2*b,cx+a,cz,Math.PI/2]];
     if(i===1&&T.doorE&&!T.win){ const d0=T.doorE.z0,d1=T.doorE.z1; sides=sides.slice(0,3).concat([[d0-(cz-b),cx+a,(cz-b+d0)/2,Math.PI/2],[(cz+b)-d1,cx+a,(d1+cz+b)/2,Math.PI/2]]); B[MT.wall].add(inWallGeo(d1-d0,H-3),TM(cx+a,F.y+3+(H-3)/2,(d0+d1)/2,Math.PI/2)); for(const z of [d0,d1]) B.black.add(new THREE.BoxGeometry(.3,3,.2),TM(cx+a,F.y+1.5,z)); }
     if(F.open){ for(const [L,x,z,ry] of sides){ const half=L/2,dg=1.2,Ls=half-dg;
@@ -2204,7 +2229,7 @@ function buildTenshuInterior(T){ const {cx,cz,FL,ST}=T,MT=T.mat;
   box(bt,cx-.1,cx+.2,g0,g0+bh,s0.z0-.3,zc+1.2); box(bt,cx+2.2,cx+2.5,g0,g0+bh,s0.z0-.3,zc-.9); box(bt,cx-.1,cx+2.5,g0,g0+bh,s0.z0-.3,s0.z0);
   box(B.darkwood,cx+.2,E.X,g0+2.8,g0+3,zc-.9,zc+.9); box(bt,cx+.2,E.X,g0,g0+.06,zc-.9,zc+.9);
   B.lampIn.add(new THREE.BoxGeometry(.2,.4,.3),TM(cx+.35,g0+2,zc+.3)); B.lampIn.add(new THREE.BoxGeometry(.3,.4,.2),TM(E.X-2,g0+2,zc+1.05));
-  if(!T.openDoor) B.black.add(new THREE.PlaneGeometry(1.8,2.6),TM(E.X+.04,g0+1.3,zc,Math.PI/2));
+  /* 入口は黒い板でふさがず、奥の通路が見えるようにする（お城さんぽ共通仕様） */
   for(const z of [zc-1.1,zc+1.1]) B[MT.post].add(new THREE.BoxGeometry(.3,3,.3),TM(E.X+.15,g0+1.5,z));
   B[MT.post].add(new THREE.BoxGeometry(.34,.34,2.9),TM(E.X+.15,g0+2.9,zc)); B[MT.eaveRoof].add(gableRoofGeo(3.4,1.8,.7,.3,.2),TM(E.X+.3,g0+3.05,zc,Math.PI/2));
   if(MT.gold) B.gold.add(new THREE.BoxGeometry(.12,.14,3.6),TM(E.X+.95,g0+2.98,zc));
@@ -2267,12 +2292,9 @@ function signTex(chars){ const c=makeCanvas(64,64*chars.length+32),g=c.getContex
 B=BM=mkB(); curSet=BSETS.modern;
 const TEN={};
 for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stoneK');
-/* 天守閣の外壁（窓は本当の開口として別に作るので、窓を描かない白壁） */
-{ const c=makeCanvas(256,512),g=c.getContext('2d'); g.drawImage(cWallW,0,0); g.drawImage(cWallW,0,318,256,144,0,136,256,144); M.wallWK=M.wallW.clone(); M.wallWK.map=toTex(c); M.wallWK.bumpMap=toBump(c,2); }
 { const T=TEN.modern=planTenshu({par:GM,cx:-6,cz:-46,g0:0,bw:34,bd:32,bh:10,bat:3,oh:2.0,entZ:6,noTunnel:true,doorE:{z0:-50.4,z1:-48},
-    ext:[{w:30,d:28,h:9,wall:'wallWK',cut:true},{w:26,d:24,h:9,wall:'wallWK',cut:true},{w:22,d:20,h:4.6,wall:'wallWK',cut:true},{w:18,d:16,h:9,wall:'wallWK',slope:.6,cut:true},{w:13,d:11,h:4.6,wall:'topK',open:true,bal:1.5}],
-    /* 窓: 各階に1間（約3.6m）ごとに1つ、床から1.0〜2.55mの高さ（外から見える白壁の窓と同じ並び） */
-    win:{tile:3.6,cols:()=>[[.273,.727]],rows:()=>[1.0,2.55],frame:'black',bar:'plaster',step:.22,door:{lv:0,side:'e',a0:-50.4-(-46),a1:-48-(-46),y1:3}},
+    ext:[{w:30,d:28,h:9,wall:'wallW'},{w:26,d:24,h:9,wall:'wallW'},{w:22,d:20,h:4.6,wall:'wallW'},{w:18,d:16,h:9,wall:'wallW',slope:.6},{w:13,d:11,h:4.6,wall:'topK',open:true,bal:1.5}],
+    /* 現代の天守閣は博物館なので、窓は外観だけ（中は展示室の壁）。外が見えるのは8階の展望台 */
     floors:[{lv:0,name:'天守閣 1階',kana:'いっかい',text:'天守台の上にある入口の階。インフォメーションカウンター（音声ガイドの貸し出し）、ミュージアムショップ、シアタールームがあります。エレベーターで5階まで上がり、階段で8階の展望台へ。そこから各階を見ながら下りる回り方がおすすめされています。',meta:[['エレベーター','1階⇔5階（右奥の扉の前で乗れます）'],['設備','案内・ショップ・シアター']]},
       {lv:0,name:'天守閣 2階',kana:'にかい',text:'鯱（しゃちほこ）と伏虎（ふくこ）の実物大レプリカが並ぶ人気の撮影スポット。兜や陣羽織の試着体験もできます（有料）。',meta:[['見どころ','鯱・伏虎の実物大レプリカ'],['体験','兜・陣羽織の試着']]},
       {lv:1,name:'天守閣 3階',kana:'さんがい',text:'重要文化財などの貴重な資料を展示する階。展示は期間ごとに入れ替わり、撮影はできません。',meta:[['展示','企画展示（入れ替えあり）'],['撮影','不可']]},
@@ -2315,7 +2337,7 @@ for(const b of BRIDGES) if(b.id!=='gokuraku') causeway(b,'stoneK');
   Object.assign(T.FL[3],{floorMat:'carpet',wallMat:'mDark',ceilMat:'black',light:.6}); Object.assign(T.FL[4],{floorMat:'carpet',wallMat:'mDark',ceilMat:'black',light:.6});
   Object.assign(T.FL[5],{floorMat:'carpet',wallMat:'mDark',ceilMat:'black',light:.78}); Object.assign(T.FL[6],{floorMat:'floor',wallMat:'inDark',ceilMat:'darkwood',light:.5});
   Object.assign(T.FL[7],{floorMat:'carpet',wallMat:'black',ceilMat:'black',light:.55});
-  buildTenshuInterior(T); keepWindows(T);
+  buildTenshuInterior(T);
   decorModern(T);
   { const f=T.FL[2]; shachi(GM,T.cx-9,f.y+.5,T.cz+8,2.6,Math.PI/2); B.black.add(new THREE.BoxGeometry(1.6,.5,1.6),TM(T.cx-9,f.y+.25,T.cz+8)); coll(f,T.cx-10,T.cx-8,T.cz+7,T.cz+9); bx(f,'tiger',4.4,1.4,.12,T.cx-12.5,f.y+1.4,T.cz+3,Math.PI/2); bx(f,'black',4.6,1.6,.08,T.cx-12.56,f.y+1.4,T.cz+3,Math.PI/2); }
 }
@@ -2427,7 +2449,7 @@ function stEnd(){ const s=STCUR,stG=Object.values(STG).map(q=>q.G),nw=GE.childre
       {lv:4,floorMat:'floor',name:'天守 最上階（御書院）',kana:'さいじょうかい',text:'最上階は畳を敷いた書院造の座敷と考えられています。床の間・違い棚・付書院・帳台構を備え、天井は金の格天井。四方の障子の外には廻縁（まわりえん）と高欄がめぐり、外壁は黒漆に金の桐紋・菊紋、腰には金の虎と鶴が飾られていたと、屏風絵や復元模型から想像されます。',meta:[['つくり','書院造（床の間・違い棚・付書院）'],['廻縁','外に出て一周できます']]}],
     f0:{name:'天守入口（穴蔵）',kana:'あなぐら',text:'天守台の石垣の中の地階「穴蔵」。秀吉の天守は、外観五重で地下の階を持つ高層の建物だったといわれます。',meta:[['この先','天守 1階']]},
     mat:{inner:'tl_f_matsu',innerWaist:'tl_w_matsu',band:'shojiT',crestBand:'topCrest',waistSide:'crane',wall:'kin',floor:'tatami',ceil:'kinpaku',stone:'stone',rail:'lacquer',post:'lacquer',top:'topK',tigerA:'tiger',tigerB:'tiger2',crane:'crane',eaveRoof:'roof',gold:true},sign:signTex('天守入口')});
-  const base=mesh(frustumGeo(T.bw,T.bd,T.bh+.02,T.bat,5,false),M.stone); base.position.set(T.cx,T.g0,T.cz); GE.add(base);
+  const base=mesh(frustumDoorGeo(T.bw,T.bd,T.bh+.02,T.bat,5,false,{z0:T.entZ-.9,z1:T.entZ+.9,y1:2.8}),M.stone); base.position.set(T.cx,T.g0,T.cz); GE.add(base);
   const e0=T.ext[0]; for(const r of [{x0:-T.bw/2,x1:T.bw/2,z0:-T.bd/2,z1:-e0.d/2},{x0:-T.bw/2,x1:T.bw/2,z0:e0.d/2,z1:T.bd/2},{x0:-T.bw/2,x1:-e0.w/2,z0:-e0.d/2,z1:e0.d/2},{x0:e0.w/2,x1:T.bw/2,z0:-e0.d/2,z1:e0.d/2}]) box(B.stone,T.cx+r.x0,T.cx+r.x1,T.g0+T.bh-.3,T.g0+T.bh,T.cz+r.z0,T.cz+r.z1);
   block(T.cx-T.bw/2-T.bat,T.cz-T.bd/2-T.bat,T.cx+T.bw/2+T.bat,T.cz+T.bd/2+T.bat,'castle');
   const mats=Object.assign({oh:T.oh,shs:1.2},TG,{roof:M.roofT,gable:M.gableK});
@@ -3235,7 +3257,10 @@ function updatePlayer(dt){ let ix=0,iz=0; if(keys.KeyW||keys.ArrowUp) iz+=1; if(
   const nn=(P.level>=0||P.room)?.08:.25; if(camera.near!==nn){ camera.near=nn; camera.updateProjectionMatrix(); }
   const ty=drone?48:(P.room?P.room.y:P.level>=0?floorY(P.level,P.x,P.z):groundH(P.x,P.z))+1.6; P.y+=(ty-P.y)*Math.min(1,dt*(drone?1.6:10));
   let bob=0; if(!drone&&l>.1&&!reduceMotion){ P.bob+=dt*sp*2.1; bob=Math.sin(P.bob)*.035; }
-  camera.position.set(P.x,P.y+bob,P.z); camera.rotation.set(P.pitch,P.yaw,0); }
+  /* 階段では進む向きに合わせて目線を少し上下させ、行き先（上の階・下の階）が見えるようにする */
+  { let tg=0; if(!drone&&!P.room&&P.level>=0&&l>.1){ const st=stairAt(P.level,P.x,P.z); if(st){ const s=st.s,run=s.to-s.from,mv=(fx*iz+rx*ix)*0+(fz*iz+rz*ix),up=Math.sign(mv)===Math.sign(run); tg=(up?.62:-.5)*Math.atan2(s.rise,Math.abs(run)); } }
+    P.sp=(P.sp||0)+(tg-(P.sp||0))*Math.min(1,dt*(tg?2.6:1.4)); }
+  camera.position.set(P.x,P.y+bob,P.z); camera.rotation.set(Math.max(-1.3,Math.min(1.3,P.pitch+P.sp)),P.yaw,0); }
 let orbit=0;
 function attract(dt){ orbit+=dt*(reduceMotion?.02:.05); const c=MODE==='toyo'?TEN.toyo:TEN.modern,cx=c.cx,cz=c.cz; camera.position.set(cx+Math.sin(orbit+.35)*150,46,cz+Math.cos(orbit+.35)*150); camera.lookAt(cx,26,cz); }
 
