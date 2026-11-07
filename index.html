@@ -1615,7 +1615,7 @@ for(const [k,c,sc] of [['roof',cRoof,1.1],['roofG',cRoofG,1.1],['hinoki',cShingl
   ['plaster',cPlaster,.5],['wallW',cWallW,.35],['dobei',cDobei,.6],['thatch',cThatch,1.6],['carve',cCarve,2.2],['dote',cDote,1.2],['kura',cKura,.5],['namako',cNamako,1],['wallK',cWallK,.5],['kin',cKin,.6],['lattice',cLattice,1.2],['greenP',cGreenP,.8],['lacqK',cKanagu,.8]]){
   const m=M[k]; if(!m) continue; m.bumpMap=toBump(c,k==='stone'||k==='stoneK'||k==='sangi'?3:2); m.bumpScale=sc*.75; m.needsUpdate=true; }
 /* 板の間の床: シリーズ共通素材（描き下ろしの床板 /oshiro/common/assets/tex/floor_ita.webp）。読み込めないときは手描きのまま */
-{ const im=new Image(); im.onload=()=>{ const t=M.floor.map; t.image=im; t.needsUpdate=true; }; im.src='/oshiro/common/assets/tex/floor_ita.webp'; }
+{ const im=new Image(); im.onload=()=>{ const t=M.floor.map; t.image=im; t.needsUpdate=true; M.floor.color.setHex(0xcfc4b8).convertSRGBToLinear(); }; im.src='/oshiro/common/assets/tex/floor_ita.webp'; }
 /* 周囲の映り込み（環境マップ）: 時刻ごとの空と地面を小さなキューブマップに描く */
 const envFaces=[0,1,2,3,4,5].map(()=>makeCanvas(64,64)); const envCube=new THREE.CubeTexture(envFaces); envCube.encoding=THREE.sRGBEncoding;
 function paintEnv(T,sd){ const top='#'+new THREE.Color(T.top).getHexString(),hor='#'+new THREE.Color(T.hor).getHexString(),gnd=T.night>.5?'#0b0c10':'#5a5648';
