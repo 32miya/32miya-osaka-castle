@@ -210,6 +210,7 @@ body.touchui #poi{bottom:calc(env(safe-area-inset-bottom,0px) + 234px);max-width
 <div id="err" hidden>この端末では3D表示を開始できませんでした。<br>WebGLに対応したブラウザで開いてください。</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/oshiro/common/edo_deco.js"></script>
 <script>/* three.js r128 examples (MIT): postprocessing */
 ( function () {
 
@@ -2781,7 +2782,7 @@ B=BE;
 /* 千畳敷（表御殿の大広間） */
 { const R=mkRoom(Object.assign({era:'toyo',zone:{x0:24.6,x1:27.4,z0:49.5,z1:50.6},exitPos:[26,52.5,Math.PI],extra:[{zone:{x0:.1,x1:1.15,z0:35,z1:37},exitPos:[-1.8,36,Math.PI/2],name:'千畳敷（西口）'},{zone:{x0:8,x1:10,z0:19.1,z1:20.15},exitPos:[9,17.4,0],name:'千畳敷（北口）'}]},roomTxt('千畳敷（表御殿の大広間）','せんじょうじき','千枚の畳を敷けるほどといわれた大広間。秀吉はここで諸大名や海外からの使節と対面しました。奥の一段高い「上段の間」に秀吉が座り、背後の床の間と違い棚、金の襖絵が権威を示しました。ここは想像を交えた再現です。',[['広さ','このアプリでは約46m×24m'],['見どころ','上段の間・格天井・金の襖'],['再現','想像を交えた復元']])));
   const w=46,d=24,h=6; shell(R,w,d,h,{floor:'tatami',ftile:1.8,wall:'kin',front:'shoji',ceil:'lacquer',door:3,doorH:2.8,lamps:0}); coffer(R,w,d,h,2,['tl_c_kiriw','tl_c_teal','tl_c_kikub','tl_c_red','tl_c_houou','tl_c_kirimon']);
-  pillarsRow(R,'woodGrain',w,d,h,4,true); nageshi(R,'woodGrain',w,d,2.9); fusumaWall(R,w,d,2.85,4,['tl_w_matsu','tl_f_matsu','tl_w_tsurumatsu','tl_w_ume','tl_f_sakura']); ranmaRow(R,w,d,3.05,4.15,4,RANMA);
+  pillarsRow(R,'woodGrain',w,d,h,4,true); nageshi(R,'woodGrain',w,d,2.9); fusumaWall(R,w,d,2.85,4,['tl_w_matsu','tl_f_matsu','tl_w_tsurumatsu','tl_w_ume','tl_f_sakura']); ranmaRow(R,w,d,3.05,4.15,4,['rm_kin_hoo','rm_kin_ryu','rm_kin_botan','rm_kin_tsuru','rm_kin_shishi','rm_kin_kiku']);
   /* 上段の間 */ rb(R,'tl_t_kin',-w/2+.3,w/2-.3,0,.45,-d/2+.3,-d/2+7,true,1.8); rb(R,'lacquer',-w/2+.3,w/2-.3,.38,.45,-d/2+6.95,-d/2+7.05);
   tokonoma(R,-4,-d/2+.3,5,1.3,3.2); chigaidana(R,2.5,-d/2+.3,3,1);
   /* 帳台構: 朱の房を下げた装飾の戸 */ rb(R,'lacqK',7,12,.45,3.2,-d/2+.3,-d/2+.5); rb(R,'lattice',7.5,11.5,.6,2.9,-d/2+.5,-d/2+.56); for(const x of [8.2,10.8]) rg(R,'felt',new THREE.CylinderGeometry(.06,.1,.9,8),x,2.3,-d/2+.6);
@@ -2791,12 +2792,12 @@ B=BE;
 /* 対面所（表御殿の西の御殿）: 千畳敷と渡り廊下でつながる */
 { const R=mkRoom(Object.assign({era:'toyo',zone:{x0:-32.15,x1:-31.1,z0:35,z1:37},exitPos:[-29.4,36,-Math.PI/2]},roomTxt('対面所（表御殿）','たいめんじょ','千畳敷の西にある御殿。秀吉が大名や家臣と少人数で向き合った書院造の座敷で、金の襖と違い棚、一段高い上段の間を備えていました。東の渡り廊下で千畳敷とつながっています。ここは想像を交えた再現です。',[['つくり','書院造・上段の間'],['つながり','渡り廊下で千畳敷へ'],['再現','想像を交えた復元']])));
   R.zoneDir='e'; const w=18,d=12,h=4.4; shell(R,w,d,h,{floor:'tatami',ftile:1.8,wall:'kin',front:'shoji',ceil:'tl_c_goldgrid',ctile:3.4,door:2.2,lamps:4}); pillarsRow(R,'woodGrain',w,d,h,3.6,true); nageshi(R,'woodGrain',w,d,2.6);
-  fusumaWall(R,w,d,2.55,3.6,['tl_w_matsu','tl_w_tsurumatsu','tl_f_sakura','tl_w_ume']); ranmaRow(R,w,d,2.75,3.9,3.6,['ranma4','ranma2','ranma5']);
+  fusumaWall(R,w,d,2.55,3.6,['tl_w_matsu','tl_w_tsurumatsu','tl_f_sakura','tl_w_ume']); ranmaRow(R,w,d,2.75,3.9,3.6,['rm_kinji_hoo','rm_kin_tsuru','rm_kinji_kiku']);
   rb(R,'tl_t_kin',-w/2+.3,w/2-.3,0,.35,-d/2+.3,-d/2+4.2,true,1.8); rb(R,'lacquer',-w/2+.3,w/2-.3,.3,.36,-d/2+4.15,-d/2+4.25); tokonoma(R,-3,-d/2+.3,3.6,1.1,2.8); chigaidana(R,1.6,-d/2+.3,2.4,.9);
   rg(R,'felt',new THREE.BoxGeometry(1,.06,1),-3,.38,-d/2+2.6); for(let i=0;i<4;i++) for(const s2 of [-1,1]) rg(R,'felt',new THREE.BoxGeometry(.7,.05,.7),s2*(2+i*2),.03,1.4,0); }
 /* 奥御殿（詰ノ丸） */
 { const R=mkRoom(Object.assign({era:'toyo',zone:{x0:-15.4,x1:-12.6,z0:-30.2,z1:-29.1},exitPos:[-14,-27.5,Math.PI]},roomTxt('奥御殿','おくごてん','秀吉や家族が日々を過ごした奥向きの御殿。表御殿の儀式の場とは違い、襖で仕切った落ち着いた座敷が続いていたと考えられます。部屋の配置は想像です。',[['用途','暮らしの場'],['再現','想像を交えた復元']])));
-  const w=26,d=16,h=4.2; shell(R,w,d,h,{floor:'tatami',ftile:1.8,wall:'kin',front:'shoji',ceil:'tl_c_kacho',ctile:3.2,door:2.4,lamps:4}); pillarsRow(R,'woodGrain',w,d,h,3.6,true); nageshi(R,'woodGrain',w,d,2.4); fusumaWall(R,w,d,2.35,3.6,['tl_f_sakura','tl_w_ume','tl_p_botan','tl_p_tsuru','tl_f_take']); ranmaRow(R,w,d,2.55,3.35,3.6,['ranma6','ranma8','ranma5','ranma7']);
+  const w=26,d=16,h=4.2; shell(R,w,d,h,{floor:'tatami',ftile:1.8,wall:'kin',front:'shoji',ceil:'tl_c_kacho',ctile:3.2,door:2.4,lamps:4}); pillarsRow(R,'woodGrain',w,d,h,3.6,true); nageshi(R,'woodGrain',w,d,2.4); fusumaWall(R,w,d,2.35,3.6,['tl_f_sakura','tl_w_ume','tl_p_botan','tl_p_tsuru','tl_f_take']); ranmaRow(R,w,d,2.55,3.35,3.6,['rm_kin_botan','rm_kinji_hoo','rm_kin_kiku','rm_kin_shishi']);
   /* 襖の間仕切り（中央を開けて通れる） */ rb(R,'kin',-.06,.06,0,2.4,-d/2,-2,true); rb(R,'kin',-.06,.06,0,2.4,2,d/2-3,true); for(const sx of [-1,1]){ rg(R,'tl_f_sakura',new THREE.BoxGeometry(.02,2.35,d/2-2.3),sx*.08,1.18,-d/4-1,Math.PI/2*0); rg(R,'tl_w_ume',new THREE.BoxGeometry(.02,2.35,d/2-5.2),sx*.08,1.18,(2+d/2-3)/2); } rb(R,'woodGrain',-.1,.1,2.4,h,-d/2,d/2-3);
   tokonoma(R,-8,-d/2+.2,3.6,1,2.6); chigaidana(R,-4.5,-d/2+.2,2.4,.8); tokonoma(R,7,-d/2+.2,3,1,2.6);
   byobuR(R,8,1,Math.PI,6,.8,1.5); rb(R,'lacquer',-9,-7.6,0,.35,1,1.6,true); rb(R,'lacquer',3,4.4,0,.7,-3,-2.4,true); rb(R,'gold',3,4.4,.7,.74,-3,-2.4); }
@@ -2832,8 +2833,8 @@ const T0=TERA[1]||TERA[0];
 { const D=DAIMYO.find(q=>q.face==='w')||DAIMYO[0],ox=D.face==='w'?D.hx-D.hw/2-.5:D.face==='e'?D.hx+D.hw/2+.5:D.hx,oz=D.face==='n'?D.hz-D.hd/2-.5:D.face==='s'?D.hz+D.hd/2+.5:D.hz;
   const sx=D.face==='w'?-1:D.face==='e'?1:0,sz=D.face==='n'?-1:D.face==='s'?1:0; const zn=sx?{x0:Math.min(ox,ox+sx*1.1),x1:Math.max(ox,ox+sx*1.1),z0:oz-1,z1:oz+1}:{x0:ox-1,x1:ox+1,z0:Math.min(oz,oz+sz*1.1),z1:Math.max(oz,oz+sz*1.1)};
   const R=mkRoom(Object.assign({era:'toyo',zone:zn,exitPos:[ox+sx*2.6,oz+sz*2.6,Math.atan2(-sx,-sz)]},roomTxt('大名屋敷の書院','だいみょうやしき','秀吉に仕える大名が大坂に構えた屋敷の座敷。床の間と違い棚を備えた書院造で、主君や客を迎えるため、金の襖や具足で格式を示しました。',[['つくり','書院造'],['再現','想像を交えた復元']])));
-  R.zoneDir=D.face; const w=14,d=10,h=3.8; shell(R,w,d,h,{floor:'tatami',ftile:1.8,wall:'kin',front:'shoji',ceil:'tl_c_goldgrid',ctile:3.4,door:2,lamps:4}); pillarsRow(R,'woodGrain',w,d,h,3.5,true); nageshi(R,'woodGrain',w,d,2.4); fusumaWall(R,w,d,2.35,3.5,['tl_w_sansui','tl_f_sansui','tl_f_yama','tl_f_kumo2']); ranmaRow(R,w,d,2.55,3.3,3.5,['ranma3','ranma7','ranma1']);
-  tokonoma(R,-3,-d/2+.2,3.2,1,2.6); chigaidana(R,1,-d/2+.2,2.2,.8); armor({y:R.y,boxes:R.boxes},R.ox+5,R.oz-3,-Math.PI/2,'#7a2d24','#c79f45'); rb(R,'lacquer',-6,-4.6,0,.6,2,2.4,true); for(let k=0;k<2;k++) rg(R,'black',new THREE.BoxGeometry(1.2,.04,.04),-5.3,.7+k*.18,2.2); }
+  R.zoneDir=D.face; const w=14,d=10,h=3.8; shell(R,w,d,h,{floor:'tatami',ftile:1.8,wall:'kin',front:'shoji',ceil:'tl_c_goldgrid',ctile:3.4,door:2,lamps:4}); pillarsRow(R,'woodGrain',w,d,h,3.5,true); nageshi(R,'woodGrain',w,d,2.4); fusumaWall(R,w,d,2.35,3.5,['tl_w_sansui','tl_f_sansui','tl_f_yama','tl_f_kumo2']); ranmaRow(R,w,d,2.55,3.3,3.5,['rm_ryu_kinbuchi','rm_kinji_tsuru','rm_kin_hoo']);
+  tokonoma(R,-3,-d/2+.2,3.2,1,2.6); chigaidana(R,1,-d/2+.2,2.2,.8); if(!window.EdoDeco) armor({y:R.y,boxes:R.boxes},R.ox+5,R.oz-3,-Math.PI/2,'#7a2d24','#c79f45'); rb(R,'lacquer',-6,-4.6,0,.6,2,2.4,true); for(let k=0;k<2;k++) rg(R,'black',new THREE.BoxGeometry(1.2,.04,.04),-5.3,.7+k*.18,2.2); }
 
 /* ---------- 現代 ---------- */
 /* ---------- 入れる建物を増やす: 同じ形の屋敷・町家・寺には、いくつかの内装を順に割り当てる ---------- */
@@ -2847,8 +2848,8 @@ const R_SHOIN=ROOMS.find(r=>r.name.startsWith('大名屋敷の書院')),R_MACHI=
 /* 大名屋敷の広間（武具の間） */
 { const R=mkRoom(Object.assign({era:'toyo'},roomTxt('大名屋敷の広間（武具の間）','だいみょうやしき','大名屋敷の表の広間。家の武威を示すため、甲冑や槍・弓を飾りました。家臣が集まって軍議や評定を開くこともありました。',[['つくり','書院造の広間'],['見どころ','甲冑・槍・弓'],['再現','想像を交えた復元']])));
   R.zoneDir='n'; const w=16,d=10,h=3.9; shell(R,w,d,h,{floor:'tatami',ftile:1.8,wall:'woodGrain',front:'shoji',ceil:'tl_c_kirimon',ctile:3.2,door:2,lamps:4}); pillarsRow(R,'darkwood',w,d,h,3.2,true); nageshi(R,'darkwood',w,d,2.4);
-  fusumaWall(R,w,d,2.35,3.2,['tl_w_tsurumatsu','tl_f_yama','tl_w_matsu']); ranmaRow(R,w,d,2.55,3.4,3.2,['ranma5','ranma1','ranma8']);
-  for(const [x,c1,c2] of [[-5,'#2b3346','#c79f45'],[-2.4,'#7a2d24','#d8b25a'],[2.4,'#3c4a2e','#c79f45'],[5,'#1d1d22','#b98a3a']]) armor({y:R.y,boxes:R.boxes},R.ox+x,R.oz-d/2+.9,0,c1,c2,true);
+  fusumaWall(R,w,d,2.35,3.2,['tl_w_tsurumatsu','tl_f_yama','tl_w_matsu']); ranmaRow(R,w,d,2.55,3.4,3.2,['rm_kin_ryu','rm_kin_shishi','rm_ryu_kinbuchi']);
+  if(!window.EdoDeco) for(const [x,c1,c2] of [[-5,'#2b3346','#c79f45'],[-2.4,'#7a2d24','#d8b25a'],[2.4,'#3c4a2e','#c79f45'],[5,'#1d1d22','#b98a3a']]) armor({y:R.y,boxes:R.boxes},R.ox+x,R.oz-d/2+.9,0,c1,c2,true);
   rb(R,'lacquer',-w/2+.3,-w/2+.7,0,2.2,-2,2,true); for(let k=0;k<5;k++) rg(R,'darkwood',new THREE.CylinderGeometry(.03,.03,3.2,6),-w/2+.5,1.6,-1.6+k*.8,0,'#3a2a1a'); }
 /* 大名屋敷の奥座敷 */
 { const R=mkRoom(Object.assign({era:'toyo'},roomTxt('大名屋敷の奥座敷','だいみょうやしき','大名屋敷の奥向き。大名の妻子は人質として大坂の屋敷に住まわされました。花を生け、香をたき、季節の襖絵に囲まれて暮らしました。',[['住む人','大名の妻子・奥女中'],['見どころ','花・香炉・季節の襖絵'],['再現','想像を交えた復元']])));
@@ -3483,7 +3484,12 @@ class Crowd{ constructor(par,max,shadows){ this.par=par; this.max=max||400; this
   setOn(it,v){ if(it.hidden||it.off===!v) return; it.off=!v; it.p.A.size.setXY(it.i,v?(it.flip?-it.w:it.w):0,v?it.h:0); it.p.A.size.needsUpdate=true; }
   hide(it){ if(it.bk) this.hide(it.bk); it.hidden=true; it.p.A.size.setXY(it.i,0,0); it.p.A.size.needsUpdate=true; if(it.si>=0){ this.sh.setMatrixAt(it.si,TM(0,-999,0)); this.sh.instanceMatrix.needsUpdate=true; } }
   set visible(v){ for(const p of this.pages) p.mesh.visible=v; if(this.sh) this.sh.visible=v; } }
-function sprTint(v){ for(const m of _sprMats) m.color.setScalar(v); }
+function sprTint(v){ for(const m of _sprMats) m.color.setScalar(v); if(EDO) EDO.tint(v); }
+/* お城さんぽ共通の江戸の調度品・具足・欄間・建物（/oshiro/common/edo_deco.js と deco_edo.webp）。
+   アトラスにない名前（gk_… rm_… i_… e_…）は、rp() や orn() からこちらで置く。読み込めないときは何も置かない */
+const EDO=window.EdoDeco?EdoDeco.init(THREE):null;
+function edoInfo(n){ const s=EDO&&EDO.size(n); return s?{edo:true,h:s.h,aspect:s.w/s.h}:null; }
+function edoPut(par,name,x,y,z,o){ if(!EDO||!EDO.size(name)) return null; const ms=EDO.put(par,name,x,y,z,o); if(!ms) return null; const u=ms.userData.edo; return {x,y,z,w:u.w,h:u.h,name,mesh:ms}; }
 
 /* ---------- 煙・炎・閃光（パーティクル） ---------- */
 const FX=(()=>{ const N=2400,pos=new Float32Array(N*3),col=new Float32Array(N*4),sz=new Float32Array(N),life=new Float32Array(N),vel=new Float32Array(N*3),kind=new Uint8Array(N),grow=new Float32Array(N),max=new Float32Array(N); let head=0;
@@ -3575,15 +3581,26 @@ function updateNPC(dt){ if(!GNPC.visible||!GE.visible) return; const rx=Math.cos
 
 /* ---------- 室内と天守の調度品・人物 ---------- */
 const decoRoomT=new Crowd(GE,300,true),decoRoomM=new Crowd(GM,200,true);
-function rp(R,spr,x,y,z,o,solid,talk){ const C=R.era==='modern'?decoRoomM:decoRoomT; const it=C.add(spr,R.ox+x,R.y+y,R.oz+z,o); if(it&&solid){ const w=Math.max(.5,it.w*.4); R.boxes.push({x0:R.ox+x-w,x1:R.ox+x+w,z0:R.oz+z-.45,z1:R.oz+z+.45}); } if(it&&talk) TALK.push({it,name:talk[0],say:talk[1],era:R.era}); return it; }
+function rp(R,spr,x,y,z,o,solid,talk){ const C=R.era==='modern'?decoRoomM:decoRoomT; const it=C.add(spr,R.ox+x,R.y+y,R.oz+z,o)||edoPut(R.era==='modern'?GM:GE,spr,R.ox+x,R.y+y,R.oz+z,o); if(it&&solid){ const w=Math.max(.5,it.w*.4); R.boxes.push({x0:R.ox+x-w,x1:R.ox+x+w,z0:R.oz+z-.45,z1:R.oz+z+.45}); } if(it&&talk) TALK.push({it,name:talk[0],say:talk[1],era:R.era}); return it; }
 /* 置き物の台: 壺・兜・花・香炉などを床に直置きしない */
 function standAt(par,x,y0,z,h,w,d,mat){ const m=mesh(new THREE.BoxGeometry(w||.7,h,d||.5),M[mat||'lacquer']); m.position.set(x,y0+h/2,z); par.add(m); return y0+h; }
 function rpS(R,spr,x,z,h,o,w,d,mat){ const y=standAt(GE,R.ox+x,R.y,R.oz+z,h,w,d,mat); return rp(R,spr,x,y-R.y,z,o); }
+
+/* 入口の外の庭の小物（共通素材 deco_edo の石灯籠・井戸など）。歩ける地面で、まわりも空いている所にだけ置き、当たり判定を付ける */
+function edoYard(R,list){ if(!EDO||!R) return; const E=R.exitPos,ya=E[2],fx=-Math.sin(ya),fz=-Math.cos(ya),rx=Math.cos(ya),rz=-Math.sin(ya),par=R.era==='modern'?GM:GE;
+  withMode(R.era,()=>{ for(const [n,side,fwd] of list){ const x=E[0]+rx*side+fx*fwd,z=E[1]+rz*side+fz*fwd,s=EDO.size(n),r=Math.max(.6,s.w*.45);
+    let ok=true; for(const [dx,dz] of [[0,0],[r,0],[-r,0],[0,r],[0,-r]]) if(!walkable(x+dx,z+dz)) ok=false; if(!ok) continue;
+    if(edoPut(par,n,x,groundH(x,z)-.03,z,{})) block(x-r*.7,z-r*.5,x+r*.7,z+r*.5,'castle'); } }); }
 { const RN=n=>ROOMS.find(R=>R.era==='toyo'&&R.name.startsWith(n)),MR=ROOMS.filter(R=>R.era==='modern'); const R0=RN('千畳敷'),R1=RN('奥御殿'),R2=RN('山里丸の茶室'),R3=RN('寺の本堂'),R4=RN('町家（上町'),R5=RN('大名屋敷の書院'),[R6,R7,R8,R9]=MR;
   const RT=RN('対面所'),RH=RN('大名屋敷の広間'),RO=RN('大名屋敷の奥座敷'),RS=RN('町家（酒屋）'),RK=RN('町家（薬種屋）');
   /* 対面所 */ rp(RT,'lord_navy',-3,.35,-3.8,{},true,['大名（上段の間）','面を上げられよ。殿下へのお取り次ぎは、この対面所でうけたまわる。']); rp(RT,'sam_haori',-6,0,1.5,{},true,['取次の侍','千畳敷へは東の渡り廊下からお通りくだされ。']); rp(RT,'samurai_a',4,0,1.2,{flip:true},true,['使者','国元からの書状をお届けにあがりました。']); rpS(RT,'kouro',6.5,-3.5,.5); rp(RT,'by_pine',8.7,0,-1,{yaw:-Math.PI/2});
   /* 武具の間 */ rp(RH,'sam_armor',-1,0,1,{},true,['家臣','明日は殿のお供で大坂城へ登る。具足の手入れは怠れぬ。']); rp(RH,'samurai_b',2.5,0,2,{flip:true},true,['侍大将','この槍で、九州攻めでは手柄を立てたものよ。']); rp(RH,'yari_pair',7.3,0,-1,{yaw:-Math.PI/2}); rp(RH,'bows',7.3,0,2,{yaw:-Math.PI/2}); rpS(RH,'kabuto',0,-4.2,.7,{s:.9},.8,.6,'darkwood');
   /* 奥座敷 */ rp(RO,'lady_walk',-1.5,0,0,{},true,['大名の奥方','殿のご領国には、もう何年も帰っておりませぬ。']); rp(RO,'kodomo',1,0,1.5,{},true,['大名の若君','母上、きょうはお城の大きな天守を見ました！']); rp(RO,'lady_tray2',3,0,-1,{flip:true},true,['奥女中','お茶をお持ちいたしました。']); rp(RO,'ikebana',-2.5,.2,-3.9); rp(RO,'kouro',4.2,.35,-.6); rp(RO,'shogi',-4.3,.5,1.6,{s:.8}); rp(RO,'kin_byobu',-5.6,0,-1,{yaw:Math.PI/2});
+  /* お城さんぽ共通の調度品・具足（/oshiro/common/edo_deco.js）。豊臣期の御殿は金碧の欄間と調度。徳川の再建・現代の復興天守とは分けて、こちらは豊臣期だけに置く */
+  rp(R0,'gk_daimyo1',3.2,.45,-10.7,{},true,['太閤の具足','金の後光のような立物の兜をつけた具足。秀吉は馬藺（ばりん）の葉を放射状に並べた後立の兜を用いたと伝わります。']); rp(R0,'i_toro_kin',-9.5,.45,-10.9); rp(R0,'i_toro_kin',6,.45,-10.9);
+  if(EDO) [[-5,'gk_daimyo0'],[-2.4,'gk_toko1'],[2.4,'gk_daimyo2'],[5,'gk_daimyo4']].forEach(([x,n])=>rp(RH,n,x,0,-4.1,{},true,['具足','家に伝わる具足を並べて、家の武威を示しました。']));
+  rp(R1,'i_maku_kiri',-12.6,0,2,{yaw:Math.PI/2}); rp(R1,'i_kyodai',11.6,0,-6.6); rp(R1,'i_tansu_shu',12.6,0,-3,{yaw:-Math.PI/2}); rp(R1,'i_kobako',10.4,0,-7.2);
+  rp(RO,'i_kyodai',4.6,0,-3.7); edoYard(R3,[['e_ishidoro',-3.6,1.4],['e_ishidoro',3.6,1.4]]); edoYard(R5,[['e_ido',-3.4,1.2],['e_ishidoro',3.2,1]]); rp(RO,'i_kake_ume',-2.5,.62,-4.22,{yaw:0}); rp(R5,'gk_toko2',5.6,0,-3.4,{},true,['飾り具足','屋敷の主の具足。書院の脇に飾っています。']); rp(R5,'i_kake_tsuru',-3,.62,-4.72,{yaw:0}); rp(RT,'i_kake_fuji',-3,.62,-5.62,{yaw:0}); rp(RO,'i_bonbori',-5.2,0,-3.8);
   /* 酒屋 */ rp(RS,'shonin',2,.45,-1,{},false,['酒屋の主人','伏見の酒が入りましたぞ。一升いかがかな。']); rp(RS,'q_yoke',-1.5,0,2.5,{},true,['客','祭りの酒を買いに来ましたよ。']); for(const [x,z] of [[-2.4,-3.8],[-1.3,-3.8],[-2.4,-2.6],[-2.4,.5],[-2.4,1.6]]) rp(RS,'barrels',x,0,z,{},true); for(const z of [3.6,4.4]) rp(RS,'jar',-2.5,0,z,{},true);
   /* 薬種屋 */ rp(RK,'roujin',1.4,.45,-1,{},false,['薬種屋の主人','どこがお悪いのかな。症状を聞いて、生薬を調合いたしましょう。']); rp(RK,'musume_r',-2,0,2.4,{},true,['町娘','母の薬をもらいに来ました。']); rpS(RK,'pot',2.2,1.8,.45,{s:.8},.6,.5,'darkwood'); rpS(RK,'jar',-2.5,-3.8,.3,{},.6,.6,'darkwood'); rp(RK,'box_s',1.2,.45,.6);
 
@@ -3626,7 +3643,8 @@ function keepSpot0(T,f,x,z,r){ const L=T.FL.indexOf(f),ok=(xx,zz)=>walkFloor(L,x
   /* 独立ケース（4階）: 茶道具と壺、渾天儀 */
   for(const [x,z,list] of [[-9,-4.5,['ex_chawan_gold','ex_chatsubo','ex_chawan_oribe']],[-9,4.5,['ex_vase_imari','ex_tsubo_matsu','ex_hyotan']],[8.5,-3,['ex_konten']]]) list.forEach((nm,i)=>C.add(nm,cx+x+(i-(list.length-1)/2)*.8,F[4].y+.82,cz+z,{shadow:false,s:1.5}));
   /* 2階: 大名の乗物と旗 */ C.add('ex_norimono',cx-4.9,F[2].y+.17,cz+6.2,{shadow:false}); C.add('ex_hata',cx-2.6,F[2].y+.17,cz+6.2,{shadow:false});
-   C.add('by_kiri',cx,F[5].y+.05,cz-F[5].d/2+1.6,{yaw:0,s:1.3}); }
+   C.add('by_kiri',cx,F[5].y+.05,cz-F[5].d/2+1.6,{yaw:0,s:1.3});
+  /* 4階: 具足の展示（復元・複製。豊臣期の御殿とは別の、博物館の展示） */ for(const [n,x] of [['gk_daimyo1',-9.4],['gk_toko0',-7.4]]){ const p=keepSpot(T,F[4],cx+x,cz,.7); if(edoPut(GM,n,p[0],F[4].y,p[1],{shadow:false})) coll(F[4],p[0]-.45,p[0]+.45,p[1]-.4,p[1]+.4); } }
 
 /* 刻印石広場（現代）: 極楽橋を渡った先、二の丸の北に、石垣の普請で使われなかった刻印のある石が並ぶ */
 { const C=new Crowd(GM,40,true),oc=curSet; curSet=BSETS.modern; const KI=['ki_hyotan','ki_kashiwa','ki_naka','ki_maru','ki_sanbo','ki_jumonji','ki_kiri','ki_mae','ki_umebachi','ki_nibiki','ki_uroko','ki_jumonji2'];
@@ -3645,11 +3663,11 @@ function tapHit(it,sx,sy,maxD){ _pv.set(it.x,it.y,it.z); const d=_pv.distanceTo(
 /* ---------- 門・唐破風・御殿の彫刻と金具（切り抜き画像を壁に貼る） ---------- */
 { const crowds=new Map(),wp=new THREE.Vector3(),wq=new THREE.Quaternion(),we=new THREE.Euler();
   const rootOf=g=>{ let r=g; while(r.parent&&r.parent!==scene) r=r.parent; return r; };
-  for(const o of ORN){ const I=sprInfo(o.spr); if(!I) continue; let x=o.x,y=o.y,z=o.z,yaw=o.yaw,root=o.root||GE;
+  for(const o of ORN){ const I=sprInfo(o.spr)||edoInfo(o.spr); if(!I) continue; let x=o.x,y=o.y,z=o.z,yaw=o.yaw,root=o.root||GE;
     if(o.g){ o.g.updateWorldMatrix(true,false); wp.set(o.x,o.y,o.z); o.g.localToWorld(wp); x=wp.x; y=wp.y; z=wp.z; o.g.getWorldQuaternion(wq); we.setFromQuaternion(wq,'YXZ'); yaw+=we.y; root=rootOf(o.g); }
     let h=typeof o.size==='number'?o.size:(o.size.w/I.aspect); if(o.size&&o.size.hmax&&h>o.size.hmax) h=o.size.hmax;
     let C=crowds.get(root); if(!C){ C=new Crowd(root,900,false); crowds.set(root,C); }
-    const top=o.spr.startsWith('kg_')||o.spr==='pillar_k'; C.add(o.spr,x,top?y:y-h/2,z,{yaw,s:h/I.h}); } }
+    const top=o.spr.startsWith('kg_')||o.spr==='pillar_k'; if(I.edo) edoPut(root,o.spr,x,top?y:y-h/2,z,{yaw,h,flip:!!(o.size&&o.size.flip)}); else C.add(o.spr,x,top?y:y-h/2,z,{yaw,s:h/I.h}); } }
 window.__npc={NPCS,npcCrowd,GNPC}; window.__decoT=decoT; window.__decoRoom={T:decoRoomT,M:decoRoomM};
 
 
