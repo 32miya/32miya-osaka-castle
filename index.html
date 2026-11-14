@@ -2187,8 +2187,8 @@ function planTenshu(T){ const {cx,cz,g0,bh}=T; const yB=g0+bh; const FL=[],ST=[]
     FL.push(Object.assign(f,{y:L.Y+k*hh,h:hh,w:L.w,d:L.d,bal:L.bal||0,open:!!L.open,pillars:[]})); });
   /* 階段 */
   const L0=bh*1.35; if(T.noTunnel) ST.push({x0:1e5,x1:1e5+1,z0:1e5,z1:1e5+1,from:1e5,to:1e5+1}); else ST.push({x0:cx+.2,x1:cx+2.2,z0:zc-.6-L0,z1:zc-.6,from:zc-.6,to:zc-.6-L0});
-  for(let i=1;i<FL.length-1;i++){ const rise=FL[i+1].y-FL[i].y,L=Math.min(rise*1.3,Math.min(FL[i].d,FL[i+1].d)-3.6),sx=i%2?2.4:-4.4,up=i%2?-1:1;
-    const zs=cz-up*L/2, ze=cz+up*L/2; ST.push({x0:cx+sx,x1:cx+sx+2,z0:Math.min(zs,ze),z1:Math.max(zs,ze),from:zs,to:ze}); }
+  for(let i=1;i<FL.length-1;i++){ const rise=FL[i+1].y-FL[i].y,hb=Math.min(FL[i].d,FL[i+1].d)/2-.9,L=Math.max(1.6,Math.min(rise*1.15,2*hb-2.8)),sx=i%2?2.4:-4.4,up=i%2?-1:1;
+    /* 上り口は壁ぎわ、上りきった先に床が見えるように（階段の先が壁にならない） */ const zs=cz-up*(hb-1.0), ze=zs+up*L; ST.push({x0:cx+sx,x1:cx+sx+2,z0:Math.min(zs,ze),z1:Math.max(zs,ze),from:zs,to:ze}); }
   ST.forEach((s,i)=>s.rise=FL[i+1].y-FL[i].y);
   T.FL=FL; T.ST=ST; return T; }
 function buildTenshuInterior(T){ const {cx,cz,FL,ST}=T,MT=T.mat;
@@ -3188,10 +3188,19 @@ function doorSpot(){ if(P.room){ const R=P.room; return Math.hypot(P.x-(R.exitZo
   else if(Math.hypot(P.x-(T.entry.X+2),P.z-T.entry.zc)<6) return {name:'天守に入る',keep:true}; return null; }
 
 function roomOK(R,x,z){ return R.rects.some(r=>inR(r,x,z,0))&&!R.boxes.some(b=>inR(b,x,z,.25)); }
+/* 出口の向きの自動調整（お城さんぽ共通仕様）: 建物から外に出たとき、目の前が壁や塀にならないように、いちばん開けた方を向いて出る */
+setTimeout(()=>{ try{ const old=MODE; const clr=(x,z,a)=>{ const fx=-Math.sin(a),fz=-Math.cos(a); let d=.3; for(;d<=8;d+=.25){ if(!walkable(x+fx*d,z+fz*d)) break; } return d; };
+  const fix=E=>{ if(!E||Math.abs(E[0])>5000||Math.abs(E[1])>5000) return; let x=E[0],z=E[1];
+    if(!walkable(x,z)){ let best=null; for(let r=.5;r<=4&&!best;r+=.5) for(let k=0;k<16;k++){ const a=k/16*6.283,X=x+Math.sin(a)*r,Z=z+Math.cos(a)*r; if(!walkable(X,Z)) continue; const c=clr(X,Z,E[2]); if(!best||c>best[2]) best=[X,Z,c]; } if(best){ x=best[0]; z=best[1]; } }
+    let ba=E[2],bd=clr(x,z,E[2]); if(bd<2.6) for(let k=1;k<=8;k++) for(const s of [-1,1]){ const a=E[2]+s*k*Math.PI/8,d=clr(x,z,a)-k*.15; if(d>bd+.4){ bd=d; ba=a; } }
+    E[0]=x; E[1]=z; E[2]=ba; };
+  /* 塀や建物に囲まれた小さな隙間に出てしまう戸口は使わない（出たあと歩いて行けない） */
+  const pocket=E=>{ const seen=new Set(),q=[[Math.round(E[0]),Math.round(E[1])]]; seen.add(q[0]+''); while(q.length){ const [x,z]=q.pop(); for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){ const X=x+a,Z=z+b,k=X+','+Z; if(seen.has(k)||!walkable(X+.1,Z+.1)) continue; seen.add(k); if(seen.size>160) return false; q.push([X,Z]); } } return true; };
+  for(const R of ROOMS){ if(R.era) MODE=R.era; fix(R.exitPos); if(R.extra) R.extra=R.extra.filter(e=>{ if(!e.exitPos) return true; fix(e.exitPos); return !pocket(e.exitPos); }); MODE=old; } }catch(e){ console.warn('exitfix',e); } },0);
 function enterRoom(R,ex){ P.exitVia=ex||R.exitPos; P.room=R; P.level=-1; P.x=R.spawn[0]; P.z=R.spawn[1]; P.yaw=R.spawn[2]; P.y=R.y+1.6; P.pitch=0; lastArea=''; showHint(R.name+'に入りました。出口へ向かうと外に出ます'); }
 function exitRoom(){ const R=P.room,E=P.exitVia||R.exitPos; P.room=null; P.x=E[0]; P.z=E[1]; P.yaw=E[2]; if(!walkable(P.x,P.z)){ const bx=P.x,bz=P.z; let f=false; for(let r=.5;r<=8&&!f;r+=.5) for(let k=0;k<24&&!f;k++){ const an=k/24*6.283,x=bx+Math.cos(an)*r,z=bz+Math.sin(an)*r; if(walkable(x,z)&&!ROOMS.some(Q=>Q.era===MODE&&inR(Q.zone,x,z,.4))){ P.x=x; P.z=z; f=true; } } } P.y=groundH(P.x,P.z)+1.6; lastArea=''; showHint('外に出ました'); }
 function lookAtSpot(s){ const dx=s.look[0]-s.pos[0],dz=s.look[2]-s.pos[1],dy=s.look[1]-1.6; P.yaw=Math.atan2(-dx,-dz); P.pitch=Math.max(-.3,Math.min(.35,Math.atan2(dy,Math.hypot(dx,dz)))); }
-function teleport(s){ P.room=null; P.level=-1; P.x=s.pos[0]; P.z=s.pos[1]; P.mode='walk'; $('vView').textContent='歩く'; P.y=groundH(P.x,P.z)+1.6; lookAtSpot(s); }
+function teleport(s){ P.xr=null;  P.room=null; P.level=-1; P.x=s.pos[0]; P.z=s.pos[1]; P.mode='walk'; $('vView').textContent='歩く'; P.y=groundH(P.x,P.z)+1.6; lookAtSpot(s); }
 function tOf(s,z){ return Math.min(1,Math.max(0,(z-s.from)/(s.to-s.from))); }
 function stairAt(L,x,z){ const up=ST[L]; if(up&&inR(up,x,z,0)) return {s:up,t:tOf(up,z),dir:1,base:L}; const dn=L>0?ST[L-1]:null; if(dn&&inR(dn,x,z,0)) return {s:dn,t:tOf(dn,z),dir:-1,base:L-1}; return null; }
 function floorY(L,x,z){ const st=stairAt(L,x,z); return st?FL[st.base].y+st.t*st.s.rise:FL[L].y; }
@@ -3241,6 +3250,95 @@ function closeMenu(){ $('menu').hidden=true; $('menuBtn').setAttribute('aria-exp
 $('menuBtn').onclick=()=>{ if(!started) return; $('menu').hidden?openMenu():closeMenu(); };
 cv.addEventListener('pointerup',endPtr); cv.addEventListener('pointercancel',endPtr);
 
+/* ================= 町の建物に入る（お城さんぽ共通・簡易版） =================
+   町家・商家・武家屋敷・現代の家や店など、町に並ぶ建物の多くに入れるようにする。
+   同じ種類の建物は中の部屋を1つ共有し（地図の外の遠い所に作る）、入口だけを建物ごとに付ける。出るときは入った入口に戻る。 */
+const XR={rooms:{},doors:[],ready:false};
+function xrCanvas(w,h,draw){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.encoding=THREE.sRGBEncoding; return t; }
+function xrMat(col,map,em,o){ const m=new THREE.MeshLambertMaterial(Object.assign({color:col,map:map||null},o||{})); m.color.convertSRGBToLinear(); m.emissive=m.color.clone(); m.emissiveIntensity=(em==null?.45:em)*1.15; if(map) m.emissiveMap=map; return m; }
+const XRT={};
+function xrTextures(){ if(XRT.ok) return XRT; XRT.ok=true;
+  XRT.tatami=xrCanvas(128,256,(g,w,h)=>{ g.fillStyle='#b9b27a'; g.fillRect(0,0,w,h); for(let y=0;y<h;y+=3){ g.fillStyle=y%6?'rgba(120,110,60,.18)':'rgba(255,250,200,.12)'; g.fillRect(0,y,w,1.5); } g.fillStyle='#2f3b2a'; g.fillRect(0,0,7,h); g.fillRect(w-7,0,7,h); });
+  XRT.wood=xrCanvas(256,256,(g,w,h)=>{ g.fillStyle='#7a5434'; g.fillRect(0,0,w,h); for(let i=0;i<8;i++){ g.fillStyle=i%2?'#6e4a2d':'#82593a'; g.fillRect(0,i*32,w,31); g.fillStyle='rgba(0,0,0,.35)'; g.fillRect(0,i*32+31,w,1); } for(let k=0;k<160;k++){ g.fillStyle='rgba(40,25,10,.18)'; g.fillRect(Math.random()*w,Math.random()*h,18+Math.random()*30,1); } });
+  XRT.doma=xrCanvas(128,128,(g,w,h)=>{ g.fillStyle='#8d7a62'; g.fillRect(0,0,w,h); for(let k=0;k<900;k++){ g.fillStyle=Math.random()<.5?'rgba(60,45,30,.25)':'rgba(220,200,170,.18)'; g.fillRect(Math.random()*w,Math.random()*h,2,2); } });
+  XRT.shoji=xrCanvas(128,128,(g,w,h)=>{ g.fillStyle='#f4efe2'; g.fillRect(0,0,w,h); g.fillStyle='#6b4a2e'; for(let x=0;x<=w;x+=32) g.fillRect(x-2,0,4,h); for(let y=0;y<=h;y+=26) g.fillRect(0,y-2,w,4); });
+  XRT.fusuma=xrCanvas(256,256,(g,w,h)=>{ g.fillStyle='#e8dcc0'; g.fillRect(0,0,w,h); g.strokeStyle='rgba(120,140,90,.55)'; g.lineWidth=5; for(let i=0;i<5;i++){ g.beginPath(); const x=30+i*50; g.moveTo(x,h); g.quadraticCurveTo(x+30,h*.55,x-10,h*.25); g.stroke(); } g.fillStyle='#3a2a1a'; g.fillRect(0,0,w,6); g.fillRect(0,h-6,w,6); g.fillRect(w/2-2,0,4,h); g.beginPath(); g.arc(w*.45,h*.5,6,0,7); g.fill(); g.beginPath(); g.arc(w*.55,h*.5,6,0,7); g.fill(); });
+  XRT.plaster=xrCanvas(128,128,(g,w,h)=>{ g.fillStyle='#cbbd9d'; g.fillRect(0,0,w,h); for(let k=0;k<700;k++){ g.fillStyle='rgba(90,70,40,.12)'; g.fillRect(Math.random()*w,Math.random()*h,2,2); } });
+  XRT.wall=xrCanvas(64,64,(g,w,h)=>{ g.fillStyle='#ece8df'; g.fillRect(0,0,w,h); });
+  XRT.floorM=xrCanvas(256,256,(g,w,h)=>{ g.fillStyle='#b98c5c'; g.fillRect(0,0,w,h); for(let i=0;i<8;i++){ g.fillStyle=i%2?'#b08455':'#c29667'; g.fillRect(0,i*32,w,31); g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(0,i*32+31,w,1); g.fillRect((i*97)%w,i*32,1,31); } });
+  XRT.scroll=xrCanvas(64,192,(g,w,h)=>{ g.fillStyle='#d9c79a'; g.fillRect(0,0,w,h); g.fillStyle='#f3ead2'; g.fillRect(8,18,w-16,h-36); g.strokeStyle='#222'; g.lineWidth=4; g.beginPath(); g.moveTo(32,40); g.lineTo(32,90); g.moveTo(20,70); g.lineTo(44,64); g.moveTo(26,110); g.quadraticCurveTo(40,130,30,150); g.stroke(); g.fillStyle='#b22'; g.fillRect(36,156,8,8); });
+  XRT.goods=xrCanvas(256,128,(g,w,h)=>{ g.fillStyle='#5a3b22'; g.fillRect(0,0,w,h); const cs=['#c8423a','#e0b44c','#3c6fa8','#5f9a4a','#e8e0d0','#8a4fa0','#d77a2f']; for(let r=0;r<3;r++) for(let i=0;i<14;i++){ g.fillStyle=cs[(i*3+r)%cs.length]; const bw=10+((i*7+r*5)%9); g.fillRect(4+i*18,8+r*42,bw,30-((i+r)%3)*6); } g.fillStyle='#3a2615'; for(let r=1;r<3;r++) g.fillRect(0,r*42,w,4); });
+  XRT.window=xrCanvas(128,128,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#bfe0f5'); gr.addColorStop(1,'#eef6fb'); g.fillStyle=gr; g.fillRect(0,0,w,h); g.fillStyle='#fff'; g.fillRect(0,0,w,6); g.fillRect(0,h-6,w,6); g.fillRect(0,0,6,h); g.fillRect(w-6,0,6,h); g.fillRect(w/2-3,0,6,h); });
+  return XRT; }
+/* 部屋（ローカル座標: x 左右、z 手前が+、床 y=0。戸口は手前（+z）の壁の真ん中） */
+function xrRoom(key,spec,k){ const T=xrTextures(),G=new THREE.Group(),w=spec.w,d=spec.d,h=spec.h||3; const ox=6000+k*80,oz=6000,y=-300; G.position.set(ox,y,oz); scene.add(G);
+  const R={key,name:spec.name,text:spec.text||'',w,d,h,ox,oz,y,boxes:[],G}; const add=(geo,mat,x,yy,z,ry)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,yy,z); if(ry) m.rotation.y=ry; G.add(m); return m; };
+  const tx=(t,a,b)=>{ const c=t.clone(); c.needsUpdate=true; c.encoding=THREE.sRGBEncoding; c.repeat.set(a,b); return c; };
+  const box=(x0,x1,y0,y1,z0,z1,mat,solid)=>{ add(new THREE.BoxGeometry(x1-x0,y1-y0,z1-z0),mat,(x0+x1)/2,(y0+y1)/2,(z0+z1)/2); if(solid) R.boxes.push({x0:Math.min(x0,x1),x1:Math.max(x0,x1),z0:Math.min(z0,z1),z1:Math.max(z0,z1)}); };
+  /* 床・天井・壁 */ const fm=spec.floor==='tatami'?xrMat('#ffffff',tx(T.tatami,w/1.8,d/0.9),.45):spec.floor==='modern'?xrMat('#ffffff',tx(T.floorM,w/2.4,d/2.4),.45):xrMat('#ffffff',tx(T.wood,w/2.4,d/2.4),.42);
+  box(-w/2,w/2,-.1,0,-d/2,d/2,fm); box(-w/2,w/2,h,h+.1,-d/2,d/2,xrMat(spec.modern?'#f2f0ea':'#5b3d24',null,spec.modern?.55:.3));
+  const wm=spec.modern?xrMat('#ffffff',T.wall,.55):xrMat('#ffffff',tx(T.plaster,2,1),.42),wood=xrMat('#5a3a20',null,.32),dark=xrMat('#2a1d12',null,.25);
+  box(-w/2-.1,w/2+.1,0,h,-d/2-.1,-d/2,spec.back==='shoji'?xrMat('#ffffff',tx(T.shoji,w/1.8,1),.85):spec.back==='window'?wm:wm); box(-w/2-.1,-w/2,0,h,-d/2,d/2,spec.left==='fusuma'?xrMat('#ffffff',tx(T.fusuma,d/3.6,1),.5):wm); box(w/2,w/2+.1,0,h,-d/2,d/2,spec.right==='fusuma'?xrMat('#ffffff',tx(T.fusuma,d/3.6,1),.5):wm);
+  /* 手前の壁と、外の光が見える戸口 */ box(-w/2-.1,-.7,0,h,d/2,d/2+.1,wm); box(.7,w/2+.1,0,h,d/2,d/2+.1,wm); box(-.7,.7,2.1,h,d/2,d/2+.1,wm);
+  add(new THREE.PlaneGeometry(1.4,2.1),new THREE.MeshBasicMaterial({color:spec.modern?0xf4f8ff:0xfff3d6}),0,1.05,d/2+.12,Math.PI);
+  for(const s of [-1,1]) box(s*.7-.06,s*.7+.06,0,2.2,d/2-.08,d/2+.14,spec.modern?xrMat('#ddd',null,.5):wood); box(-.8,.8,2.1,2.25,d/2-.08,d/2+.14,spec.modern?xrMat('#ddd',null,.5):wood);
+  if(!spec.modern){ for(const x of [-w/2+.1,w/2-.1]) for(const z of [-d/2+.1,0,d/2-.1]) box(x-.1,x+.1,0,h,z-.1,z+.1,wood); box(-w/2,w/2,h-.25,h-.1,-d/2,-d/2+.15,wood); }
+  if(spec.back==='window') add(new THREE.PlaneGeometry(Math.min(3.2,w-1.5),1.4),new THREE.MeshBasicMaterial({map:T.window}),0,1.6,-d/2+.02);
+  spec.fill&&spec.fill({box,add,tx,T,R,w,d,h,wood,dark});
+  /* 明かり（部屋の中だけを照らす点光源。遠くにあるので外には届かない） */ const L=new THREE.PointLight(spec.modern?0xffffff:0xffe2b0,.6,Math.max(w,d)*1.6,1.6); L.position.set(0,h-.4,0); G.add(L);
+  R.spawn=[0,d/2-1.1]; return R; }
+const XR_SPECS={
+  machi:{name:'町家（町人の家）',w:6.4,d:11,h:3.2,floor:'wood',back:'shoji',right:'fusuma',text:'表から奥へ細長い町家。通り土間に竈（かまど）と水がめ、板の間に囲炉裏があり、奥の座敷は障子越しに坪庭の光が入ります。',
+    fill:({box,add,tx,T,R,w,d,wood,dark})=>{ const doma=xrMat('#ffffff',tx(T.doma,1.2,d/2.4),.4); box(-w/2,-w/2+2,0,.02,-d/2,d/2,doma); box(-w/2+2,-w/2+2.08,0,.42,-d/2+1,d/2-1.4,wood);
+      /* 竈 */ box(-w/2+.2,-w/2+1.3,0,.75,-d/2+1.6,-d/2+2.6,xrMat('#9c8f80',null,.35),true); box(-w/2+.45,-w/2+.95,.75,.95,-d/2+1.85,-d/2+2.35,dark); /* 水がめ */ add(new THREE.CylinderGeometry(.3,.24,.7,12),xrMat('#5b4636',null,.35),-w/2+.6,.35,-d/2+3.6); R.boxes.push({x0:-w/2,x1:-w/2+1,z0:-d/2+3.2,z1:-d/2+4});
+      /* 囲炉裏 */ box(.2,1.4,0,.08,-.6,.6,dark,true); box(.35,1.25,.08,.1,-.45,.45,xrMat('#8a8076',null,.4)); add(new THREE.CylinderGeometry(.18,.22,.22,12),xrMat('#222',null,.2),.8,.75,0); box(.78,.82,.86,3.2,-.02,.02,dark);
+      /* 箪笥と神棚 */ box(w/2-.7,w/2-.1,0,1.5,-d/2+.6,-d/2+1.9,xrMat('#6b4325',null,.4),true); for(let i=1;i<4;i++) box(w/2-.72,w/2-.69,i*.37,i*.37+.03,-d/2+.6,-d/2+1.9,dark); box(w/2-.5,w/2-.1,2.3,2.38,-1,0,wood);
+      /* 行灯 */ box(-.6,-.3,0,.75,-d/2+1,-d/2+1.3,xrMat('#fff3d0',null,.95)); } },
+  shop:{name:'商家（店の間）',w:7,d:10,h:3.2,floor:'tatami',back:'shoji',left:'fusuma',text:'通りに面した店の間。番頭が帳場格子の内で帳面をつけ、品物は奥の蔵から出してきて見せました。',
+    fill:({box,add,tx,T,w,d,wood,dark})=>{ /* 帳場格子 */ box(1.2,2.8,0,.9,-1.4,-1.3,wood,true); for(let i=0;i<9;i++) box(1.2+i*.2,1.24+i*.2,.9,1.25,-1.4,-1.3,wood); box(1.5,2.5,0,.32,-2.6,-1.8,xrMat('#4a2e18',null,.35),true);
+      /* 品物の棚 */ box(-w/2+.1,-w/2+.6,0,2.4,-d/2+.8,d/2-2,xrMat('#ffffff',tx(T.goods,2,1),.5),true); box(-1.4,.2,0,.5,-d/2+.6,-d/2+1.4,xrMat('#7b5636',null,.4),true);
+      /* 千両箱と算盤 */ box(1.7,2.1,.32,.52,-2.4,-2.1,xrMat('#3b2a18',null,.3)); box(1.6,2.3,.32,.36,-2.0,-1.9,dark); box(-w/2+1,-w/2+1.3,0,.75,d/2-1.6,d/2-1.3,xrMat('#fff3d0',null,.95)); } },
+  buke:{name:'武家屋敷（座敷）',w:9,d:9,h:3.3,floor:'tatami',back:'shoji',left:'fusuma',right:'fusuma',text:'武家屋敷の座敷。床の間に掛軸と刀掛けを置き、客はここで迎えました。家の格によって、玄関に式台が付きました。',
+    fill:({box,add,tx,T,w,d,wood,dark})=>{ /* 床の間と違い棚 */ box(-w/2+.1,-w/2+2.2,0,.18,-d/2+.1,-d/2+.9,xrMat('#6b4325',null,.35),true); add(new THREE.PlaneGeometry(.55,1.6),xrMat('#ffffff',T.scroll,.6),-w/2+1.15,1.6,-d/2+.12); box(-w/2+2.2,-w/2+2.3,0,3.3,-d/2+.1,-d/2+.9,wood);
+      box(-w/2+2.4,-w/2+3.8,1,1.04,-d/2+.1,-d/2+.6,wood); box(-w/2+2.4,-w/2+3.1,1.5,1.54,-d/2+.1,-d/2+.6,wood); /* 刀掛け */ box(-w/2+.5,-w/2+1.8,.18,.3,-d/2+.6,-d/2+.8,dark); box(-w/2+.5,-w/2+1.8,.4,.43,-d/2+.6,-d/2+.66,xrMat('#111',null,.2)); box(-w/2+.5,-w/2+1.7,.55,.58,-d/2+.6,-d/2+.66,xrMat('#111',null,.2));
+      /* 文机と座布団・行灯 */ box(.6,1.8,0,.35,-1.2,-.6,xrMat('#4a2e18',null,.35),true); box(.9,1.5,0,.08,-.3,.3,xrMat('#7a2a2a',null,.4)); box(2.6,2.9,0,.8,-2.6,-2.3,xrMat('#fff3d0',null,.95)); box(-w/2,w/2,2.6,2.68,-d/2,-d/2+.08,wood); } },
+  mhouse:{name:'家（住まい）',w:7,d:8,h:2.5,floor:'modern',back:'window',modern:true,text:'町の家の居間。テレビとソファ、台所があります（家の中はどの家も同じ作りで、簡略化しています）。',
+    fill:({box,add,tx,T,w,d})=>{ box(-w/2+.3,-w/2+2.6,0,.45,-1.2,-.3,xrMat('#6d7b8a',null,.45),true); box(-w/2+.3,-w/2+2.6,.45,.85,-1.2,-1.0,xrMat('#6d7b8a',null,.45)); box(-w/2+1,-w/2+2,0,.4,.2,.8,xrMat('#8a6a4a',null,.4),true);
+      box(w/2-.5,w/2-.1,0,.5,-1.6,.2,xrMat('#333',null,.3),true); box(w/2-.35,w/2-.3,.5,1.2,-1.4,0,xrMat('#111',null,.15)); box(-w/2+.1,w/2-1.6,0,.9,-d/2+.1,-d/2+.7,xrMat('#e9e6df',null,.5),true); box(-w/2+.1,w/2-1.6,.9,.94,-d/2+.1,-d/2+.72,xrMat('#9a9a9a',null,.5));
+      box(1,2.2,0,.72,1,2,xrMat('#c9a77c',null,.45),true); } },
+  mshop:{name:'町のお店',w:8,d:10,h:2.8,floor:'modern',back:'window',modern:true,text:'通りに面したお店。棚に品物が並び、奥にレジのカウンターがあります（店の中はどの店も同じ作りで、簡略化しています）。',
+    fill:({box,add,tx,T,w,d})=>{ for(const x of [-w/2+.1,w/2-.6]) box(x,x+.5,0,2,-d/2+1,d/2-1.5,xrMat('#ffffff',tx(T.goods,2,1),.55),true); box(-1.2,1.2,0,1,-d/2+1,-d/2+1.6,xrMat('#d8d2c4',null,.5),true); box(-.3,.3,1,1.3,-d/2+1.1,-d/2+1.5,xrMat('#333',null,.3));
+      for(const x of [-1.6,1.6]) box(x-.6,x+.6,0,1.2,-.8,1.6,xrMat('#ffffff',tx(T.goods,1,1),.55),true); } } };
+/* 建物の入口をさがす: 当たり判定の箱（block）のうち、建物の大きさのものについて、外に歩ける面に戸口を付ける */
+function xrSetup(cfg){ try{ const T=xrTextures(); let k=0; const doorsBy={};
+  for(const era of Object.keys(cfg.kinds)){ const list=(BSETS[era]&&BSETS[era].list||[]).concat(cfg.shared?BSETS.shared.list:[]),old=MODE; MODE=era; const kinds=cfg.kinds[era];
+    const near=(x,z)=>XR.doors.some(D=>D.era===era&&Math.abs(D.ox-x)<2.6&&Math.abs(D.oz-z)<2.6)||(typeof ROOMS!=='undefined'&&ROOMS.some(R=>R.era===era&&R.exitPos&&Math.hypot(R.exitPos[0]-x,R.exitPos[1]-z)<5));
+    for(const b of list){ const typ=kinds[b.kind]; if(!typ) continue; const w=b.x1-b.x0,d=b.z1-b.z0; if(w<3||d<3||w>36||d>36) continue;
+      let best=null; for(const [nx,nz] of [[0,1],[0,-1],[1,0],[-1,0]]){ const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,ex=nx>0?b.x1:nx<0?b.x0:cx,ez=nz>0?b.z1:nz<0?b.z0:cz;
+        if(!cfg.walk(ex+nx*1.0,ez+nz*1.0)||!cfg.walk(ex+nx*2.4,ez+nz*2.4)) continue; let c=2.4; while(c<8&&cfg.walk(ex+nx*(c+.5),ez+nz*(c+.5))) c+=.5; const sc=c+(nx===0?.3:0)+(nz>0?.1:0); if(!best||sc>best.sc) best={ex,ez,nx,nz,sc}; }
+      if(!best) continue; const ox=best.ex+best.nx*1.1,oz=best.ez+best.nz*1.1; if(near(ox,oz)) continue;
+      const t=typeof typ==='function'?typ(b):Array.isArray(typ)?typ[(Math.abs(Math.round(b.x0*7+b.z0*13)))%typ.length]:typ;
+      XR.doors.push({era,typ:t,ex:best.ex,ez:best.ez,nx:best.nx,nz:best.nz,ox,oz,y:cfg.gh(ox,oz),deep:b.kind==='buke'?.5:0}); }
+    MODE=old; }
+  /* 部屋（使う種類だけ） */ for(const D of XR.doors) if(!XR.rooms[D.typ]){ const sp=Object.assign({},XR_SPECS[D.typ]); if(cfg.names&&cfg.names[D.typ]) sp.name=cfg.names[D.typ]; XR.rooms[D.typ]=xrRoom(D.typ,sp,k++); }
+  /* 戸口の目印（外から見える黒い戸口と枠・のれん）: 時代ごとにまとめて描く */
+  for(const era of Object.keys(cfg.kinds)){ const ds=XR.doors.filter(D=>D.era===era); if(!ds.length) continue; const par=cfg.groups[era]||scene,ed=era!=='modern';
+    const geoP=new THREE.PlaneGeometry(1.3,2.05),geoF=new THREE.BoxGeometry(1.62,2.3,.16),geoN=new THREE.PlaneGeometry(1.24,.62);
+    const mP=new THREE.MeshLambertMaterial({color:ed?0x1d140c:0x2b3138}),mF=new THREE.MeshLambertMaterial({color:ed?0x4a2f1b:0x8d8f91}),mN=new THREE.MeshLambertMaterial({color:ed?0x24335a:0x8a3b2c,side:THREE.DoubleSide});
+    const iP=new THREE.InstancedMesh(geoP,mP,ds.length),iF=new THREE.InstancedMesh(geoF,mF,ds.length),iN=ed?new THREE.InstancedMesh(geoN,mN,ds.length):null; const m=new THREE.Matrix4(),q=new THREE.Quaternion(),s1=new THREE.Vector3(1,1,1),e=new THREE.Euler();
+    ds.forEach((D,i)=>{ const ry=Math.atan2(D.nx,D.nz); e.set(0,ry,0); q.setFromEuler(e); const y=cfg.gh(D.ex+D.nx*.6,D.ez+D.nz*.6),off=-D.deep;
+      m.compose(new THREE.Vector3(D.ex+D.nx*(off-.02),y+1.13,D.ez+D.nz*(off-.02)),q,s1); iF.setMatrixAt(i,m);
+      m.compose(new THREE.Vector3(D.ex+D.nx*(off+.075),y+1.03,D.ez+D.nz*(off+.075)),q,s1); iP.setMatrixAt(i,m);
+      if(iN){ m.compose(new THREE.Vector3(D.ex+D.nx*(off+.1),y+1.75,D.ez+D.nz*(off+.1)),q,s1); iN.setMatrixAt(i,m); } });
+    for(const I of [iF,iP,iN]) if(I){ I.instanceMatrix.needsUpdate=true; I.frustumCulled=false; par.add(I); } }
+  XR.cfg=cfg; XR.ready=true; }catch(e){ console.warn('xr',e); } }
+function xrDoorAt(x,z,dx,dz){ if(!XR.ready) return null; for(const D of XR.doors){ if(D.era!==MODE) continue; const lx=D.nz!==0?x-D.ex:z-D.ez,ln=(x-D.ex)*D.nx+(z-D.ez)*D.nz; if(Math.abs(lx)<.75&&ln<.5&&ln>-.6&&(dx*D.nx+dz*D.nz)<0) return D; } return null; }
+function xrEnter(x,z){ const D=xrDoorAt(x,z,x-P.x,z-P.z); if(!D) return false; const R=XR.rooms[D.typ]; P.xr=R; P.xrDoor=D; P.x=R.ox+R.spawn[0]; P.z=R.oz+R.spawn[1]; P.yaw=0; P.pitch=0; P.y=R.y+1.6; showHint(R.name+'に入りました。後ろの明るい戸口へ戻ると外に出ます'); try{ lastArea=''; }catch(e){} return true; }
+function xrExit(){ const D=P.xrDoor; P.xr=null; P.xrDoor=null; if(!D) return; P.x=D.ex+D.nx*1.3; P.z=D.ez+D.nz*1.3; P.yaw=Math.atan2(-D.nx,-D.nz); P.y=XR.cfg.gh(P.x,P.z)+1.6; showHint('外に出ました'); try{ lastArea=''; }catch(e){} }
+function xrMove(dx,dz){ const R=P.xr,lx=P.x-R.ox+dx,lz=P.z-R.oz+dz; if(lz>R.d/2-.45&&Math.abs(lx)<.75&&dz>0){ xrExit(); return; }
+  const ok=(x,z)=>x>-R.w/2+.3&&x<R.w/2-.3&&z>-R.d/2+.3&&z<R.d/2-.3&&!R.boxes.some(b=>x>b.x0-.25&&x<b.x1+.25&&z>b.z0-.25&&z<b.z1+.25);
+  const x0=P.x-R.ox,z0=P.z-R.oz; if(ok(lx,lz)){ P.x+=dx; P.z+=dz; } else if(ok(lx,z0)) P.x+=dx; else if(ok(x0,lz)) P.z+=dz; }
+setTimeout(()=>xrSetup({kinds:{modern:{house:['mshop','mhouse'],town:'mshop'}},walk:(x,z)=>walkable(x,z),gh:(x,z)=>groundH(x,z),groups:{modern:GM},names:{mhouse:'大阪の町の家',mshop:'町のお店'}}),0);
 function updatePlayer(dt){ let ix=0,iz=0; if(keys.KeyW||keys.ArrowUp) iz+=1; if(keys.KeyS||keys.ArrowDown) iz-=1; if(keys.KeyA) ix-=1; if(keys.KeyD) ix+=1;
   if(keys.ArrowLeft) P.yaw+=1.6*dt; if(keys.ArrowRight) P.yaw-=1.6*dt;
   const jm=Math.hypot(joy.x,joy.y); if(joy.id!==null&&jm>.12){ ix+=joy.x; iz-=joy.y; }
@@ -3248,7 +3346,8 @@ function updatePlayer(dt){ let ix=0,iz=0; if(keys.KeyW||keys.ArrowUp) iz+=1; if(
   const sp=drone?(run?30:15):(run?5.4:2.2); let l=Math.hypot(ix,iz); if(l>1){ ix/=l; iz/=l; l=1; }
   const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
   const dx=(fx*iz+rx*ix)*sp*dt,dz=(fz*iz+rz*ix)*sp*dt;
-  if(drone){ P.x=Math.max(BOUNDS.x0-60,Math.min(BOUNDS.x1+60,P.x+dx)); P.z=Math.max(BOUNDS.z0-60,Math.min(BOUNDS.z1+60,P.z+dz)); }
+  if(P.xr&&!drone){ xrMove(dx,dz); }
+  else if(drone){ P.x=Math.max(BOUNDS.x0-60,Math.min(BOUNDS.x1+60,P.x+dx)); P.z=Math.max(BOUNDS.z0-60,Math.min(BOUNDS.z1+60,P.z+dz)); }
   else if(P.room){ const R=P.room,nx=P.x+dx,nz=P.z+dz; if(inR(R.exitZone,nx,nz,0)&&(R.exitDir==='w'?dx<0:dz>0)){ exitRoom(); }
     else if(roomOK(R,nx,nz)){ P.x=nx; P.z=nz; } else if(roomOK(R,nx,P.z)) P.x=nx; else if(roomOK(R,P.x,nz)) P.z=nz; }
   else if(P.level>=0){ const L=P.level,E=TEN[MODE].entry,TD=TEN[MODE].door;
@@ -3260,9 +3359,10 @@ function updatePlayer(dt){ let ix=0,iz=0; if(keys.KeyW||keys.ArrowUp) iz+=1; if(
   else if(!P.room&&ROOMS.some(R=>R.era===MODE&&inR(R.zone,P.x+dx,P.z+dz,0))){ enterRoom(ROOMS.find(R=>R.era===MODE&&inR(R.zone,P.x+dx,P.z+dz,0))); }
   else if(!P.room&&ROOMS.some(R=>R.era===MODE&&R.extra&&R.extra.some(e=>inR(e.zone,P.x+dx,P.z+dz,0)))){ const R=ROOMS.find(R=>R.era===MODE&&R.extra&&R.extra.some(e=>inR(e.zone,P.x+dx,P.z+dz,0))); enterRoom(R,R.extra.find(e=>inR(e.zone,P.x+dx,P.z+dz,0)).exitPos); }
   else if(!TEN[MODE].door&&dx<0&&P.z>TEN[MODE].entry.z0&&P.z<TEN[MODE].entry.z1&&P.x+dx<TEN[MODE].entry.X+.45&&P.x>TEN[MODE].entry.X-.2&&Math.abs(groundH(P.x,P.z)-TEN[MODE].g0)<.5){ P.level=0; P.x=TEN[MODE].entry.X-.2; showHint(MODE==='toyo'?'天守の穴蔵へ。奥の階段を上ると1階です':'天守閣の中へ。奥の階段を上ると1階です'); }
+  else if(xrEnter(P.x+dx,P.z+dz)){}
   else if(walkable(P.x+dx,P.z+dz)){ P.x+=dx; P.z+=dz; } else if(walkable(P.x+dx,P.z)) P.x+=dx; else if(walkable(P.x,P.z+dz)) P.z+=dz;
   const nn=(P.level>=0||P.room)?.08:.25; if(camera.near!==nn){ camera.near=nn; camera.updateProjectionMatrix(); }
-  const ty=drone?48:(P.room?P.room.y:P.level>=0?floorY(P.level,P.x,P.z):groundH(P.x,P.z))+1.6; P.y+=(ty-P.y)*Math.min(1,dt*(drone?1.6:10));
+  const ty=drone?48:(P.xr?P.xr.y:P.room?P.room.y:P.level>=0?floorY(P.level,P.x,P.z):groundH(P.x,P.z))+1.6; P.y+=(ty-P.y)*Math.min(1,dt*(drone?1.6:10));
   let bob=0; if(!drone&&l>.1&&!reduceMotion){ P.bob+=dt*sp*2.1; bob=Math.sin(P.bob)*.035; }
   /* 階段では進む向きに合わせて目線を少し上下させ、行き先（上の階・下の階）が見えるようにする */
   { let tg=0; if(!drone&&!P.room&&P.level>=0&&l>.1){ const st=stairAt(P.level,P.x,P.z); if(st){ const s=st.s,run=s.to-s.from,mv=(fx*iz+rx*ix)*0+(fz*iz+rz*ix),up=Math.sign(mv)===Math.sign(run); tg=(up?.62:-.5)*Math.atan2(s.rise,Math.abs(run)); } }
@@ -3345,7 +3445,7 @@ function nearestSpot(){ return curSpots.reduce((a,b)=>Math.hypot(b.pos[0]-P.x,b.
 $('tView').onclick=()=>{ if(!started) return; if(P.mode==='walk'){ if(P.room) exitRoom(); if(P.level>=0){ const E=TEN[MODE].entry,TD=TEN[MODE].door; P.level=-1; if(TD){ P.x=20; P.z=-28; } else { P.x=E.X+6; P.z=E.zc; } } P.mode='drone'; $('vView').textContent='空撮'; P.pitch=Math.min(P.pitch,-.25); }
   else { P.mode='walk'; $('vView').textContent='歩く'; if(!walkable(P.x,P.z)){ if(SCEN&&PH&&PH.gnd){ goGround(); return; } const s=nearestSpot(); P.x=s.pos[0]; P.z=s.pos[1]; } P.pitch=Math.max(P.pitch,-.2); } };
 $('tTime').onclick=()=>applyTime((timeIdx+1)%TIMES.length);
-function setMode(m){ const wasIn=P.level>=0||!!P.room; P.room=null; MODE=m; MAPR=m==='toyo'?{x0:-640,x1:600,z0:-330,z1:900}:{x0:-300,x1:280,z0:-330,z1:310}; GM.visible=m==='modern'; GE.visible=m==='toyo'; M.stone.map=m==='toyo'?tStoneT:tStone; M.stone.color.set(m==='toyo'?0xd8d8d4:0xe2ded6); M.stoneK.map=m==='toyo'?tStoneKT:tStoneK; if(typeof applyFill==='function') applyFill(FILL); FL=TEN[m].FL; ST=TEN[m].ST; setEraWalls(); mapC=m==='toyo'?mapCE:mapCM; curSpots=spotList(); buildPins(); lastArea=''; nearSpot=null;
+function setMode(m){ if(P.xr) xrExit();  const wasIn=P.level>=0||!!P.room; P.room=null; MODE=m; MAPR=m==='toyo'?{x0:-640,x1:600,z0:-330,z1:900}:{x0:-300,x1:280,z0:-330,z1:310}; GM.visible=m==='modern'; GE.visible=m==='toyo'; M.stone.map=m==='toyo'?tStoneT:tStone; M.stone.color.set(m==='toyo'?0xd8d8d4:0xe2ded6); M.stoneK.map=m==='toyo'?tStoneKT:tStoneK; if(typeof applyFill==='function') applyFill(FILL); FL=TEN[m].FL; ST=TEN[m].ST; setEraWalls(); mapC=m==='toyo'?mapCE:mapCM; curSpots=spotList(); buildPins(); lastArea=''; nearSpot=null;
   $('vEra').textContent=m==='toyo'?'太閤':'現代'; $('eyebrow').textContent='大阪城さんぽ · '+(m==='toyo'?'太閤の時代':'現代'); applyTime(timeIdx);
   if(started&&(wasIn||P.mode==='walk'&&!walkable(P.x,P.z))){ teleport(wasIn?curSpots.find(s=>s.id==='iriguchi'):nearestSpot()); }
   if(started) showHint(m==='toyo'?'太閤・豊臣秀吉の時代（1590年代ごろ）の大坂城を、想像を交えて再現しています':'現代の大阪城に戻りました'); }
