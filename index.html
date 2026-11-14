@@ -3140,6 +3140,9 @@ const SPOTS=[
   {id:'joka',toyoOnly:true,name:'城下町（上町）',kana:'じょうかまち',at:[-30,510],pos:[-60,512],look:[0,3,510],
    text:'城の南に広がる町人の町。築城とともに堺や平野などから商人が集められ、大坂は日本有数の商業都市へと育っていきました。碁盤の目の通りの辻ごとに木戸があり、夜は閉めて町を区切りました。',meta:[['中に入る','通りに面した商家の入口から'],['住んだ人','商人・職人'],['再現','町並みは想像']]}
 ];
+/* お城さんぽ共通（/oshiro/common/fuda.js の見どころ札・写真モード）へ、名所と自分の位置を知らせる窓口 */
+window.OshiroGame={ spots:()=>spotList(), all:()=>SPOTS, me:()=>({x:P.x,z:P.z,level:P.level,room:!!P.room,walk:P.mode==='walk',tour:typeof tour!=='undefined'&&!!tour.on}), started:()=>typeof started==='undefined'||!!started, warpAt:0 };
+{ const _tp=teleport; teleport=function(s){ window.OshiroGame.warpAt=performance.now(); return _tp.apply(this,arguments); }; }
 function spotList(){ return SPOTS.filter(s=>MODE==='toyo'?!s.modernOnly:!s.toyoOnly).map(s=>MODE==='toyo'&&s.toyo?Object.assign({},s,s.toyo):s); }
 function areaAt(x,z){ const t=MODE==='toyo'; if(t&&!(x>CORE.x0&&x<CORE.x1&&z<CORE.z1)){ if(yamatoD(x,z)<YAMATO_W) return '旧大和川'; for(const q of HILLS) if(Math.hypot(x-q.x,z-q.z)<q.R) return q.name; if(Math.hypot(x-TENNOJI.x,z-TENNOJI.z)<70) return '四天王寺'; const h=terrBase(x,z); if(h<-1) return x<0?'船場の低地（台地の西）':'猫間川・平野川の低地（台地の東）'; return z>1220?'上町台地（天王寺のあたり）':'上町台地'; } if(t&&SCEN==='fuyu'){ const S=SANADA,R=S.main,K=S.kogu; if(x>R.x0-S.moat-6&&x<R.x1+S.moat+6&&z>R.z0-S.moat-6&&z<R.z1+S.moat+6) return x>R.x0&&x<R.x1&&z>R.z0&&z<R.z1?'真田丸（本郭）':'真田丸の空堀と柵'; if(x>K.x0&&x<K.x1&&z>K.z0&&z<K.z1) return '真田丸（小曲輪）'; if(x>390&&x<476&&z>903&&z<980) return '真田丸（副郭）'; }
   for(const b of actB()) if(inR(b,x,z,.2)) return {sakura:t?'唐門前の土橋':'桜門前の土橋',gokuraku:'極楽橋',ote:t?'大手口の土橋':'大手口の土橋',aoya:t?'北の門':'青屋口',kyobashi:'京橋口',tama:t?'南東の門':'玉造口'}[b.id];
@@ -4482,6 +4485,7 @@ window.__oc={P,dbg:{renderer,M,sun},ROOMS,walkable,groundH,walkFloor:(L,x,z)=>wa
 })();
 </script>
 <script src="/oshiro/common/goshuin.js"></script>
+<script src="/oshiro/common/fuda.js"></script>
 <!-- oshiro-portal:end -->
 </body>
 </html>
