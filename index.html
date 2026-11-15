@@ -3568,7 +3568,7 @@ const _sprMats=[];
 function sprMaterial(page){ const m=new THREE.MeshBasicMaterial({map:ATL.tex[page],alphaTest:.5,side:THREE.DoubleSide,toneMapped:false}); _sprMats.push(m);
   m.onBeforeCompile=sh=>{ sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 iPos; attribute vec2 iSize; attribute vec4 iUV; attribute float iYaw;')
     .replace('#include <uv_vertex>','vUv=vec2(iUV.x+(iSize.x<0.?(.5-position.x):(position.x+.5))*iUV.z, iUV.y+position.y*iUV.w);')
-    .replace('#include <project_vertex>',`vec3 rgt; if(iYaw<-50.){ vec3 dd=cameraPosition-iPos; dd.y=0.; dd=normalize(dd+vec3(1e-4,0.,0.)); rgt=vec3(dd.z,0.,-dd.x); } else rgt=vec3(cos(iYaw),0.,-sin(iYaw));
+    .replace('#include <project_vertex>',`vec3 rgt; if(iYaw<-50.){ vec3 vt=viewMatrix[3].xyz; vec3 camP=-vec3(dot(viewMatrix[0].xyz,vt),dot(viewMatrix[1].xyz,vt),dot(viewMatrix[2].xyz,vt)); vec3 dd=camP-iPos; dd.y=0.; dd=normalize(dd+vec3(1e-4,0.,0.)); rgt=vec3(dd.z,0.,-dd.x); } else rgt=vec3(cos(iYaw),0.,-sin(iYaw));
       vec3 wp=iPos+rgt*position.x*abs(iSize.x)+vec3(0.,position.y*iSize.y,0.); vec4 mvPosition=viewMatrix*vec4(wp,1.); gl_Position=projectionMatrix*mvPosition;`);
     /* 遠くで縮小されたとき、細い脚や槍が透けて消えないように不透明度を補う */
     sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n  { vec2 q=vUv*2048.; float lv=max(0.,.5*log2(max(dot(dFdx(q),dFdx(q)),dot(dFdy(q),dFdy(q))))); diffuseColor.a=min(1.,diffuseColor.a*(1.+lv*.35)); }'); };
