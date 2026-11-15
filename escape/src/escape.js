@@ -104,7 +104,7 @@ const ESC=(()=>{
   const onl=()=>G.pl.filter(p=>!p.off);
   const nOn=()=>Math.max(1,onl().length);
   const nOnV=()=>V?Math.max(1,V.pl.filter(p=>!p.off).length):1;
-  const allIn=(o,r)=>onl().length>0&&onl().every(p=>!p.cap&&!p.room&&Math.hypot(p.x-o.x,p.z-o.z)<(r||8));
+  const allIn=(o,r)=>{ if(G) G.gl={x:+o.x.toFixed(1),z:+o.z.toFixed(1),r:r||8,t:G.el||0}; return onl().length>0&&onl().every(p=>!p.cap&&!p.room&&Math.hypot(p.x-o.x,p.z-o.z)<(r||8)); };
   const inCount=(o,r)=>onl().filter(p=>!p.cap&&!p.room&&Math.hypot(p.x-o.x,p.z-o.z)<(r||8)).length;
 
   /* =====================================================================
@@ -156,7 +156,7 @@ const ESC=(()=>{
       if(f.o===1&&f.mitsu&&f.monk){ f.o=2; event('密書と合言葉の控えがそろった！ 三の丸の門番に合言葉を答えよ'); } },
     lock(){ const s=SET; const opts=shuffle(L1.pairs()).map(i=>PW[i][1]); return {title:'三の丸の門番',sub:`「合言葉は？」――問いは「${PW[s.pw][0]}」`,slots:1,syms:opts,known:'住職の控えは「手控え」にある'}; },
     code(v,syms){ const f=G.f; if(f.o!==2) return; if(syms[v[0]]===PW[SET.pw][1]){ f.pass=1; f.o=3; event('門番「……よし、通れ。密書は城へ届けよ」'); } else penalty(15,'門番「違う！ 怪しい奴め」'); },
-    tick(){ const f=G.f; if(f.o===3&&allIn(W.goal,7)) finish(true,'密書は無事に城へ届いた。間者のたくらみは潰えた――'); },
+    tick(){ const f=G.f; if(f.o===3&&allIn(W.goal,10)) finish(true,'密書は無事に城へ届いた。間者のたくらみは潰えた――'); },
     block(x,z,f){ return !f.pass&&inR(W.gateBlk,x,z,.2); },
     tasks(f){ const sp=P.room&&SHOPS.some(q=>room(q[0])===P.room)?null:null; return [
       tk('町年寄の話を聞く',f.o>0,W.elder),
@@ -808,7 +808,7 @@ const ESC=(()=>{
   const OFFS=[[0,0],[3,0],[-3,0],[0,3]];
   function resetToCheck(m){ const c=LV.check(G.f); G.pl.forEach((p,i)=>{ p.cap=false; p.grace=5; if(LV.drop) LV.drop(p); p.carry=false; const q=nudge(c[0]+OFFS[i][0],c[1]+OFFS[i][1]); p.x=q[0]; p.z=q[1]; sendTo(p.id,{t:'tp',x:p.x,z:p.z}); }); for(const e of G.en) e.al={}; event(m); }
   function finish(win,msg){ const used=LEVELS[G.lv].limit-G.t; G.over={win,msg,used,res:G.rescues,cau:G.caught,lv:G.lv}; broadcast({t:'end',...G.over}); onEnd(G.over); }
-  function snap(){ const ho={}; for(const k in G.hold||{}) ho[k]=+G.hold[k].toFixed(3); return {t:'g',lv:G.lv,f:G.f,tm:Math.round(G.t*10)/10,el:+(G.el||0).toFixed(2),hold:ho,hn:G.hn||{},sw:G.sw,gh:G.gh,notes:G.notes,
+  function snap(){ const ho={}; for(const k in G.hold||{}) ho[k]=+G.hold[k].toFixed(3); return {t:'g',lv:G.lv,f:G.f,tm:Math.round(G.t*10)/10,el:+(G.el||0).toFixed(2),hold:ho,hn:G.hn||{},gl:G.gl&&(G.el||0)-G.gl.t<1?G.gl:null,sw:G.sw,gh:G.gh,notes:G.notes,
     pl:G.pl.map(p=>({id:p.id,n:p.n,c:p.c,x:+p.x.toFixed(2),y:+p.y.toFixed(2),z:+p.z.toFixed(2),yaw:+p.yaw.toFixed(2),cr:p.cr,cap:p.cap,carry:p.carry,hk:p.hk,hp:+p.hp.toFixed(2),room:p.room,off:!!p.off,nz:+(p.nz||0).toFixed(2)})),
     en:G.en.map(e=>[+e.x.toFixed(2),+e.z.toFixed(2),+e.yaw.toFixed(2),+e.look.toFixed(2),e.spr])}; }
 
@@ -1173,6 +1173,8 @@ ${isHost?`<div class="lvs">${LEVELS.map((L,i)=>`<button class="lv${i===sel?' on'
       if(LV.tgates) for(const g of LV.tgates){ const o=gateOpen(g,el0); st.push(o.open?g.n+'：開いている　あと'+Math.ceil(o.left)+'秒':g.n+'：開くまで　'+Math.ceil(o.left)+'秒'); }
       if(V.f.fires){ const n=V.f.fires.filter(q=>q.r>.6).length; if(n) st.push('火の手 '+n+'か所'+(V.f.fires.some(q=>q.r>.6&&q.r>=q.max-.05)?'（燃え盛っている）':'')); }
       if(LV.status) st.push(...(LV.status(V.f)||[]).filter(Boolean));
+      if(V.gl){ const on=V.pl.filter(p=>!p.off),here=on.filter(p=>!p.cap&&!p.room&&Math.hypot(p.x-V.gl.x,p.z-V.gl.z)<V.gl.r); const meIn=Math.hypot(P.x-V.gl.x,P.z-V.gl.z)<V.gl.r&&!P.room;
+        if(meIn&&on.length>1){ const miss=on.filter(p=>!here.includes(p)); st.push('ゴールにそろった人 '+here.length+' / '+on.length+(miss.length?'　まだ：'+miss.map(p=>p.n+(p.cap?'（捕まっている）':'')).join('・'):'')); } }
       const sh=st.join('　｜　'); if(sh!==statHTML){ statHTML=sh; el('escStat').textContent=sh; el('escStat').hidden=!sh; hudHTML=''; } }
     el('escVig').style.boxShadow=danger>.05?`inset 0 0 ${60+danger*90}px ${10+danger*40}px rgba(255,40,20,${Math.min(.75,danger*.8)})`:'none';
     const cap=el('escCap'); if(mine&&mine.cap){ cap.hidden=false; cap.innerHTML='徳川方の追手に捕まった！<br><span style="font-size:15px">'+(V.pl.length>1?'仲間が来て縄を解くのを待て':'まもなく少し前からやり直し（−45秒）')+'</span><br><span style="font-size:13px;font-weight:400">地面のオレンジの扇形が追手の視界。入らないように</span>'; P.pitch+=(-.5-P.pitch)*Math.min(1,dt*3); } else cap.hidden=true;
