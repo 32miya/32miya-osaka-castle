@@ -82,7 +82,8 @@
 - 画像：大阪城さんぽの `../assets/` を共有。仲間のしゃがみ姿は `crouch.webp`
 - `src/escape.js`：脱出ゲーム層のソース
 - `src/build.py`：大阪城さんぽの index.html（`src/base.html`）から、このゲームの index.html を作るスクリプト
-  - 大阪城さんぽのマップを更新したら：新しい index.html を `src/base.html` に置いて リポジトリ直下の index.html を `escape/src/base.html` にコピーし、escape フォルダで `python3 src/build.py src/base.html index.html ../`
+  - `src/base.html` は、このゲームが土台にしている大阪城さんぽの版（大阪城さんぽ本体の御城印・見どころ札などの新機能はゲームの画面と重なるため、まだ取り込んでいません）
+  - 作り直し方：escape フォルダで `python3 src/build.py src/base.html index.html ../` のあと、画像の読み込み先 `../assets/atlas`・`../assets/tiles.webp` を `/oshiro/common/assets/` に置き換える
 
 ## 公開URL（GitHub Pages を有効にした場合）
 
