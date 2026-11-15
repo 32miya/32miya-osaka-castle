@@ -167,7 +167,7 @@ const ESC=(()=>{
       Object.assign(tk('三の丸の門をくぐって城へ入る',false,{x:W.goal.x,z:W.goal.z,n:'三の丸の門'}),{ph:3})].map(t=>{ if(t.ph===undefined) t.ph=0; return t; }); },
     roomHint(f){ if(f.o===1&&!f.mitsu&&P.room&&SHOPS.some(q=>room(q[0])===P.room)) return '店の中を調べよう'; if(f.o===1&&!f.mitsu) return '町家の入口から店に入れる'; return ''; },
     glints(f){ const g=[]; if(f.o===1&&!f.mitsu) W.spots.forEach((S,s)=>S.forEach((o,i)=>{ if(o&&!f.srch[s][i]) g.push([o.x,o.y+1.3,o.z]); })); if(f.o===1&&!f.monk&&W.monk) g.push([W.monk.x,W.monk.y+2.2,W.monk.z]); return g; },
-    render(f,t){ bob(W.elder.q,f.o===0,t); W.rum.forEach((r,j)=>bob(r.q,f.o===1&&!f.r[j],t)); bob(W.guard.q,f.o===2,t); },
+    render(f,t){ if(!W.gB){ W.gB=aObj(beam(0x9effa8)); W.gR=aObj(ring(0x9effa8)); } { const on=f.o===3; W.gB.visible=W.gR.visible=on; if(on){ W.gB.position.set(W.goal.x,W.goal.y,W.goal.z); W.gR.position.set(W.goal.x,W.goal.y+.05,W.goal.z); } } bob(W.elder.q,f.o===0,t); W.rum.forEach((r,j)=>bob(r.q,f.o===1&&!f.r[j],t)); bob(W.guard.q,f.o===2,t); },
     check(f){ return f.o>=2?[-60,560]:[-72,800]; } };
 
   /* ---------- 其の二　真田丸の狼煙（夕・惣構の南） ---------- */
@@ -216,7 +216,7 @@ const ESC=(()=>{
     arrowOverride(f,mine){ if(f.o===3&&(!mine||mine.carry!=='火種')) return {x:W.fire.x,z:W.fire.z,n:'篝火'}; if(f.o===3) return {n:'物見の言葉を思い出し、旗の色で狼煙台を選べ'}; return null; },
     glints(f){ const g=[]; if(f.o===1){ if(!f.flint) W.crates.forEach((o,i)=>{ if(!f.cr[i]) g.push([o.x,o.y+1.6,o.z]); }); if(!f.bachi) W.bachi.forEach((o,i)=>{ if(!f.bs[i]) g.push([o.x,o.y+1.6,o.z]); }); } if(f.o===2) g.push([W.fire.x,W.fire.y+2.4,W.fire.z]);
       if(f.o===3) W.sites.forEach((o,j)=>{ if(!f.on[j]) g.push([o.x,o.y+2.2,o.z]); }); if(f.o===4){ g.push([W.drA.x,W.drA.y+1.6,W.drA.z]); g.push([W.drB.x,W.drB.y+1.6,W.drB.z]); } return g; },
-    render(f,t){ bob(W.scout.q,f.o===0,t); if(f.o>=3) fxSet('kg',{type:'blaze',x:W.fire.x,y:W.fire.y+.8,z:W.fire.z,r:.5,h:1.2,rate:12,ring:false}); else fxSet('kg',null);
+    render(f,t){ if(!W.gB){ W.gB=aObj(beam(0x9effa8)); W.gR=aObj(ring(0x9effa8)); } { const on=f.o===5; W.gB.visible=W.gR.visible=on; if(on){ W.gB.position.set(W.goal.x,W.goal.y,W.goal.z); W.gR.position.set(W.goal.x,W.goal.y+.05,W.goal.z); } } bob(W.scout.q,f.o===0,t); if(f.o>=3) fxSet('kg',{type:'blaze',x:W.fire.x,y:W.fire.y+.8,z:W.fire.z,r:.5,h:1.2,rate:12,ring:false}); else fxSet('kg',null);
       W.sites.forEach((o,j)=>{ const want=!!f.on[j],has=fxMap.has('sm'+j); if(want&&!has){ fxSet('sm'+j,{type:'column',x:o.x,y:o.y+1,z:o.z,r:1.4,rate:6}); fxSet('sf'+j,{type:'blaze',x:o.x,y:o.y+.5,z:o.z,r:.7,h:1.4,rate:16,ring:false}); } if(!want&&has){ fxSet('sm'+j,null); fxSet('sf'+j,null); } }); },
     check(f){ return f.o>=4?[230,947]:[-60,896]; } };
 
@@ -225,16 +225,16 @@ const ESC=(()=>{
     ['大名屋敷の書院','書院',[{n:'文机',spr:'lowtable'},{n:'掛け軸',spr:'kakejiku'},{n:'違い棚',spr:'shelf'}],['筆と硯の眠る台','絵の垂れ下がる裏','段違いの棚の上']],
     ['大名屋敷の奥座敷','奥座敷',[{n:'屏風',spr:'by_crane'},{n:'行灯',spr:'andon'},{n:'長持',spr:'chest_k'}],['鶴の舞う衝立の陰','夜を照らす灯の傍ら','衣を納める箱の底']]];
   const KG_POS=[[-120,165],[40,120],[150,40],[-100,-100],[-190,-40]];
-  const EXITS=[{n:'京橋口',d:'乾（いぬい）',x:-201,z:-214},{n:'青屋口',d:'子（ね）',x:-55,z:-214},{n:'玉造口',d:'巽（たつみ）',x:155,z:204},{n:'大手口',d:'酉（とり）',x:-226,z:107}];
+  const EXITS=[{n:'京橋口',d:'乾（いぬい）',j:'北西',x:-200,z:-262},{n:'青屋口',d:'子（ね）',j:'北',x:-55,z:-219},{n:'玉造口',d:'巽（たつみ）',j:'南東',x:155,z:204},{n:'大手口',d:'酉（とり）',j:'西',x:-226,z:107}];
   const L3={ name:'二の丸の導火線', sub:'慶長二十年 四月 ・ 夜 ・ 二の丸', time:3, scen:null, limit:600, phases:5,
     story:'夏の陣を前に、城内の内通者が二の丸の大名屋敷に火薬の導火線を仕掛けた。書付を手がかりに三つの屋敷の導火線を切り、火薬樽を湿らせよ。手分けすれば早い。最後は逃げた内通者の行き先を突き止めて捕らえよ。',
-    bounds:{x0:-238,x1:208,z0:-232,z1:212}, spawn:[-195,190,0],
+    bounds:{x0:-238,x1:208,z0:-300,z1:214}, spawn:[-195,190,0],
     patrols:[{p:[[-120,-150],[40,-150]],s:1.8},{p:[[-80,-205],[-80,-158],[-30,-158],[-30,-205]],s:1.6,spr:'k_teppo'},{p:[[60,-210],[60,-160]],s:1.5},{p:[[-205,60],[-205,-120]],s:1.6},{p:[[0,150],[150,150]],s:1.7,spr:'k_teppo'},{p:[[100,40],[100,-100]],s:1.5},{p:[[-150,120],[-40,120]],s:1.6},{p:[[180,-120],[180,100]],s:1.5}],
     setup(){ return {kg:rint(KG_POS.length),corr:[rint(3),rint(3),rint(3)],exit:rint(EXITS.length)}; },
     build(s){ W.boss=npc('samurai_a',-200,182,'番頭'); W.kg=KG_POS.map(c=>{ const o=spot(c[0],c[1]); aSpr('kagaribi',o.x,o.y,o.z,{s:1.2}); return o; });
       W.rooms=DROOMS.map(d=>({R:room(d[0]),spots:roomProps(room(d[0]),d[2])}));
       W.well=spot(-150,-60); aSpr('bucket',W.well.x+1.2,W.well.y,W.well.z,{}); aSpr('w_bucket',W.well.x-1,W.well.y,W.well.z+.5,{}); W.powder=spot(120,-195); aSpr('barrels',W.powder.x,W.powder.y,W.powder.z,{s:1.3});
-      W.exits=EXITS.map(e=>{ const o=spot(e.x,e.z); o.n=e.n; return o; }); },
+      W.exits=EXITS.map(e=>{ const o=spot(e.x,e.z); o.n=e.n; o.tag=aObj(nameTag(e.n,'#ffd36a')); o.tag.position.set(o.x,o.y+4.2,o.z); o.tag.visible=false; o.bm=aObj(beam(0xffd36a)); o.bm.position.set(o.x,o.y,o.z); o.bm.visible=false; return o; }); },
     init(){ return {o:0,kg:KG_POS.map(()=>0),cut:[0,0,0],srch:[[0,0,0],[0,0,0],[0,0,0]],wet:0,need:nPl()>=2?2:1,wx:[0,0,0,0]}; },
     target(f,p){ if(near(p,W.boss)) return {k:'boss',l:'番頭に話を聞く',d:.15};
       if(f.o===1) for(let j=0;j<W.kg.length;j++) if(!f.kg[j]&&near(p,W.kg[j],3)) return {k:'kg'+j,l:'篝火のまわりを調べる',d:.5};
@@ -250,19 +250,19 @@ const ESC=(()=>{
       else if(k==='wet'){ p.carry=false; f.wet++; event('火薬樽を湿らせた（'+f.wet+' / '+f.need+'杯）'); }
       if(f.o===2&&f.cut.every(Boolean)&&f.wet>=f.need){ f.o=3; event('導火線も火薬樽も片付いた！ 番頭に知らせ、内通者の行き先を聞け'); } },
     drop(p){ p.carry=false; },
-    tick(){ const f=G.f; if(f.o!==4) return; W.exits.forEach((o,i)=>{ if(i===SET.exit){ if(allIn(o,8)) finish(true,EXITS[i].n+'で内通者を取り押さえた。二の丸は火の海にならずにすんだ――'); } else if(!f.wx[i]&&inCount(o,6)>0){ f.wx[i]=1; penalty(15,EXITS[i].n+'には誰もいない……方角を考え直せ'); } }); },
+    tick(){ const f=G.f; if(f.o!==4) return; W.exits.forEach((o,i)=>{ if(i===SET.exit){ if(allIn(o,12)) finish(true,EXITS[i].n+'で内通者を取り押さえた。二の丸は火の海にならずにすんだ――'); } else if(!f.wx[i]&&inCount(o,8)>0){ f.wx[i]=1; penalty(15,EXITS[i].n+'（'+EXITS[i].j+'）には誰もいない……内通者が逃げたのは'+EXITS[SET.exit].d+'＝'+EXITS[SET.exit].j+'の方角だ'); } }); },
     tasks(f,mine){ const rm=r=>{ const q=W.rooms[r]; if(P.room===q.R) return null; return doorAt(q.R,'大名屋敷（'+DROOMS[r][1]+'）'); }; return [
       Object.assign(tk('番頭の話を聞く',f.o>0,W.boss),{ph:0}),
       Object.assign(tk('見回りの篝火のそばで内通者の書付を探す',f.o>1,null),{ph:1,many:W.kg.filter((o,j)=>!f.kg[j]).map(o=>({x:o.x,z:o.z,n:'篝火'}))}),
       ...DROOMS.map((d,r)=>Object.assign(tk(d[1]+'の導火線を切る',f.cut[r],rm(r)),{ph:2})),
       Object.assign(tk(`井戸の水で火薬樽を湿らせる（${f.wet} / ${f.need}杯）`,f.wet>=f.need,mine&&mine.carry==='水'?{x:W.powder.x,z:W.powder.z,n:'火薬樽'}:{x:W.well.x,z:W.well.z,n:'井戸'}),{ph:2}),
       Object.assign(tk('番頭に知らせ、内通者の行き先を聞く',f.o>3,W.boss),{ph:3}),
-      Object.assign(tk('方角を読み解き、内通者が逃げた口へ全員で向かう',false,null),{ph:4,many:W.exits.filter((o,i)=>!f.wx[i]).map(o=>({x:o.x,z:o.z,n:o.n}))})]; },
-    roomHint(f){ if(f.o===2&&P.room&&W.rooms.some(q=>q.R===P.room)) return P.room.name.replace('大名屋敷の','')+'の中を調べよう'; if(f.o===4) return 'ミニマップは北が上。方角から口を選べ'; return ''; },
-    arrowOverride(f){ if(f.o===4) return {n:'ミニマップは北が上。方角から口を選べ'}; return null; },
+      Object.assign(tk('内通者は'+EXITS[SET.exit].d+'＝'+EXITS[SET.exit].j+'の方角の口へ逃げた。その口へ全員で向かう（ミニマップは北が上）',false,null),{ph:4,many:W.exits.filter((o,i)=>!f.wx[i]).map(o=>({x:o.x,z:o.z,n:o.n}))})]; },
+    roomHint(f){ if(f.o===2&&P.room&&W.rooms.some(q=>q.R===P.room)) return P.room.name.replace('大名屋敷の','')+'の中を調べよう'; if(f.o===4) return '黄色い光の柱が城の口。'+EXITS[SET.exit].j+'の方角の口へ'; return ''; },
+    arrowOverride(f){ if(f.o===4) return {n:EXITS[SET.exit].j+'の方角の口へ（ミニマップは北が上）'}; return null; },
     glints(f){ const g=[]; if(f.o===1) W.kg.forEach((o,j)=>{ if(!f.kg[j]) g.push([o.x,o.y+2.6,o.z]); }); if(f.o===2){ W.rooms.forEach((q,r)=>{ if(!f.cut[r]) q.spots.forEach((o,i)=>{ if(o&&!f.srch[r][i]) g.push([o.x,o.y+1.3,o.z]); }); }); if(f.wet<f.need){ g.push([W.well.x,W.well.y+1.6,W.well.z]); g.push([W.powder.x,W.powder.y+2,W.powder.z]); } }
       if(f.o===4) W.exits.forEach((o,i)=>{ if(!f.wx[i]) g.push([o.x,o.y+3,o.z]); }); return g; },
-    render(f,t){ bob(W.boss.q,f.o===0||f.o===3,t); },
+    render(f,t){ bob(W.boss.q,f.o===0||f.o===3,t); W.exits.forEach((o,i)=>{ const on=f.o===4&&!f.wx[i]; o.tag.visible=on; o.bm.visible=on; }); },
     check(f){ return f.o>=2?[-150,-40]:[-195,190]; } };
 
   /* ---------- 其の四　裸城の宝（昼・本丸と二の丸） ---------- */
@@ -307,7 +307,7 @@ const ESC=(()=>{
     roomHint(f){ if(f.o===1&&(P.room===W.R1||P.room===W.R2)) return '目利きの言葉で本物を見分けよう'; return ''; },
     glints(f){ const g=[]; if(f.o===1){ if(!f.key) W.toro.forEach((o,i)=>{ if(!f.toro[i]) g.push([o.x,o.y+2,o.z]); }); W.items.forEach((o,i)=>{ if(o&&!f.taken[i]&&!f.fake[i]) g.push([o.x,o.y+1.4,o.z]); }); g.push([W.box.x,W.box.y+1.6,W.box.z]); }
       if(f.o===2){ if(!f.cart){ g.push([W.hA.x,W.hA.y+1.2,W.hA.z]); g.push([W.hB.x,W.hB.y+1.2,W.hB.z]); } if(!f.bell) g.push([W.bell.x,W.bell.y+2.6,W.bell.z]); } return g; },
-    render(f,t){ bob(W.mekiki.q,f.o===0,t); const gone=!!f.bell; if(W.banIt) crowd.move(W.banIt,gone?0:W.ban.x,gone?-999:W.ban.y,W.ban.z); W.banTag.visible=!gone; },
+    render(f,t){ if(!W.gB){ W.gB=aObj(beam(0x9effa8)); W.gR=aObj(ring(0x9effa8)); } { const on=f.o===3; W.gB.visible=W.gR.visible=on; if(on){ W.gB.position.set(W.goal.x,W.goal.y,W.goal.z); W.gR.position.set(W.goal.x,W.goal.y+.05,W.goal.z); } } bob(W.mekiki.q,f.o===0,t); const gone=!!f.bell; if(W.banIt) crowd.move(W.banIt,gone?0:W.ban.x,gone?-999:W.ban.y,W.ban.z); W.banTag.visible=!gone; },
     check(f){ return f.o>=2?[-60,140]:[0,126]; } };
 
   /* ---------- 其の五　落城の夜（夜・本丸から大川へ） ---------- */
