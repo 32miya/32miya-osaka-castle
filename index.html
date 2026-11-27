@@ -138,6 +138,8 @@ body.touchui #poi{bottom:calc(env(safe-area-inset-bottom,0px) + 234px);max-width
 #err{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;line-height:1.8;z-index:40;background:var(--sumi)}
 @media (min-width:760px){ .place .area{font-size:26px} #mini{width:132px;height:132px} }
 </style>
+<script>/* 戦国・城ディフェンス（合戦モード・別リポジトリ defence-castle）: URLに ?battle を付けたときだけ。散策には影響しない */
+if(/[?&]battle\b/.test(location.search)){ document.documentElement.classList.add('obattle'); var l=document.createElement('link'); l.rel='stylesheet'; l.href='/defence-castle/battle/battle.css'; document.head.appendChild(l); }</script>
 </head>
 <body>
 
@@ -1132,6 +1134,7 @@ const $=id=>document.getElementById(id);
 if(!window.THREE){ $('err').hidden=false; return; }
 const isTouch=matchMedia('(pointer:coarse)').matches;
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BATTLE=/[?&]battle\b/.test(location.search);   /* 合戦モード（defence-castle のゲームが画面とカメラを受け持つ） */
 $('ctlText').textContent = isTouch
   ? '画面の左半分をなぞって移動、右半分をなぞって見回します。大きく倒すと走ります。'
   : 'WASD・矢印キーで移動、ドラッグで見回し、Shiftで走ります。Mキーで地図。';
@@ -4439,20 +4442,22 @@ body:not(.touchui) #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 70px)}
 applyTime(1);
 let last=performance.now(),clock=0,fr=0,curLF=1; const _f=V3(),_r=V3(),_u=V3(),_up=V3(0,1,0); const _tgt=V3();
 function frame(now){ const dt=Math.min(.05,(now-last)/1000); last=now; clock+=dt; fr++;
-  if(started) updatePlayer(dt); else attract(dt);
+  const OB=BATTLE&&window.OshiroBattle&&OshiroBattle.ready?OshiroBattle:null;
+  if(OB) OB.frame(dt,now); else if(started) updatePlayer(dt); else attract(dt);
   { const T=TIMES[timeIdx],tgt=(started&&(P.level>=0||P.room))?1:0; inBoost+=(tgt-inBoost)*Math.min(1,dt*3); const lt=(P.level>=0&&FL[P.level]&&FL[P.level].light)||(P.room&&P.room.light)||1; curLF+=(lt-curLF)*Math.min(1,dt*2.5);
     hemi.intensity=T.hi*(1+inBoost*1.4)*(1-inBoost*(1-curLF)); renderer.toneMappingExposure=T.exp*(1+inBoost*.3)*(1-inBoost*(1-curLF)*.6);
     inLamp.intensity=inBoost*(.8+(T.night>.5?.5:0)); inLamp.position.set(camera.position.x,camera.position.y+.45,camera.position.z); inFill.intensity=inBoost*.55; }
-  updateBoats(dt,clock); updateDoorMarks(clock); updatePJ(dt); updateChars(dt); waterMat.uniforms.uTime.value=clock; sky.position.copy(camera.position);
-  if(started) _tgt.set(P.x,0,P.z); else { const c=TEN[MODE]; _tgt.set(c.cx,0,c.cz); }
+  if(!BATTLE) updateBoats(dt,clock); if(!BATTLE) updateDoorMarks(clock); updatePJ(dt); if(!BATTLE) updateChars(dt); waterMat.uniforms.uTime.value=clock; sky.position.copy(camera.position);
+  if(OB) _tgt.set(OB.shadowCenter[0],0,OB.shadowCenter[1]); else if(started) _tgt.set(P.x,0,P.z); else { const c=TEN[MODE]; _tgt.set(c.cx,0,c.cz); }
   /* 影のちらつき防止: 影を描く範囲を影の画素の格子に合わせて動かす */
   { const sz=sun.shadow.mapSize.x,ext=sun.shadow.camera.right,tx=2*ext/sz; _f.copy(sunDir).negate(); _r.crossVectors(_up,_f).normalize(); _u.crossVectors(_f,_r);
     const a=Math.round(_tgt.dot(_r)/tx)*tx,b=Math.round(_tgt.dot(_u)/tx)*tx,c=_tgt.dot(_f); _tgt.copy(_r).multiplyScalar(a).addScaledVector(_u,b).addScaledVector(_f,c); }
   sun.position.copy(_tgt).addScaledVector(sunDir,320); sun.target.position.copy(_tgt); sun.target.updateMatrixWorld();
-  renderer.shadowMap.needsUpdate=true; camera.updateMatrixWorld();
+  if(OB){ if(OB.shadowDirty){ renderer.shadowMap.needsUpdate=true; OB.shadowDirty--; } } else renderer.shadowMap.needsUpdate=true; camera.updateMatrixWorld();
   if(quality==='high') renderReflection();
   if(composer&&quality==='high'){ grade.uniforms.uNight.value=TIMES[timeIdx].night; bloom.strength=TIMES[timeIdx].night>.5?.38:.24; bloom.threshold=TIMES[timeIdx].night>.5?.92:.88; composer.render(); } else renderer.render(scene,camera);
   if(started){ updateHUD(); if(fr%2===0) drawMini(); }
+  if(OB&&OB.after) OB.after(dt);
   if(!ready&&fr>2){ ready=true; const b=$('goBtn'); b.disabled=false; b.textContent='散策をはじめる'; }
   requestAnimationFrame(frame); }
 try{ const m=new URLSearchParams(location.search).get('era'); if(m==='toyo') setMode('toyo'); }catch(e){}
@@ -4460,6 +4465,12 @@ try{ const m=new URLSearchParams(location.search).get('era'); if(m==='toyo') set
 ROOMS.forEach(R=>{ if(!R.exitZone||!R.spawn||!R.boxes) return; const ez=R.exitZone,sx=R.spawn[0],sz=R.spawn[1],cor={x0:Math.min(sx,ez.x0)-.6,x1:Math.max(sx,ez.x1)+.6,z0:Math.min(sz,ez.z0)-1.2,z1:Math.max(sz,ez.z1)+.6};
   R.boxes=R.boxes.filter(b=>!(b.x1+.25>cor.x0&&b.x0-.25<cor.x1&&b.z1+.25>cor.z0&&b.z0-.25<cor.z1)); });
 requestAnimationFrame(frame);
+/* 合戦モード（defence-castle）が使う中身。ゲーム本体は /defence-castle/battle/、この城の設定データは battle/maps/osaka.js */
+window.__iy={scene,camera,renderer,sun,hemi,waterMat,TIMES,GM,GE,GNPC,M:Object.assign({},M,{terrain:groundMatE}),get MODE(){ return MODE; },get timeIdx(){ return timeIdx; },
+  groundH0:(x,z)=>groundH(x,z), terrH:(x,z)=>groundH(x,z), floorH:(x,z)=>{ const l=liftH(x,z); return l===null?0:l; }, applyTime, setMode,
+  isWater:(x,z)=>waterAt(x,z,0)&&!actB().some(b=>inR(b,x,z,0)),
+  setQuality:q=>{ if((q==='high')!==(quality==='high')) $('tQual').click(); }, BATTLE};
+if(BATTLE){ setMode('toyo'); window.OB_MAP='osaka'; window.OB_GAME_URL='/defence-castle/'; for(const src of ['/defence-castle/battle/sim.js','/defence-castle/battle/maps/osaka.js','/defence-castle/battle/view.js']){ const sc=document.createElement('script'); sc.src=src; sc.async=false; document.body.appendChild(sc); } }
 window.__oc={P,dbg:{renderer,M,sun},ROOMS,walkable,groundH,walkFloor:(L,x,z)=>walkFloor(L,x,z),spots:()=>curSpots,enterRoom,sim:(n,dt,k)=>{ Object.assign(keys,k||{}); for(let i=0;i<n;i++) updatePlayer(dt||.05); for(const q in k||{}) keys[q]=false; },setMode,teleport:id=>{ const s=curSpots.find(q=>q.id===id); if(s) teleport(s); },start:()=>$('goBtn').click(),TEN,get MODE(){ return MODE; }};
 })();
 
